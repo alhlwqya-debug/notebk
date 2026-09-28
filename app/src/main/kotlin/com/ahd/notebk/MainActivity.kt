@@ -28,13 +28,17 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "ledger") {
                         composable("ledger") {
-                            LedgerScreen(viewModel = ledgerViewModel, onOpenSettings = { navController.navigate("settings") })
+                            LedgerScreen(
+                                viewModel = ledgerViewModel,
+                                onOpenSettings = { navController.navigate("settings") },
+                                onOpenReport = { navController.navigate("report") }
+                            )
                         }
                         composable("settings") {
-                            SettingsScreen(settingsViewModel = settingsViewModel, ledgerViewModel = ledgerViewModel, onBack = { navController.popBackStack() })
+                            SettingsScreen(settingsViewModel, ledgerViewModel) { navController.popBackStack() }
                         }
                         composable("report") {
-                            ReportScreen(viewModel = ledgerViewModel, onBack = { navController.popBackStack() })
+                            ReportScreen(ledgerViewModel) { navController.popBackStack() }
                         }
                     }
                 }

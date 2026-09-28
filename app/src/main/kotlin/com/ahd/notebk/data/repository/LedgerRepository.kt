@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 class LedgerRepository(private val database: AppDatabase, private val dao: RecordDao) {
     val allRecords: Flow<List<TailorRecord>> = dao.getAllRecords().map { rows -> rows.map { it.toDomain() } }
 
-    suspend fun addRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, note: String, timestamp: Long) {
+    suspend fun addRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, note: String, pieceType: String, timestamp: Long) {
         require(dayName.isNotBlank()) { "dayName is required" }
         require(quantity >= 0) { "quantity must be non-negative" }
         require(amount >= 0.0) { "amount must be non-negative" }
@@ -24,6 +24,7 @@ class LedgerRepository(private val database: AppDatabase, private val dao: Recor
                 debit = if (isCredit) 0.0 else amount,
                 balance = 0.0,
                 note = note.trim(),
+                pieceType = pieceType.ifBlank { "ثابت كامل" }.trim(),
                 timestamp = timestamp
             ))
             recalculateBalances()

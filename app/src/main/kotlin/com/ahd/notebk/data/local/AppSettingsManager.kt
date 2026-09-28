@@ -13,6 +13,11 @@ private val Context.dataStore by preferencesDataStore(name = "tailor_app_setting
 
 data class AppSettings(
     val shopName: String = "ورشة الخياطة الرقمية",
+    val ownerName: String = "",
+    val shopNumber: String = "",
+    val phone: String = "",
+    val address: String = "",
+    val workerName: String = "",
     val defaultPiecePrice: Double = 2000.0,
     val currencySymbol: String = "ر.ي",
     val showDebitCredit: Boolean = true,
@@ -22,6 +27,11 @@ data class AppSettings(
 class AppSettingsManager(private val context: Context) {
     companion object {
         private val SHOP_NAME = stringPreferencesKey("shop_name")
+        private val OWNER_NAME = stringPreferencesKey("owner_name")
+        private val SHOP_NUMBER = stringPreferencesKey("shop_number")
+        private val PHONE = stringPreferencesKey("phone")
+        private val ADDRESS = stringPreferencesKey("address")
+        private val WORKER_NAME = stringPreferencesKey("worker_name")
         private val DEFAULT_PRICE = doublePreferencesKey("default_piece_price")
         private val CURRENCY = stringPreferencesKey("currency_symbol")
         private val SHOW_DEBIT_CREDIT = booleanPreferencesKey("show_debit_credit")
@@ -31,6 +41,11 @@ class AppSettingsManager(private val context: Context) {
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { p ->
         AppSettings(
             shopName = p[SHOP_NAME] ?: "ورشة الخياطة الرقمية",
+            ownerName = p[OWNER_NAME] ?: "",
+            shopNumber = p[SHOP_NUMBER] ?: "",
+            phone = p[PHONE] ?: "",
+            address = p[ADDRESS] ?: "",
+            workerName = p[WORKER_NAME] ?: "",
             defaultPiecePrice = p[DEFAULT_PRICE] ?: 2000.0,
             currencySymbol = p[CURRENCY] ?: "ر.ي",
             showDebitCredit = p[SHOW_DEBIT_CREDIT] ?: true,
@@ -41,6 +56,11 @@ class AppSettingsManager(private val context: Context) {
     suspend fun updateSettings(settings: AppSettings) {
         context.dataStore.edit { p ->
             p[SHOP_NAME] = settings.shopName
+            p[OWNER_NAME] = settings.ownerName
+            p[SHOP_NUMBER] = settings.shopNumber
+            p[PHONE] = settings.phone
+            p[ADDRESS] = settings.address
+            p[WORKER_NAME] = settings.workerName
             p[DEFAULT_PRICE] = settings.defaultPiecePrice
             p[CURRENCY] = settings.currencySymbol
             p[SHOW_DEBIT_CREDIT] = settings.showDebitCredit

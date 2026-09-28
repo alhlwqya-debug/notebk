@@ -47,7 +47,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
+fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenReport: () -> Unit) {
     val settings by viewModel.settingsState.collectAsState()
     val records by viewModel.recordsState.collectAsState()
     val summary by viewModel.summaryState.collectAsState()
@@ -57,13 +57,15 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf(true) }
+    var pieceType by remember { mutableStateOf("ثابت كامل") }
+    val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
 
     LaunchedEffect(settings.autoFillToday) {
         if (settings.autoFillToday && day.isBlank()) day = SimpleDateFormat("EEEE", Locale("ar")).format(Date())
     }
 
     val visibleRecords = if (query.isBlank()) records else records.filter {
-        it.dayName.contains(query, true) || it.note.contains(query, true) || it.itemQuantity.toString().contains(query)
+        it.dayName.contains(query, true) || it.note.contains(query, true) || it.itemQuantity.toString().contains(query) || it.pieceType.contains(query, true)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -73,7 +75,10 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
                     Text(settings.shopName, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     Text("دفتر الخياط الرقمي • ${summary.totalPieces} قطعة", fontSize = 11.sp, color = Color.LightGray)
                 }
-                IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "الإعدادات") }
+                Row {
+                    Button(onClick = onOpenReport, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))) { Text("التقرير") }
+                    IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "الإعدادات") }
+                }
             }
         }
 
@@ -84,18 +89,12 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
             StatCard("الصافي", "%.0f %s".format(summary.netBalance, settings.currencySymbol), Modifier.weight(1f))
         }
 
-        OutlinedTextField(
-            value = query, onValueChange = viewModel::onSearchQueryChange,
-            label = { Text("بحث في الدفتر") }, singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-        )
+        OutlinedTextField(query, viewModel::onSearchQueryChange, label = { Text("بحث في الدفتر") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
         Spacer(Modifier.height(6.dp))
 
         Row(Modifier.fillMaxWidth().background(Color(0xFFE2E8F0)).border(0.5.dp, Color(0xFF94A3B8))) {
             GridCell("اليوم", 1f, true); GridCell("القطع", .8f, true, Color(0xFF0284C7))
-            if (settings.showDebitCredit) {
-                GridCell("له (+)", 1f, true, Color(0xFF15803D)); GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C)); GridCell("الرصيد", 1f, true)
-            }
+            if (settings.showDebitCredit) { GridCell("له (+)", 1f, true, Color(0xFF15803D)); GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C)); GridCell("الرصيد", 1f, true) }
             GridCell("الملاحظات", 1.3f, true)
         }
 
@@ -109,7 +108,7 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
                         GridCell(if (item.debit > 0) "%.0f".format(item.debit) else "-", 1f, color = Color(0xFFB91C1C))
                         GridCell("%.0f".format(item.balance), 1f, fontWeight = FontWeight.Bold)
                     }
-                    GridCell(item.note.ifBlank { "-" }, 1.3f)
+                    GridCell(item.note.ifBlank { item.pieceType }, 1.3f)
                 }
             }
         }
@@ -126,13 +125,14 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit) {
                     OutlinedTextField(amount, { amount = it }, Modifier.weight(1f), singleLine = true, label = { Text("المبلغ", fontSize = 10.sp) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                 }
                 Spacer(Modifier.height(4.dp))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    FilterChip(selected = true, onClick = { pieceType = pieceTypes[(pieceTypes.indexOf(pieceType) + 1) % pieceTypes.size] }, label = { Text(pieceType, fontSize = 10.sp) })
                     OutlinedTextField(note, { note = it }, Modifier.weight(1f), singleLine = true, label = { Text("ملاحظة", fontSize = 10.sp) })
                     FilterChip(selected = credit, onClick = { credit = !credit }, label = { Text(if (credit) "له (+)" else "عليه (-)") }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = if (credit) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)))
                     Button(onClick = {
-                        viewModel.addNewRecord(day, quantity.toIntOrNull() ?: 0, amount.toDoubleOrNull() ?: 0.0, credit, note)
+                        viewModel.addNewRecord(day, quantity.toIntOrNull() ?: 0, amount.toDoubleOrNull() ?: 0.0, credit, note, pieceType)
                         quantity = ""; amount = ""; note = ""
-                    }, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) { Text("حفظ") }
+                    }, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) { Text("حفظ") }
                 }
             }
         }

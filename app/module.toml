@@ -37,7 +37,8 @@ resources = ["src/release/resources"]
 implementation = [
     "kotlin-stdlib",
 
-    # Android core/activity - explicit base artifacts prevent missing transitive classes
+    # Android core/activity
+    "androidx.core:core:1.13.1",
     "androidx.core:core-ktx:1.13.1",
     "androidx.activity:activity:1.9.3",
     "androidx.activity:activity-ktx:1.9.3",

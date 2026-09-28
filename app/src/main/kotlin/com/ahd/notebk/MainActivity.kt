@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ahd.notebk.ui.screen.ledger.LedgerScreen
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
+import com.ahd.notebk.ui.screen.report.ReportScreen
 import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
 
@@ -27,17 +28,13 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "ledger") {
                         composable("ledger") {
-                            LedgerScreen(
-                                viewModel = ledgerViewModel,
-                                onOpenSettings = { navController.navigate("settings") }
-                            )
+                            LedgerScreen(viewModel = ledgerViewModel, onOpenSettings = { navController.navigate("settings") })
                         }
                         composable("settings") {
-                            SettingsScreen(
-                                settingsViewModel = settingsViewModel,
-                                ledgerViewModel = ledgerViewModel,
-                                onBack = { navController.popBackStack() }
-                            )
+                            SettingsScreen(settingsViewModel = settingsViewModel, ledgerViewModel = ledgerViewModel, onBack = { navController.popBackStack() })
+                        }
+                        composable("report") {
+                            ReportScreen(viewModel = ledgerViewModel, onBack = { navController.popBackStack() })
                         }
                     }
                 }

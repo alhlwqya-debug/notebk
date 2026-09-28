@@ -22,16 +22,10 @@ class LedgerViewModel(application: Application) : AndroidViewModel(application) 
     private val repository = LedgerRepository(database, database.recordDao())
     val settingsManager = AppSettingsManager(application)
 
-    val settingsState: StateFlow<AppSettings> = settingsManager.settingsFlow.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings()
-    )
-    val recordsState: StateFlow<List<TailorRecord>> = repository.allRecords.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
-    )
+    val settingsState: StateFlow<AppSettings> = settingsManager.settingsFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
+    val recordsState: StateFlow<List<TailorRecord>> = repository.allRecords.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val summaryState: StateFlow<LedgerSummary> = MutableStateFlow(LedgerSummary()).also { target ->
-        viewModelScope.launch {
-            repository.allRecords.collect { target.value = LedgerEngine.calculateSummary(it) }
-        }
+        viewModelScope.launch { repository.allRecords.collect { target.value = LedgerEngine.calculateSummary(it) } }
     }.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
@@ -39,29 +33,14 @@ class LedgerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onSearchQueryChange(query: String) { _searchQuery.value = query }
 
-    fun filteredRecords(): List<TailorRecord> {
-        val q = _searchQuery.value.trim()
-        return if (q.isBlank()) recordsState.value else recordsState.value.filter {
-            it.dayName.contains(q, true) || it.note.contains(q, true) || it.itemQuantity.toString().contains(q)
-        }
-    }
-
-    fun addNewRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, note: String) {
+    fun addNewRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, note: String, pieceType: String = "ثابت كامل") {
         if (dayName.isBlank() || quantity < 0 || amount < 0.0) return
         viewModelScope.launch {
-            runCatching { repository.addRecord(dayName, quantity, amount, isCredit, note, System.currentTimeMillis()) }
+            runCatching { repository.addRecord(dayName, quantity, amount, isCredit, note, pieceType, System.currentTimeMillis()) }
         }
     }
 
-    fun deleteRecord(record: TailorRecord) {
-        viewModelScope.launch { runCatching { repository.deleteRecord(record) } }
-    }
-
+    fun deleteRecord(record: TailorRecord) { viewModelScope.launch { runCatching { repository.deleteRecord(record) } } }
     fun exportBackup(): String = LedgerEngine.exportToJson(recordsState.value)
-
-    fun importBackup(jsonString: String) {
-        viewModelScope.launch {
-            runCatching { repository.restoreAll(LedgerEngine.importFromJson(jsonString)) }
-        }
-    }
+    fun importBackup(jsonString: String) { viewModelScope.launch { runCatching { repository.restoreAll(LedgerEngine.importFromJson(jsonString)) } } }
 }

@@ -8,5 +8,6 @@ data class TailorRecord(
     val debit: Double,
     val balance: Double,
     val note: String,
+    val pieceType: String = "ثابت كامل",
     val timestamp: Long = System.currentTimeMillis()
 )

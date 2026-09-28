@@ -27,13 +27,14 @@ object LedgerEngine {
     fun exportToJson(records: List<TailorRecord>): String {
         val root = JSONObject().apply {
             put("format", "notebk-ledger")
-            put("version", 1)
+            put("version", 2)
             put("records", JSONArray().apply {
                 records.forEach { item ->
                     put(JSONObject().apply {
                         put("id", item.id)
                         put("dayName", item.dayName)
                         put("itemQuantity", item.itemQuantity)
+                        put("pieceType", item.pieceType)
                         put("credit", item.credit)
                         put("debit", item.debit)
                         put("balance", item.balance)
@@ -56,6 +57,7 @@ object LedgerEngine {
                     id = obj.optInt("id", 0),
                     dayName = obj.optString("dayName", ""),
                     itemQuantity = obj.optInt("itemQuantity", 0),
+                    pieceType = obj.optString("pieceType", "ثابت كامل"),
                     credit = obj.optDouble("credit", 0.0),
                     debit = obj.optDouble("debit", 0.0),
                     balance = obj.optDouble("balance", 0.0),

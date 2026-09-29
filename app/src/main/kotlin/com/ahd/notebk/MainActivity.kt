@@ -10,11 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ahd.notebk.ui.screen.individual.IndividualLedger
 import com.ahd.notebk.ui.screen.ledger.LedgerScreen
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.report.ReportScreen
 import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
+import com.ahd.notebk.ui.screen.statistics.StatisticsScreen
 import com.ahd.notebk.ui.theme.NotebkTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,7 +34,24 @@ class MainActivity : ComponentActivity() {
                             LedgerScreen(
                                 viewModel = ledgerViewModel,
                                 onOpenSettings = { navController.navigate("settings") },
-                                onOpenReport = { navController.navigate("report") }
+                                onOpenReport = { navController.navigate("report") },
+                                onOpenStatistics = { navController.navigate("statistics") },
+                                onOpenIndividualLedger = { navController.navigate("individual") }
+                            )
+                        }
+                        composable("statistics") {
+                            val summary = ledgerViewModel.summaryState.value
+                            val settings = ledgerViewModel.settingsState.value
+                            StatisticsScreen(
+                                summary = summary,
+                                workingDays = settings.workingDays,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("individual") {
+                            IndividualLedger(
+                                records = ledgerViewModel.recordsState.value,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("settings") {

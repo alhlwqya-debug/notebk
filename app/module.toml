@@ -90,3 +90,5 @@ manifestPlaceholders = []
 buildTypes = [{ name = "debug", debuggable = true, minifyEnabled = false, shrinkResources = false }, { name = "release", debuggable = false, minifyEnabled = false, shrinkResources = false, proguardFiles = ["proguard-android-optimize.txt", "proguard-rules.pro"] }]
 compose = true
 kspProcessors = ["room"]
+
+# Canonical CodeAssist module configuration; keep this file as valid TOML.

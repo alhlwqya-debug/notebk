@@ -13,9 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -37,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.ExperimentalMaterial3Api
 import com.ahd.notebk.data.local.AppSettings
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 
@@ -72,7 +72,7 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
         TopAppBar(
             title = { Text("الملف الشخصي والإعدادات", fontWeight = FontWeight.Bold) },
             navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF0F172A),
@@ -98,7 +98,7 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
             }
             OutlinedTextField(address, { address = it }, Modifier.fillMaxWidth(), label = { Text("العنوان") }, singleLine = true)
             OutlinedTextField(workerName, { workerName = it }, Modifier.fillMaxWidth(), label = { Text("اسم العامل") }, singleLine = true)
-            Divider()
+            HorizontalDivider()
             Text("إعدادات الحساب", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(price, { price = it }, Modifier.weight(1f), label = { Text("سعر القطعة") }, singleLine = true)
@@ -110,7 +110,7 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
                 settingsViewModel.save(AppSettings(shopName.trim().ifBlank { "ورشة الخياطة الرقمية" }, ownerName.trim(), shopNumber.trim(), phone.trim(), address.trim(), workerName.trim(), price.toDoubleOrNull() ?: 2000.0, currency.trim().ifBlank { "ر.ي" }, showMoney, autoToday))
                 Toast.makeText(context, "تم حفظ الملف الشخصي والإعدادات", Toast.LENGTH_SHORT).show()
             }, Modifier.fillMaxWidth()) { Text("حفظ التغييرات") }
-            Divider()
+            HorizontalDivider()
             Text("النسخ الاحتياطي", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
             OutlinedButton(onClick = { exportLauncher.launch("notebk-backup.json") }, Modifier.fillMaxWidth()) { Text("تصدير JSON") }
             OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain")) }, Modifier.fillMaxWidth()) { Text("استرجاع JSON") }

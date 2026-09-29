@@ -33,10 +33,18 @@ class LedgerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onSearchQueryChange(query: String) { _searchQuery.value = query }
 
-    fun addNewRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, note: String, pieceType: String = "ثابت كامل") {
+    fun addNewRecord(
+        dayName: String,
+        quantity: Int,
+        amount: Double,
+        isCredit: Boolean,
+        note: String,
+        pieceType: String = "ثابت كامل",
+        timestamp: Long = System.currentTimeMillis()
+    ) {
         if (dayName.isBlank() || quantity < 0 || amount < 0.0) return
         viewModelScope.launch {
-            runCatching { repository.addRecord(dayName, quantity, amount, isCredit, note, pieceType, System.currentTimeMillis()) }
+            runCatching { repository.addRecord(dayName, quantity, amount, isCredit, note, pieceType, timestamp) }
         }
     }
 

@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.ahd.notebk.data.report.TailorPdfReport
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -52,11 +54,20 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
     val records by viewModel.recordsState.collectAsState()
     val now = remember { Calendar.getInstance() }
     var file by remember { mutableStateOf<File?>(null) }
+    var isGenerating by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
     val year = now.get(Calendar.YEAR)
     val month = now.get(Calendar.MONTH)
 
-    LaunchedEffect(records, settings) {
-        file = TailorPdfReport.create(context, records, settings, year, month)
+    LaunchedEffect(records, settings, year, month) {
+        isGenerating = true
+        error = null
+        file = withContext(Dispatchers.IO) {
+            runCatching { TailorPdfReport.create(context, records, settings, year, month) }
+                .onFailure { error = it.message ?: "تعذر إنشاء التقرير" }
+                .getOrNull()
+        }
+        isGenerating = false
     }
 
     Scaffold(
@@ -65,7 +76,7 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
                 title = { Text("التقرير الشهري") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "رجوع")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع")
                     }
                 }
             )
@@ -79,43 +90,35 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("تقرير مالي وإداري شامل — $year - ${String.format("%02d", month + 1)}")
-            Text("الملخص المالي، بيانات الشهر، المؤشرات، ملخص القطع والسجل اليومي.")
+            Text("تاريخ إنشاء التقرير: ${java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.US).format(java.util.Date())}")
+            Text(if (isGenerating) "جاري تجهيز ملف PDF..." else "الملخص المالي، بيانات الشهر، المؤشرات، ملخص القطع والسجل اليومي.")
+            error?.let { Text("خطأ: $it") }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    enabled = file != null,
+                    enabled = file != null && !isGenerating,
                     onClick = { file?.let { printPdf(context, it) } },
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("🖨 طباعة")
-                }
+                ) { Text("🖨 طباعة") }
                 OutlinedButton(
-                    enabled = file != null,
+                    enabled = file != null && !isGenerating,
                     onClick = { file?.let { sharePdf(context, it) } },
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("مشاركة PDF")
-                }
+                ) { Text("مشاركة PDF") }
             }
             OutlinedButton(
-                enabled = file != null,
+                enabled = file != null && !isGenerating,
                 onClick = { file?.let { sharePdf(context, it) } },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("فتح/مشاركة ملف التقرير")
-            }
+            ) { Text("فتح/مشاركة ملف التقرير") }
         }
     }
 }
 
 private fun sharePdf(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        file
-    )
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "application/pdf"
         putExtra(Intent.EXTRA_STREAM, uri)
@@ -148,12 +151,10 @@ private class PdfPrintAdapter(private val file: File) : PrintDocumentAdapter() {
             callback.onLayoutCancelled()
             return
         }
-
         val info = PrintDocumentInfo.Builder(file.name)
             .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
             .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
             .build()
-
         callback.onLayoutFinished(info, oldAttributes != newAttributes)
     }
 
@@ -165,17 +166,12 @@ private class PdfPrintAdapter(private val file: File) : PrintDocumentAdapter() {
     ) {
         try {
             FileInputStream(file).use { input ->
-                FileOutputStream(destination.fileDescriptor).use { output ->
-                    input.copyTo(output)
-                }
+                FileOutputStream(destination.fileDescriptor).use { output -> input.copyTo(output) }
             }
             callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
         } catch (e: Exception) {
-            if (cancellationSignal?.isCanceled == true) {
-                callback.onWriteCancelled()
-            } else {
-                callback.onWriteFailed(e.message)
-            }
+            if (cancellationSignal?.isCanceled == true) callback.onWriteCancelled()
+            else callback.onWriteFailed(e.message)
         } finally {
             destination.close()
         }

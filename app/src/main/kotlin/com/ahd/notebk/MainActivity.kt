@@ -18,6 +18,9 @@ import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
 import com.ahd.notebk.ui.screen.statistics.StatisticsScreen
 import com.ahd.notebk.ui.theme.NotebkTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val ledgerViewModel: LedgerViewModel by viewModels()
@@ -42,9 +45,16 @@ class MainActivity : ComponentActivity() {
                         composable("statistics") {
                             val summary = ledgerViewModel.summaryState.value
                             val settings = ledgerViewModel.settingsState.value
+                            val records = ledgerViewModel.recordsState.value
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                            val workingDays = records
+                                .map { dateFormat.format(Date(it.timestamp)) }
+                                .distinct()
+                                .size
                             StatisticsScreen(
                                 summary = summary,
-                                workingDays = settings.workingDays,
+                                workingDays = workingDays,
+                                currency = settings.currencySymbol,
                                 onBack = { navController.popBackStack() }
                             )
                         }

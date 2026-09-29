@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -16,6 +15,7 @@ import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.report.ReportScreen
 import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
+import com.ahd.notebk.ui.theme.NotebkTheme
 
 class MainActivity : ComponentActivity() {
     private val ledgerViewModel: LedgerViewModel by viewModels()
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            NotebkTheme {
                 Surface(Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "ledger") {

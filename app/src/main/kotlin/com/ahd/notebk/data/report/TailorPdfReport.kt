@@ -13,7 +13,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.math.max
 
 object TailorPdfReport {
     private const val PAGE_W = 842
@@ -141,7 +140,7 @@ object TailorPdfReport {
         var x = MARGIN
         totalCells.forEachIndexed { i, text -> c.drawRect(x, y, x + widths[i], y + 25, line); c.drawText(text, x + widths[i] / 2, y + 16, boldRight.apply { textAlign = Paint.Align.CENTER }); x += widths[i] }
         y += 38
-        c.drawText("تقرير مالي وإداري شامل — ${year} - ${String.format("%02d", month + 1)}", PAGE_W / 2f, minOf(y, PAGE_H - 15), body)
+        c.drawText("تقرير مالي وإداري شامل — ${year} - ${String.format("%02d", month + 1)}", PAGE_W / 2f, minOf(y, PAGE_H - 15f), body)
         finish()
         return file
     }

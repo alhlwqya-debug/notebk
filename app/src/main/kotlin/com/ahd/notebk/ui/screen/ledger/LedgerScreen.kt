@@ -45,6 +45,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private val ledgerDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
+
 @Composable
 fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenReport: () -> Unit) {
     val settings by viewModel.settingsState.collectAsState()
@@ -60,11 +62,17 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
     val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
 
     LaunchedEffect(settings.autoFillToday) {
-        if (settings.autoFillToday && day.isBlank()) day = SimpleDateFormat("EEEE", Locale("ar")).format(Date())
+        if (settings.autoFillToday && day.isBlank()) {
+            day = SimpleDateFormat("EEEE", Locale("ar")).format(Date())
+        }
     }
 
     val visibleRecords = if (query.isBlank()) records else records.filter {
-        it.dayName.contains(query, true) || it.note.contains(query, true) || it.itemQuantity.toString().contains(query) || it.pieceType.contains(query, true)
+        it.dayName.contains(query, true) ||
+            it.note.contains(query, true) ||
+            it.itemQuantity.toString().contains(query) ||
+            it.pieceType.contains(query, true) ||
+            ledgerDateFormat.format(Date(it.timestamp)).contains(query)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -88,18 +96,25 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
             StatCard("الصافي", "%.0f %s".format(summary.netBalance, settings.currencySymbol), Modifier.weight(1f))
         }
 
-        OutlinedTextField(query, viewModel::onSearchQueryChange, label = { Text("بحث في الدفتر") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+        OutlinedTextField(query, viewModel::onSearchQueryChange, label = { Text("بحث في الدفتر أو التاريخ") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
         Spacer(Modifier.height(6.dp))
 
         Row(Modifier.fillMaxWidth().background(Color(0xFFE2E8F0)).border(0.5.dp, Color(0xFF94A3B8))) {
-            GridCell("اليوم", 1f, true); GridCell("القطع", .8f, true, Color(0xFF0284C7))
-            if (settings.showDebitCredit) { GridCell("له (+)", 1f, true, Color(0xFF15803D)); GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C)); GridCell("الرصيد", 1f, true) }
+            GridCell("التاريخ", 1.2f, true)
+            GridCell("اليوم", 1f, true)
+            GridCell("القطع", .8f, true, Color(0xFF0284C7))
+            if (settings.showDebitCredit) {
+                GridCell("له (+)", 1f, true, Color(0xFF15803D))
+                GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C))
+                GridCell("الرصيد", 1f, true)
+            }
             GridCell("الملاحظات", 1.3f, true)
         }
 
         LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
             items(visibleRecords, key = { it.id }) { item ->
                 Row(Modifier.fillMaxWidth().background(if (item.id % 2 == 0) Color.White else Color(0xFFF8FAFC))) {
+                    GridCell(ledgerDateFormat.format(Date(item.timestamp)), 1.2f, fontWeight = FontWeight.SemiBold)
                     GridCell(item.dayName, 1f, fontWeight = FontWeight.SemiBold)
                     GridCell(item.itemQuantity.toString(), .8f, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                     if (settings.showDebitCredit) {

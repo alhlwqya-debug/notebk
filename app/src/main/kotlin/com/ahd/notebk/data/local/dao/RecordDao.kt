@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -22,7 +23,7 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
     private val records = MutableStateFlow<List<RecordEntity>>(emptyList())
 
     init {
-        scope.launchRefresh()
+        scope.launch { refresh() }
     }
 
     fun getAllRecords(): Flow<List<RecordEntity>> = records
@@ -148,10 +149,6 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
 
     private suspend fun refresh() {
         records.value = queryAll()
-    }
-
-    private fun CoroutineScope.launchRefresh() {
-        kotlinx.coroutines.launch { refresh() }
     }
 
     companion object {

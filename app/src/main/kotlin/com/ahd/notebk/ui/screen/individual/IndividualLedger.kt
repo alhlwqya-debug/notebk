@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.ahd.notebk.domain.model.TailorRecord
 import com.ahd.notebk.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IndividualLedger(records: List<TailorRecord>, onBack: () -> Unit) {
     Scaffold(topBar = { TopAppBar(title = { Text("السجل الفردي") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") } }) }) { padding ->

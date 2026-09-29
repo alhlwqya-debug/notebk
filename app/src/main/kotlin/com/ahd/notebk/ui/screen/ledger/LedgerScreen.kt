@@ -46,6 +46,7 @@ import java.util.Date
 import java.util.Locale
 
 private val ledgerDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
+private val arabicDayFormat = SimpleDateFormat("EEEE", Locale("ar", "YE"))
 
 @Composable
 fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenReport: () -> Unit) {
@@ -62,9 +63,7 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
     val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
 
     LaunchedEffect(settings.autoFillToday) {
-        if (settings.autoFillToday && day.isBlank()) {
-            day = SimpleDateFormat("EEEE", Locale("ar")).format(Date())
-        }
+        if (settings.autoFillToday && day.isBlank()) day = arabicDayFormat.format(Date())
     }
 
     val visibleRecords = if (query.isBlank()) records else records.filter {

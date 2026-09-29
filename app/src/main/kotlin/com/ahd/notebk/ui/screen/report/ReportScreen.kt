@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -43,6 +44,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -97,85 +99,61 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
                     Text("مشاركة PDF")
                 }
             }
-            OutlinedButton(
-                enabled = file != null,
-                onClick = { file?.let { sharePdf(context, it) } },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("فتح/مشاركة ملف التقرير")
-            }
         }
     }
-}
-
-private fun sharePdf(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        file
-    )
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    context.startActivity(Intent.createChooser(intent, "مشاركة تقرير دفتر الخياط"))
 }
 
 private fun printPdf(context: Context, file: File) {
     val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
     printManager.print(
-        "تقرير دفتر الخياط",
-        PdfPrintAdapter(file),
-        PrintAttributes.Builder()
-            .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
-            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-            .build()
+        "notebk-report",
+        object : PrintDocumentAdapter() {
+            override fun onLayout(
+                oldAttributes: PrintAttributes?,
+                newAttributes: PrintAttributes,
+                cancellationSignal: CancellationSignal,
+                callback: LayoutResultCallback,
+                extras: Bundle?
+            ) {
+                if (cancellationSignal.isCanceled) return
+                val info = PrintDocumentInfo.Builder(file.name)
+                    .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                    .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+                    .build()
+                callback.onLayoutFinished(info, true)
+            }
+
+            override fun onWrite(
+                pages: Array<out PageRange>,
+                destination: ParcelFileDescriptor,
+                cancellationSignal: CancellationSignal,
+                callback: WriteResultCallback
+            ) {
+                if (cancellationSignal.isCanceled) return
+                runCatching {
+                    FileInputStream(file).use { input ->
+                        ParcelFileDescriptor.AutoCloseOutputStream(destination).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }.onSuccess {
+                    callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+                }.onFailure {
+                    callback.onWriteFailed(it.message)
+                }
+            }
+        },
+        null
     )
 }
 
-private class PdfPrintAdapter(private val file: File) : PrintDocumentAdapter() {
-    override fun onLayout(
-        oldAttributes: PrintAttributes?,
-        newAttributes: PrintAttributes?,
-        cancellationSignal: CancellationSignal?,
-        callback: LayoutResultCallback,
-        extras: Bundle?
-    ) {
-        if (cancellationSignal?.isCanceled == true) {
-            callback.onLayoutCancelled()
-            return
+private fun sharePdf(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    context.startActivity(
+        Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-
-        val info = PrintDocumentInfo.Builder(file.name)
-            .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
-            .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
-            .build()
-
-        callback.onLayoutFinished(info, oldAttributes != newAttributes)
-    }
-
-    override fun onWrite(
-        pages: Array<out PageRange>,
-        destination: ParcelFileDescriptor,
-        cancellationSignal: CancellationSignal?,
-        callback: WriteResultCallback
-    ) {
-        try {
-            FileInputStream(file).use { input ->
-                FileOutputStream(destination.fileDescriptor).use { output ->
-                    input.copyTo(output)
-                }
-            }
-            callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
-        } catch (e: Exception) {
-            if (cancellationSignal?.isCanceled == true) {
-                callback.onWriteCancelled()
-            } else {
-                callback.onWriteFailed(e.message)
-            }
-        } finally {
-            destination.close()
-        }
-    }
+    )
 }

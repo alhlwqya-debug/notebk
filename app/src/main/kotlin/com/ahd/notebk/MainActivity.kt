@@ -5,17 +5,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.ahd.notebk.ui.screen.individual.IndividualLedger
 import com.ahd.notebk.ui.screen.ledger.LedgerScreen
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.report.ReportScreen
 import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
+import com.ahd.notebk.ui.screen.statistics.StatisticsScreen
+import com.ahd.notebk.ui.theme.NotebkTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val ledgerViewModel: LedgerViewModel by viewModels()
@@ -24,7 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            NotebkTheme {
                 Surface(Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "ledger") {
@@ -32,7 +37,31 @@ class MainActivity : ComponentActivity() {
                             LedgerScreen(
                                 viewModel = ledgerViewModel,
                                 onOpenSettings = { navController.navigate("settings") },
-                                onOpenReport = { navController.navigate("report") }
+                                onOpenReport = { navController.navigate("report") },
+                                onOpenStatistics = { navController.navigate("statistics") },
+                                onOpenIndividualLedger = { navController.navigate("individual") }
+                            )
+                        }
+                        composable("statistics") {
+                            val summary = ledgerViewModel.summaryState.value
+                            val settings = ledgerViewModel.settingsState.value
+                            val records = ledgerViewModel.recordsState.value
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                            val workingDays = records
+                                .map { dateFormat.format(Date(it.timestamp)) }
+                                .distinct()
+                                .size
+                            StatisticsScreen(
+                                summary = summary,
+                                workingDays = workingDays,
+                                currency = settings.currencySymbol,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("individual") {
+                            IndividualLedger(
+                                records = ledgerViewModel.recordsState.value,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("settings") {

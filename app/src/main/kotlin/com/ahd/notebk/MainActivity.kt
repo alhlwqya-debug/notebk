@@ -5,6 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -16,6 +20,7 @@ import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.report.ReportScreen
 import com.ahd.notebk.ui.screen.settings.SettingsScreen
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
+import com.ahd.notebk.ui.screen.splash.SplashScreen
 import com.ahd.notebk.ui.screen.statistics.StatisticsScreen
 import com.ahd.notebk.ui.theme.NotebkTheme
 import java.text.SimpleDateFormat
@@ -31,8 +36,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             NotebkTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "ledger") {
+                    var showSplash by remember { mutableStateOf(true) }
+
+                    if (showSplash) {
+                        SplashScreen(onFinished = { showSplash = false })
+                    } else {
+                        val navController = rememberNavController()
+                        NavHost(navController = navController, startDestination = "ledger") {
                         composable("ledger") {
                             LedgerScreen(
                                 viewModel = ledgerViewModel,
@@ -69,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("report") {
                             ReportScreen(ledgerViewModel) { navController.popBackStack() }
+                        }
                         }
                     }
                 }

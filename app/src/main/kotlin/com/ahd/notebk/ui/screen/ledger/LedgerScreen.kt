@@ -15,23 +15,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,19 +45,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val ledgerDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.US)
-private val arabicDayFormat = SimpleDateFormat("EEEE", Locale("ar", "YE"))
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenReport: () -> Unit) {
     val settings by viewModel.settingsState.collectAsState()
     val records by viewModel.recordsState.collectAsState()
     val summary by viewModel.summaryState.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
-
-    var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var day by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
@@ -73,35 +60,11 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
     val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
 
     LaunchedEffect(settings.autoFillToday) {
-        if (settings.autoFillToday) selectedDateMillis = System.currentTimeMillis()
+        if (settings.autoFillToday && day.isBlank()) day = SimpleDateFormat("EEEE", Locale("ar")).format(Date())
     }
-
-    val selectedDate = Date(selectedDateMillis)
-    val selectedDayName = arabicDayFormat.format(selectedDate)
-    val selectedDateText = ledgerDateFormat.format(selectedDate)
 
     val visibleRecords = if (query.isBlank()) records else records.filter {
-        it.dayName.contains(query, true) ||
-            it.note.contains(query, true) ||
-            it.itemQuantity.toString().contains(query) ||
-            it.pieceType.contains(query, true) ||
-            ledgerDateFormat.format(Date(it.timestamp)).contains(query)
-    }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDateMillis = it }
-                    showDatePicker = false
-                }) { Text("اختيار") }
-            },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("إلغاء") } }
-        ) {
-            DatePicker(state = datePickerState, title = { Text("اختيار تاريخ القيد") })
-        }
+        it.dayName.contains(query, true) || it.note.contains(query, true) || it.itemQuantity.toString().contains(query) || it.pieceType.contains(query, true)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -125,25 +88,18 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
             StatCard("الصافي", "%.0f %s".format(summary.netBalance, settings.currencySymbol), Modifier.weight(1f))
         }
 
-        OutlinedTextField(query, viewModel::onSearchQueryChange, label = { Text("بحث في الدفتر أو التاريخ") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
+        OutlinedTextField(query, viewModel::onSearchQueryChange, label = { Text("بحث في الدفتر") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp))
         Spacer(Modifier.height(6.dp))
 
         Row(Modifier.fillMaxWidth().background(Color(0xFFE2E8F0)).border(0.5.dp, Color(0xFF94A3B8))) {
-            GridCell("التاريخ", 1.2f, true)
-            GridCell("اليوم", 1f, true)
-            GridCell("القطع", .8f, true, Color(0xFF0284C7))
-            if (settings.showDebitCredit) {
-                GridCell("له (+)", 1f, true, Color(0xFF15803D))
-                GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C))
-                GridCell("الرصيد", 1f, true)
-            }
+            GridCell("اليوم", 1f, true); GridCell("القطع", .8f, true, Color(0xFF0284C7))
+            if (settings.showDebitCredit) { GridCell("له (+)", 1f, true, Color(0xFF15803D)); GridCell("عليه (-)", 1f, true, Color(0xFFB91C1C)); GridCell("الرصيد", 1f, true) }
             GridCell("الملاحظات", 1.3f, true)
         }
 
         LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
             items(visibleRecords, key = { it.id }) { item ->
                 Row(Modifier.fillMaxWidth().background(if (item.id % 2 == 0) Color.White else Color(0xFFF8FAFC))) {
-                    GridCell(ledgerDateFormat.format(Date(item.timestamp)), 1.2f, fontWeight = FontWeight.SemiBold)
                     GridCell(item.dayName, 1f, fontWeight = FontWeight.SemiBold)
                     GridCell(item.itemQuantity.toString(), .8f, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                     if (settings.showDebitCredit) {
@@ -158,13 +114,8 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
 
         Surface(shadowElevation = 10.dp, color = Color(0xFFF1F5F9), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.weight(1.25f), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp)) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "اختيار التاريخ")
-                        Spacer(Modifier.height(1.dp))
-                        Text(selectedDateText, fontSize = 12.sp)
-                    }
-                    Text(selectedDayName, modifier = Modifier.weight(.8f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(day, { day = it }, Modifier.weight(1f), singleLine = true, label = { Text("اليوم", fontSize = 10.sp) })
                     OutlinedTextField(quantity, { value ->
                         quantity = value
                         val q = value.toIntOrNull() ?: 0
@@ -178,14 +129,8 @@ fun LedgerScreen(viewModel: LedgerViewModel, onOpenSettings: () -> Unit, onOpenR
                     OutlinedTextField(note, { note = it }, Modifier.weight(1f), singleLine = true, label = { Text("ملاحظة", fontSize = 10.sp) })
                     FilterChip(selected = credit, onClick = { credit = !credit }, label = { Text(if (credit) "له (+)" else "عليه (-)") }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = if (credit) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)))
                     Button(onClick = {
-                        val q = quantity.toIntOrNull() ?: 0
-                        val a = amount.toDoubleOrNull() ?: 0.0
-                        if (q > 0 || a > 0.0) {
-                            viewModel.addNewRecord(selectedDayName, q, a, credit, note, pieceType, selectedDateMillis)
-                            quantity = ""
-                            amount = ""
-                            note = ""
-                        }
+                        viewModel.addNewRecord(day, quantity.toIntOrNull() ?: 0, amount.toDoubleOrNull() ?: 0.0, credit, note, pieceType)
+                        quantity = ""; amount = ""; note = ""
                     }, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))) { Text("حفظ") }
                 }
             }

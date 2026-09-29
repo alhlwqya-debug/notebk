@@ -32,13 +32,19 @@ object TailorPdfReport {
         var page: PdfDocument.Page? = null
         var y = 0f
 
+        // Keep the drawing canvas synchronized with the current PDF page.
+        // Reusing a canvas from a finished page causes a native CanvasJNI
+        // null-pointer crash when the report spans multiple pages.
+        lateinit var c: Canvas
+
         fun newPage() {
             page?.let { document.finishPage(it) }
             pageNumber++
             val info = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNumber).create()
             page = document.startPage(info)
             canvas = page!!.canvas
-            canvas!!.drawColor(android.graphics.Color.WHITE)
+            c = canvas
+            c.drawColor(android.graphics.Color.WHITE)
             y = MARGIN
         }
 
@@ -49,7 +55,6 @@ object TailorPdfReport {
         }
 
         newPage()
-        val c = canvas!!
         val title = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 20f; color = android.graphics.Color.BLACK; textAlign = Paint.Align.CENTER }
         val head = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 11f; color = android.graphics.Color.BLACK; textAlign = Paint.Align.CENTER }
         val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT; textSize = 9f; color = android.graphics.Color.BLACK; textAlign = Paint.Align.CENTER }
@@ -121,7 +126,9 @@ object TailorPdfReport {
             val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
             var x = MARGIN
             headers.forEachIndexed { i, text ->
-                c.drawRect(x, y, x + widths[i], y + 27, line); c.drawText(text, x + widths[i] / 2, y + 17, head); x += widths[i]
+                c.drawRect(x, y, x + widths[i], y + 27, line)
+                c.drawText(text, x + widths[i] / 2, y + 17, head)
+                x += widths[i]
             }
             y += 27
         }
@@ -134,7 +141,11 @@ object TailorPdfReport {
             val cells = listOf(dayFmt.format(date), dateFmt.format(date)) + values.map { if (it == 0) "—" else it.toString() } + listOf(if (expense == 0.0) "—" else "%.0f".format(expense), if (total == 0.0) "—" else "%.0f".format(total))
             val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
             var x = MARGIN
-            cells.forEachIndexed { i, text -> c.drawRect(x, y, x + widths[i], y + 24, line); c.drawText(text, x + widths[i] / 2, y + 15, body); x += widths[i] }
+            cells.forEachIndexed { i, text ->
+                c.drawRect(x, y, x + widths[i], y + 24, line)
+                c.drawText(text, x + widths[i] / 2, y + 15, body)
+                x += widths[i]
+            }
             y += 24
         }
 
@@ -153,7 +164,11 @@ object TailorPdfReport {
         val totalCells = listOf("الإجمالي", "") + totals.map { it.toString() } + listOf("%.0f".format(expenses), "%.0f".format(net))
         val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
         var x = MARGIN
-        totalCells.forEachIndexed { i, text -> c.drawRect(x, y, x + widths[i], y + 25, line); c.drawText(text, x + widths[i] / 2, y + 16, boldRight.apply { textAlign = Paint.Align.CENTER }); x += widths[i] }
+        totalCells.forEachIndexed { i, text ->
+            c.drawRect(x, y, x + widths[i], y + 25, line)
+            c.drawText(text, x + widths[i] / 2, y + 16, boldRight.apply { textAlign = Paint.Align.CENTER })
+            x += widths[i]
+        }
         y += 38
         c.drawText("تقرير مالي وإداري شامل — ${year} - ${String.format("%02d", month + 1)}", PAGE_W / 2f, minOf(y, PAGE_H - 15f), body)
         finish()

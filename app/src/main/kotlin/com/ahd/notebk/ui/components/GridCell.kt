@@ -24,7 +24,10 @@ fun RowScope.GridCell(
     fontWeight: FontWeight = FontWeight.Normal
 ) {
     Box(
-        modifier = Modifier.weight(weight).border(0.5.dp, Color(0xFFCBD5E1)).padding(vertical = 9.dp, horizontal = 3.dp),
+        modifier = Modifier
+            .weight(weight)
+            .border(0.5.dp, Color(0xFFCBD5E1))
+            .padding(vertical = 9.dp, horizontal = 3.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(

@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+<<<<<<< HEAD
 import androidx.compose.foundation.layout.verticalScroll
+=======
+>>>>>>> branch 'main' of https://github.com/alhlwqya-debug/notebk.git
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -56,8 +60,9 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
     var autoToday by remember(settings) { mutableStateOf(settings.autoFillToday) }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(ledgerViewModel.exportBackup().toByteArray(Charsets.UTF_8)) } }
-            .also { Toast.makeText(context, "تم حفظ النسخة الاحتياطية", Toast.LENGTH_SHORT).show() }
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.use { it.write(ledgerViewModel.exportBackup().toByteArray(Charsets.UTF_8)) }
+        }.also { Toast.makeText(context, "تم حفظ النسخة الاحتياطية", Toast.LENGTH_SHORT).show() }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
@@ -66,11 +71,26 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
     }
 
     Scaffold(topBar = {
-        TopAppBar(title = { Text("الملف الشخصي والإعدادات", fontWeight = FontWeight.Bold) }, navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
-        }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A), titleContentColor = Color.White, navigationIconContentColor = Color.White))
+        TopAppBar(
+            title = { Text("الملف الشخصي والإعدادات", fontWeight = FontWeight.Bold) },
+            navigationIcon = {
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "رجوع") }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color(0xFF0F172A),
+                titleContentColor = Color.White,
+                navigationIconContentColor = Color.White
+            )
+        )
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text("الملف الشخصي", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
             OutlinedTextField(ownerName, { ownerName = it }, Modifier.fillMaxWidth(), label = { Text("اسم صاحب الحساب") }, singleLine = true)
             OutlinedTextField(shopName, { shopName = it }, Modifier.fillMaxWidth(), label = { Text("اسم الورشة / المحل") }, singleLine = true)

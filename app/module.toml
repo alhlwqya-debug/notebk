@@ -64,10 +64,6 @@ implementation = [
     "androidx.navigation:navigation-runtime:2.8.2",
     "androidx.navigation:navigation-compose:2.8.2",
 
-    # Room - aligned with CodeAssist KSP's ByteArrayWrapper support
-    "androidx.room:room-runtime:2.7.2",
-    "androidx.room:room-ktx:2.7.2",
-
     # DataStore + Coroutines
     "androidx.datastore:datastore-preferences:1.1.1",
     "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
@@ -85,6 +81,7 @@ isApplication = true
 manifestPlaceholders = []
 buildTypes = [{ name = "debug", debuggable = true, minifyEnabled = false, shrinkResources = false }, { name = "release", debuggable = false, minifyEnabled = false, shrinkResources = false, proguardFiles = ["proguard-android-optimize.txt", "proguard-rules.pro"] }]
 compose = true
-kspProcessors = ["room"]
 
-# Canonical CodeAssist module configuration; keep this file as valid TOML.
+# Room/KSP removed intentionally: CodeAssist's embedded KSP/Room processor crashes
+# while resolving androidx.room.util.ByteArrayWrapper. Local persistence is implemented
+# with Android SQLiteOpenHelper instead, preserving the existing database schema/API.

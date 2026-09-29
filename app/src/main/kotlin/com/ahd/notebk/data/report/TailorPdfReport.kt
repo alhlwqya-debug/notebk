@@ -19,6 +19,7 @@ object TailorPdfReport {
     private const val PAGE_H = 595
     private const val MARGIN = 28f
     private val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
+    private val reportLocale = Locale("ar", "YE")
 
     fun create(context: Context, records: List<TailorRecord>, settings: AppSettings, year: Int, month: Int): File {
         val document = PdfDocument()
@@ -57,9 +58,6 @@ object TailorPdfReport {
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = .7f; color = android.graphics.Color.DKGRAY }
 
         fun drawCell(x: Float, top: Float, width: Float, height: Float, text: String, paint: Paint) {
-            // Some Android 13 vendor Canvas implementations have been observed to
-            // crash inside PdfDocument when Canvas.drawRect() is used. Four lines
-            // provide the same table border without calling the problematic JNI path.
             canvas.drawLine(x, top, x + width, top, line)
             canvas.drawLine(x, top + height, x + width, top + height, line)
             canvas.drawLine(x, top, x, top + height, line)
@@ -143,7 +141,7 @@ object TailorPdfReport {
 
         fun drawRow(date: Date, rowRecords: List<TailorRecord>?) {
             val dateFmt = SimpleDateFormat("yyyy/MM/dd", Locale.US)
-            val dayFmt = SimpleDateFormat("EEEE", Locale("ar"))
+            val dayFmt = SimpleDateFormat("EEEE", reportLocale)
             val values = pieceTypes.map { type -> rowRecords?.filter { it.pieceType == type }?.sumOf { it.itemQuantity } ?: 0 }
             val expense = rowRecords?.sumOf { it.debit } ?: 0.0
             val total = rowRecords?.sumOf { it.credit - it.debit } ?: 0.0

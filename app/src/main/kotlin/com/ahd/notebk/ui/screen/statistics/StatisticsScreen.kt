@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
     summary: LedgerSummary,

@@ -1,4 +1,20 @@
 #v2
-1
+8
 /storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/AndroidManifest.xml	0	0	text
-/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/MainActivity.kt	947	269	preview
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/MainActivity.kt	1330	18	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/screen/ledger/LedgerScreen.kt	2586	55	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/screen/ledger/LedgerViewModel.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/local/dao/RecordDao.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/local/entity/RecordEntity.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/local/AppDatabase.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/local/AppSettingsManager.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/report/TailorPdfReport.kt	8384	101	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/data/repository/LedgerRepository.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/domain/engine/LedgerEngine.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/domain/model/LedgerSummary.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/domain/model/TailorRecord.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/components/GridCell.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/components/StatCard.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/screen/report/ReportScreen.kt	2374	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/screen/settings/SettingsScreen.kt	0	0	text
+/storage/emulated/0/Android/data/com.tyron.code/files/codeassist/projects/notebk/app/src/main/kotlin/com/ahd/notebk/ui/screen/settings/SettingsViewModel.kt	0	0	text

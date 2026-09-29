@@ -28,14 +28,9 @@ object TailorPdfReport {
         }.sortedBy { it.timestamp }
         val file = File(context.cacheDir, "دفتر_${year}_${month + 1}.pdf")
         var pageNumber = 0
-        var canvas: Canvas? = null
         var page: PdfDocument.Page? = null
+        lateinit var canvas: Canvas
         var y = 0f
-
-        // Keep the drawing canvas synchronized with the current PDF page.
-        // Reusing a canvas from a finished page causes a native CanvasJNI
-        // null-pointer crash when the report spans multiple pages.
-        lateinit var c: Canvas
 
         fun newPage() {
             page?.let { document.finishPage(it) }
@@ -43,8 +38,7 @@ object TailorPdfReport {
             val info = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNumber).create()
             page = document.startPage(info)
             canvas = page!!.canvas
-            c = canvas
-            c.drawColor(android.graphics.Color.WHITE)
+            canvas.drawColor(android.graphics.Color.WHITE)
             y = MARGIN
         }
 
@@ -62,30 +56,44 @@ object TailorPdfReport {
         val boldRight = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textSize = 10f; color = android.graphics.Color.BLACK; textAlign = Paint.Align.RIGHT }
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = .7f; color = android.graphics.Color.DKGRAY }
 
-        c.drawText("دفتر الحسابات", PAGE_W / 2f, y + 20, title); y += 38
-        c.drawText(settings.ownerName.ifBlank { settings.shopName }, PAGE_W / 2f, y, head); y += 18
-        if (settings.shopNumber.isNotBlank()) { c.drawText("رقم المحل: ${settings.shopNumber}", PAGE_W / 2f, y, body); y += 15 }
-        if (settings.phone.isNotBlank()) { c.drawText("الهاتف: ${settings.phone}", PAGE_W / 2f, y, body); y += 15 }
+        fun drawCell(x: Float, top: Float, width: Float, height: Float, text: String, paint: Paint) {
+            // Some Android 13 vendor Canvas implementations have been observed to
+            // crash inside PdfDocument when Canvas.drawRect() is used. Four lines
+            // provide the same table border without calling the problematic JNI path.
+            canvas.drawLine(x, top, x + width, top, line)
+            canvas.drawLine(x, top + height, x + width, top + height, line)
+            canvas.drawLine(x, top, x, top + height, line)
+            canvas.drawLine(x + width, top, x + width, top + height, line)
+            canvas.drawText(text, x + width / 2f, top + height / 2f + paint.textSize / 3f, paint)
+        }
+
+        val todayText = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date())
+        canvas.drawText("دفتر الحسابات", PAGE_W / 2f, y + 20, title); y += 38
+        canvas.drawText(settings.ownerName.ifBlank { settings.shopName }, PAGE_W / 2f, y, head); y += 18
+        canvas.drawText("تاريخ التقرير: $todayText", PAGE_W / 2f, y, body); y += 15
+        if (settings.shopNumber.isNotBlank()) { canvas.drawText("رقم المحل: ${settings.shopNumber}", PAGE_W / 2f, y, body); y += 15 }
+        if (settings.phone.isNotBlank()) { canvas.drawText("الهاتف: ${settings.phone}", PAGE_W / 2f, y, body); y += 15 }
         y += 8
 
         val totalProduction = rows.sumOf { it.credit }
         val expenses = rows.sumOf { it.debit }
         val net = totalProduction - expenses
         val pieces = rows.sumOf { it.itemQuantity }
-        val days = rows.map { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it.timestamp)) }.distinct().size
-        val productionDays = rows.filter { it.credit > 0 }.map { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it.timestamp)) }.distinct().size
-        val expenseDays = rows.filter { it.debit > 0 }.map { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it.timestamp)) }.distinct().size
+        val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val days = rows.map { dateKey.format(Date(it.timestamp)) }.distinct().size
+        val productionDays = rows.filter { it.credit > 0 }.map { dateKey.format(Date(it.timestamp)) }.distinct().size
+        val expenseDays = rows.filter { it.debit > 0 }.map { dateKey.format(Date(it.timestamp)) }.distinct().size
         val daysInMonth = Calendar.getInstance().apply { set(year, month, 1) }.getActualMaximum(Calendar.DAY_OF_MONTH)
         val activity = if (daysInMonth == 0) 0 else (days * 100 / daysInMonth)
 
         fun section(text: String) {
-            c.drawText(text, PAGE_W / 2f, y, head); y += 15
-            c.drawLine(MARGIN, y, PAGE_W - MARGIN, y, line); y += 10
+            canvas.drawText(text, PAGE_W / 2f, y, head); y += 15
+            canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, line); y += 10
         }
         fun metric(label: String, value: String, x: Int) {
             val xf = x.toFloat()
-            c.drawText(label, xf, y, boldRight)
-            c.drawText(value, xf - 105f, y, right)
+            canvas.drawText(label, xf, y, boldRight)
+            canvas.drawText(value, xf - 105f, y, right)
         }
 
         section("الملخص المالي")
@@ -115,23 +123,24 @@ object TailorPdfReport {
         section("ملخص القطع")
         val summary = pieceTypes.map { type -> rows.filter { it.pieceType == type }.let { typeRows -> typeRows.sumOf { it.itemQuantity } to typeRows.sumOf { it.credit } } }
         val sx = floatArrayOf(90f, 300f, 510f, 720f)
-        c.drawText("#", sx[0], y, head); c.drawText("القطعة", sx[1], y, head); c.drawText("الكمية", sx[2], y, head); c.drawText("الإيراد", sx[3], y, head); y += 13
+        canvas.drawText("#", sx[0], y, head); canvas.drawText("القطعة", sx[1], y, head); canvas.drawText("الكمية", sx[2], y, head); canvas.drawText("الإيراد", sx[3], y, head); y += 13
         pieceTypes.forEachIndexed { index, type ->
-            c.drawText("${index + 1}", sx[0], y, body); c.drawText(type, sx[1], y, body); c.drawText(summary[index].first.toString(), sx[2], y, body); c.drawText("%.0f ${settings.currencySymbol}".format(summary[index].second), sx[3], y, body); y += 13
+            canvas.drawText("${index + 1}", sx[0], y, body); canvas.drawText(type, sx[1], y, body); canvas.drawText(summary[index].first.toString(), sx[2], y, body); canvas.drawText("%.0f ${settings.currencySymbol}".format(summary[index].second), sx[3], y, body); y += 13
         }
         y += 7
 
+        val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
+
         fun drawTableHeader() {
             val headers = listOf("اليوم", "التاريخ") + pieceTypes + listOf("المصروف", "المجموع")
-            val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
             var x = MARGIN
             headers.forEachIndexed { i, text ->
-                c.drawRect(x, y, x + widths[i], y + 27, line)
-                c.drawText(text, x + widths[i] / 2, y + 17, head)
+                drawCell(x, y, widths[i], 27f, text, head)
                 x += widths[i]
             }
             y += 27
         }
+
         fun drawRow(date: Date, rowRecords: List<TailorRecord>?) {
             val dateFmt = SimpleDateFormat("yyyy/MM/dd", Locale.US)
             val dayFmt = SimpleDateFormat("EEEE", Locale("ar"))
@@ -139,11 +148,9 @@ object TailorPdfReport {
             val expense = rowRecords?.sumOf { it.debit } ?: 0.0
             val total = rowRecords?.sumOf { it.credit - it.debit } ?: 0.0
             val cells = listOf(dayFmt.format(date), dateFmt.format(date)) + values.map { if (it == 0) "—" else it.toString() } + listOf(if (expense == 0.0) "—" else "%.0f".format(expense), if (total == 0.0) "—" else "%.0f".format(total))
-            val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
             var x = MARGIN
             cells.forEachIndexed { i, text ->
-                c.drawRect(x, y, x + widths[i], y + 24, line)
-                c.drawText(text, x + widths[i] / 2, y + 15, body)
+                drawCell(x, y, widths[i], 24f, text, body)
                 x += widths[i]
             }
             y += 24
@@ -155,22 +162,20 @@ object TailorPdfReport {
         repeat(daysInMonth) {
             if (y > PAGE_H - 55) { newPage(); drawTableHeader() }
             val date = cal.time
-            val key = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date)
-            drawRow(date, rows.filter { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it.timestamp)) == key })
+            val key = dateKey.format(date)
+            drawRow(date, rows.filter { dateKey.format(Date(it.timestamp)) == key })
             cal.add(Calendar.DAY_OF_MONTH, 1)
         }
         if (y > PAGE_H - 45) { newPage(); drawTableHeader() }
         val totals = pieceTypes.map { type -> rows.filter { it.pieceType == type }.sumOf { it.itemQuantity } }
         val totalCells = listOf("الإجمالي", "") + totals.map { it.toString() } + listOf("%.0f".format(expenses), "%.0f".format(net))
-        val widths = listOf(52f, 68f, 60f, 60f, 60f, 60f, 60f, 60f, 60f, 68f, 75f)
         var x = MARGIN
         totalCells.forEachIndexed { i, text ->
-            c.drawRect(x, y, x + widths[i], y + 25, line)
-            c.drawText(text, x + widths[i] / 2, y + 16, boldRight.apply { textAlign = Paint.Align.CENTER })
+            drawCell(x, y, widths[i], 25f, text, head)
             x += widths[i]
         }
         y += 38
-        c.drawText("تقرير مالي وإداري شامل — ${year} - ${String.format("%02d", month + 1)}", PAGE_W / 2f, minOf(y, PAGE_H - 15f), body)
+        canvas.drawText("تقرير مالي وإداري شامل — $year - ${String.format("%02d", month + 1)} — $todayText", PAGE_W / 2f, minOf(y, PAGE_H - 15f), body)
         finish()
         return file
     }

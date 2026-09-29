@@ -77,20 +77,35 @@ object TailorPdfReport {
             c.drawText(text, PAGE_W / 2f, y, head); y += 15
             c.drawLine(MARGIN, y, PAGE_W - MARGIN, y, line); y += 10
         }
-        fun metric(label: String, value: String, x: Float) {
-            c.drawText(label, x, y, boldRight); c.drawText(value, x - 105, y, right)
+        fun metric(label: String, value: String, x: Int) {
+            val xf = x.toFloat()
+            c.drawText(label, xf, y, boldRight)
+            c.drawText(value, xf - 105f, y, right)
         }
 
         section("الملخص المالي")
-        metric("إجمالي الإنتاج", "%.0f ${settings.currencySymbol}".format(totalProduction), PAGE_W - MARGIN); metric("المصروفات", "%.0f ${settings.currencySymbol}".format(expenses), PAGE_W - 230); metric("الصافي", "%.0f ${settings.currencySymbol}".format(net), PAGE_W - 405); metric("إجمالي القطع", pieces.toString(), PAGE_W - 580); y += 20
+        metric("إجمالي الإنتاج", "%.0f ${settings.currencySymbol}".format(totalProduction), PAGE_W - MARGIN.toInt())
+        metric("المصروفات", "%.0f ${settings.currencySymbol}".format(expenses), PAGE_W - 230)
+        metric("الصافي", "%.0f ${settings.currencySymbol}".format(net), PAGE_W - 405)
+        metric("إجمالي القطع", pieces.toString(), PAGE_W - 580)
+        y += 20
 
         section("بيانات الشهر")
-        metric("المحل", settings.shopName, PAGE_W - MARGIN); metric("العامل", settings.workerName.ifBlank { settings.ownerName }, PAGE_W - 230)
-        metric("تاريخ البداية", "${year}/${String.format("%02d", month + 1)}/01", PAGE_W - 405); metric("خصم المصروف", "نعم", PAGE_W - 580); y += 20
+        metric("المحل", settings.shopName, PAGE_W - MARGIN.toInt())
+        metric("العامل", settings.workerName.ifBlank { settings.ownerName }, PAGE_W - 230)
+        metric("تاريخ البداية", "${year}/${String.format("%02d", month + 1)}/01", PAGE_W - 405)
+        metric("خصم المصروف", "نعم", PAGE_W - 580)
+        y += 20
 
         section("مؤشرات العمل")
-        metric("أيام النشاط", "$days يوم", PAGE_W - MARGIN); metric("أيام الإنتاج", "$productionDays يوم", PAGE_W - 230); metric("أيام المصروفات", "$expenseDays يوم", PAGE_W - 405); metric("نسبة النشاط", "$activity%", PAGE_W - 580); y += 17
-        metric("متوسط الإنتاج", "%.0f ${settings.currencySymbol}".format(if (productionDays > 0) totalProduction / productionDays else 0.0), PAGE_W - MARGIN); metric("متوسط المصروف", "%.0f ${settings.currencySymbol}".format(if (expenseDays > 0) expenses / expenseDays else 0.0), PAGE_W - 230); y += 20
+        metric("أيام النشاط", "$days يوم", PAGE_W - MARGIN.toInt())
+        metric("أيام الإنتاج", "$productionDays يوم", PAGE_W - 230)
+        metric("أيام المصروفات", "$expenseDays يوم", PAGE_W - 405)
+        metric("نسبة النشاط", "$activity%", PAGE_W - 580)
+        y += 17
+        metric("متوسط الإنتاج", "%.0f ${settings.currencySymbol}".format(if (productionDays > 0) totalProduction / productionDays else 0.0), PAGE_W - MARGIN.toInt())
+        metric("متوسط المصروف", "%.0f ${settings.currencySymbol}".format(if (expenseDays > 0) expenses / expenseDays else 0.0), PAGE_W - 230)
+        y += 20
 
         section("ملخص القطع")
         val summary = pieceTypes.map { type -> rows.filter { it.pieceType == type }.let { typeRows -> typeRows.sumOf { it.itemQuantity } to typeRows.sumOf { it.credit } } }

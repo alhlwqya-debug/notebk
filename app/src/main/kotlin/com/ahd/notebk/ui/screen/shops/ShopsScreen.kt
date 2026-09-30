@@ -98,7 +98,7 @@ private fun ShopCard(shop: Shop, selected: Boolean, onSelect: () -> Unit, onDele
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(shop.name, fontWeight = FontWeight.Bold)
-                if (shop.ownerName.isNotBlank()) Text("المالك: \${shop.ownerName}", style = MaterialTheme.typography.bodySmall)
+                if (shop.ownerName.isNotBlank()) Text("المالك: " + shop.ownerName, style = MaterialTheme.typography.bodySmall)
                 if (shop.phone.isNotBlank()) Text(shop.phone, style = MaterialTheme.typography.bodySmall)
                 if (selected) Text("المحل النشط", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
             }

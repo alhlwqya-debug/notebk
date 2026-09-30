@@ -159,5 +159,3 @@ fun AppNavigation(
         }
     }
 }
-    }
-}

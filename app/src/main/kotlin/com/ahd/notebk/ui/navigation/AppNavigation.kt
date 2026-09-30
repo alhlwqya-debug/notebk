@@ -122,7 +122,7 @@ fun AppNavigation(
                     ledgerViewModel,
                     activeShop?.name.orEmpty(),
                     onOpenSettings = { navController.navigate(AppRoutes.SETTINGS) },
-                    onOpenReport = { navController.navigate(AppRoutes.REPORT) },
+                    onOpenReport = { navController.navigate("${AppRoutes.REPORT}/numeric") },
                     onOpenStatistics = { navController.navigate(AppRoutes.STATISTICS) },
                     onOpenIndividualLedger = { navController.navigate(AppRoutes.INDIVIDUAL) }
                 )
@@ -135,7 +135,7 @@ fun AppNavigation(
                     viewModel = ledgerViewModel,
                     settings = settings,
                     shopName = activeShop?.name.orEmpty(),
-                    onOpenReport = { navController.navigate(AppRoutes.REPORT) }
+                    onOpenReport = { navController.navigate("${AppRoutes.REPORT}/individual") }
                 )
             }
             composable(AppRoutes.SHOPS) { ShopsScreen(shopViewModel) }
@@ -156,7 +156,11 @@ fun AppNavigation(
                 SettingsScreen(settingsViewModel, ledgerViewModel) { navController.popBackStack() }
             }
             composable(AppRoutes.REPORT) {
-                ReportScreen(ledgerViewModel) { navController.popBackStack() }
+                ReportScreen(ledgerViewModel, "all") { navController.popBackStack() }
+            }
+            composable(AppRoutes.REPORT_TYPE) { backStackEntry ->
+                val type = backStackEntry.arguments?.getString("type") ?: "all"
+                ReportScreen(ledgerViewModel, type) { navController.popBackStack() }
             }
         }
     }

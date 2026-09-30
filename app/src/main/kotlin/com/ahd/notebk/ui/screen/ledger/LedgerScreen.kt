@@ -39,7 +39,7 @@ fun LedgerScreen(
     var quantity by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var personName by remember { mutableStateOf(settings.workerName) }
+    var expenseType by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf(true) }
     var pieceType by remember { mutableStateOf("ثابت كامل") }
     var unitPrice by remember(settings.defaultPiecePrice) { mutableStateOf(settings.defaultPiecePrice.toString()) }
@@ -226,8 +226,8 @@ fun LedgerScreen(
                     amount = if (q > 0 && price >= 0) PieceCalculator.calculateTotal(q, price).toString() else ""
                 }
             },
-            onPersonChange = { personName = it },
             onAmountChange = { if (!credit) amount = it.filter { c -> c.isDigit() || c == '.' } },
+            onExpenseTypeChange = { expenseType = it },
             onNoteChange = { note = it },
             onPieceTypeClick = { pieceType = pieceTypes[(pieceTypes.indexOf(pieceType) + 1) % pieceTypes.size] },
             onSave = {
@@ -235,9 +235,10 @@ fun LedgerScreen(
                 val price = unitPrice.toDoubleOrNull() ?: settings.defaultPiecePrice
                 val a = if (credit) PieceCalculator.calculateTotal(q, price) else (amount.toDoubleOrNull() ?: 0.0)
                 if ((credit && q > 0 && price >= 0) || (!credit && a > 0)) {
-                    viewModel.addNewRecord(selectedDayName, q, a, credit, price, note, pieceType, personName, selectedDateMillis)
+                    viewModel.addNewRecord(selectedDayName, q, a, credit, price, note, pieceType, "", "", expenseType, "numeric", selectedDateMillis)
                     quantity = ""
                     amount = ""
+                    expenseType = ""
                     note = ""
                 }
             }

@@ -37,7 +37,13 @@ fun IndividualLedger(
     shopName: String,
     onOpenReport: () -> Unit
 ) {
-    val individualRecords = remember(records) { records.filter { it.recordType == "individual" } }
+    val workerName = remember(settings.workerName) { LedgerEngine.normalizePersonName(settings.workerName) }
+    val individualRecords = remember(records, workerName) {
+        records.filter {
+            it.recordType == "individual" ||
+                (it.recordType == "numeric" && LedgerEngine.normalizePersonName(it.personName).isNotBlank() && LedgerEngine.normalizePersonName(it.personName) != workerName)
+        }
+    }
     val people = remember(individualRecords) { LedgerEngine.personNames(individualRecords) }
     var selectedPerson by remember { mutableStateOf<String?>(null) }
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }

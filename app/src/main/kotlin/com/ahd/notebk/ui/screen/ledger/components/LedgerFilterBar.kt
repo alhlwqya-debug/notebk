@@ -3,6 +3,9 @@ package com.ahd.notebk.ui.screen.ledger.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,22 +20,40 @@ fun LedgerFilterBar(
     onDateClick: () -> Unit,
     onProductionClick: () -> Unit,
     onExpenseClick: () -> Unit,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onPreviousDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onManage: () -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(8.dp), Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onDateClick, Modifier.weight(1f)) {
-            Icon(Icons.Default.CalendarMonth, null)
-            Spacer(Modifier.width(4.dp))
-            Text(selectedDateText)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("بحث في أيام الشهر أو التاريخ") },
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Button(onClick = onProductionClick, Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)) { Text("+ قطعة") }
+            Button(onClick = onExpenseClick, Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)) { Text("+ مصروف") }
+            OutlinedButton(onClick = onDateClick, Modifier.weight(1f)) {
+                Icon(Icons.Default.CalendarMonth, null)
+                Spacer(Modifier.width(3.dp))
+                Text(selectedDateText)
+            }
+            IconButton(onClick = onManage) { Icon(Icons.Default.Settings, contentDescription = "إدارة") }
         }
-        Button(onClick = onProductionClick, Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)) { Text("+ إنتاج") }
-        Button(onClick = onExpenseClick, Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)) { Text("+ مصروف") }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(onClick = onPreviousDay, Modifier.weight(1f)) {
+                Icon(Icons.Default.ChevronRight, null)
+                Text("اليوم السابق")
+            }
+            OutlinedButton(onClick = onNextDay, Modifier.weight(1f)) {
+                Text("اليوم التالي")
+                Icon(Icons.Default.ChevronLeft, null)
+            }
+        }
     }
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        label = { Text("بحث في السجلات") },
-        singleLine = true
-    )
 }

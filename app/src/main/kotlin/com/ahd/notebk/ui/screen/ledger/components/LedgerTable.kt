@@ -7,9 +7,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ahd.notebk.domain.model.TailorRecord
@@ -22,16 +22,11 @@ import java.util.*
 private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
 
 @Composable
-fun LedgerTable(
-    records: List<TailorRecord>,
-    showDebitCredit: Boolean,
-    onEdit: (TailorRecord) -> Unit,
-    onDelete: (TailorRecord) -> Unit
-) {
+fun LedgerTable(records: List<TailorRecord>, showDebitCredit: Boolean, onEdit: (TailorRecord) -> Unit, onDelete: (TailorRecord) -> Unit) {
     ZoomableContainer(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
         Card(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
             Column {
-                Row(Modifier.fillMaxWidth().background(Color(0xFFF1F3F5)).border(.5.dp, BorderDivider)) {
+                Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).border(.5.dp, MaterialTheme.colorScheme.outline)) {
                     GridCell("التاريخ", 1.15f, true); GridCell("الشخص", 1.15f, true); GridCell("اليوم", .95f, true)
                     GridCell("القطع", .75f, true, PrimaryPurple); GridCell("السعر", .95f, true)
                     if (showDebitCredit) { GridCell("له (+)", .95f, true, SecondaryGreen); GridCell("عليه (-)", .95f, true, ErrorRed); GridCell("الرصيد", .95f, true) }
@@ -39,7 +34,7 @@ fun LedgerTable(
                 }
                 LazyColumn(Modifier.fillMaxWidth()) {
                     items(records, key = { it.id }) { item ->
-                        Row(Modifier.fillMaxWidth().background(if (item.id % 2 == 0) Color.White else LightBackground)) {
+                        Row(Modifier.fillMaxWidth().background(if (item.id % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background)) {
                             GridCell(dateFormat.format(Date(item.timestamp)), 1.15f, fontWeight = FontWeight.SemiBold)
                             GridCell(item.personName.ifBlank { "غير محدد" }, 1.15f, fontWeight = FontWeight.SemiBold)
                             GridCell(item.dayName, .95f, fontWeight = FontWeight.SemiBold)

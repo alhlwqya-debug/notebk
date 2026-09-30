@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -16,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ahd.notebk.ui.screen.individual.IndividualLedger
+import com.ahd.notebk.ui.screen.home.HomeScreen
 import com.ahd.notebk.ui.screen.ledger.LedgerScreen
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.report.ReportScreen
@@ -38,6 +41,22 @@ fun AppNavigation(
     val entry by navController.currentBackStackEntryAsState()
     val currentRoute = entry?.destination?.route
     val activeShop by shopViewModel.selectedShop.collectAsState()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            NoteBkDrawer(
+                currentRoute = currentRoute,
+                settings = ledgerViewModel.settingsState.collectAsState().value,
+                onNavigate = { route ->
+                    scope.launch { drawerState.close() }
+                    if (route != currentRoute) navController.navigate(route) { launchSingleTop = true }
+                }
+            )
+        }
+    ) {
     val showBottomBar = currentRoute == AppRoutes.NUMERIC ||
         currentRoute == AppRoutes.INDIVIDUAL ||
         currentRoute == AppRoutes.SHOPS
@@ -79,9 +98,23 @@ fun AppNavigation(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = AppRoutes.NUMERIC,
+            startDestination = AppRoutes.HOME,
             modifier = Modifier.padding(padding)
         ) {
+            composable(AppRoutes.HOME) {
+                val homeSettings by ledgerViewModel.settingsState.collectAsState()
+                val homeRecords by ledgerViewModel.recordsState.collectAsState()
+                val homeSummary by ledgerViewModel.summaryState.collectAsState()
+                HomeScreen(
+                    settings = homeSettings,
+                    records = homeRecords,
+                    summary = homeSummary,
+                    onOpenNumeric = { navController.navigate(AppRoutes.NUMERIC) },
+                    onOpenIndividual = { navController.navigate(AppRoutes.INDIVIDUAL) },
+                    onOpenStatistics = { navController.navigate(AppRoutes.STATISTICS) },
+                    onOpenReports = { navController.navigate(AppRoutes.REPORT) }
+                )
+            }
             composable(AppRoutes.NUMERIC) {
                 LedgerScreen(
                     ledgerViewModel,
@@ -124,5 +157,7 @@ fun AppNavigation(
                 ReportScreen(ledgerViewModel) { navController.popBackStack() }
             }
         }
+    }
+}
     }
 }

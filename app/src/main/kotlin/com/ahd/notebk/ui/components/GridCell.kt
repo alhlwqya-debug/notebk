@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,7 +26,7 @@ fun RowScope.GridCell(
     Box(
         modifier = Modifier
             .weight(weight)
-            .border(0.5.dp, Color(0xFFCBD5E1))
+            .border(0.5.dp, MaterialTheme.colorScheme.outline)
             .padding(vertical = 9.dp, horizontal = 3.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -33,7 +34,7 @@ fun RowScope.GridCell(
             text = text,
             fontSize = if (isHeader) 11.sp else 12.sp,
             fontWeight = if (isHeader) FontWeight.Bold else fontWeight,
-            color = if (color == Color.Unspecified) Color(0xFF1E293B) else color,
+            color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface else color,
             textAlign = TextAlign.Center,
             maxLines = 1
         )

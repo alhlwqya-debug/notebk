@@ -10,6 +10,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ahd.notebk.domain.engine.PieceCalculator
 import com.ahd.notebk.ui.screen.ledger.components.*
+import com.ahd.notebk.ui.screen.individual.components.RecordEditDialog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date

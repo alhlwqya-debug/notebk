@@ -58,7 +58,7 @@ object LedgerEngine {
     )
 
     fun exportToJson(records: List<TailorRecord>): String =
-        exportBackup(records, AppSettings(), 4)
+        exportBackup(records, AppSettings(), 7)
 
     fun exportBackup(records: List<TailorRecord>, settings: AppSettings, version: Int): String {
         val root = JSONObject().apply {

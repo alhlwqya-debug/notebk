@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,6 +62,7 @@ fun AppNavigation(
         currentRoute == AppRoutes.INDIVIDUAL ||
         currentRoute == AppRoutes.SHOPS
 
+    CompositionLocalProvider(LocalDrawerOpen provides { scope.launch { drawerState.open() } }) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
@@ -157,5 +159,6 @@ fun AppNavigation(
                 ReportScreen(ledgerViewModel) { navController.popBackStack() }
             }
         }
+    }
     }
 }

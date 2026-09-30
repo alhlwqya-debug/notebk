@@ -53,11 +53,12 @@ fun LedgerScreen(
     val selectedDateText = ledgerDateFormat.format(Date(selectedDateMillis))
     val daysRegistered = records.map { viewModelDateKey(it.timestamp) }.distinct().size
 
-    val visibleRecords = remember(records, query) {
-        if (query.isBlank()) records else records.filter {
+    val numericRecords = remember(records) { records.filter { it.recordType == "numeric" } }
+    val visibleRecords = remember(numericRecords, query) {
+        if (query.isBlank()) numericRecords else numericRecords.filter {
             it.dayName.contains(query, true) ||
                 it.note.contains(query, true) ||
-                it.personName.contains(query, true) ||
+                it.expenseType.contains(query, true) ||
                 it.itemQuantity.toString().contains(query) ||
                 it.pieceType.contains(query, true) ||
                 ledgerDateFormat.format(Date(it.timestamp)).contains(query)
@@ -97,8 +98,8 @@ fun LedgerScreen(
             currency = settings.currencySymbol,
             pieceTypes = pieceTypes,
             onDismiss = { editingRecord = null },
-            onSave = { day, q, a, isCredit, price, editNote, type, person, timestamp ->
-                viewModel.updateRecord(record, day, q, a, isCredit, price, editNote, type, person, timestamp)
+            onSave = { day, q, a, isCredit, price, editNote, type, person, pageNumber, expenseTypeValue, recordType, timestamp ->
+                viewModel.updateRecord(record, day, q, a, isCredit, price, editNote, type, person, pageNumber, expenseTypeValue, recordType, timestamp)
                 editingRecord = null
             }
         )
@@ -215,7 +216,7 @@ fun LedgerScreen(
         }
 
         LedgerEntryBar(
-            quantity, personName, unitPrice, amount, note, pieceType, credit,
+            quantity, unitPrice, amount, expenseType, note, pieceType, credit,
             settings.currencySymbol, pieceTypes,
             onQuantityChange = {
                 val clean = it.filter(Char::isDigit)

@@ -25,13 +25,9 @@ fun StatisticsScreen(
     onBack: () -> Unit,
     onPerformance: () -> Unit = {}
 ) {
-    Scaffold(
-        topBar = {
-            BrandTopBar(title = "الإحصائيات", onBack = onBack)
-        }
-    ) { padding ->
+    Scaffold(topBar = { BrandTopBar(title = "الإحصائيات", onBack = onBack) }) { padding ->
         LazyColumn(
-            Modifier.fillMaxSize().background(LightBackground).padding(padding),
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -74,9 +70,9 @@ fun StatisticsScreen(
 
 @Composable
 private fun SummaryCard(title: String, value: String, accent: Color, modifier: Modifier) {
-    Card(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = SurfaceWhite), elevation = CardDefaults.cardElevation(2.dp)) {
+    Card(modifier, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            Text(title, color = TextSecondary, fontSize = 13.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Text(value, color = accent, fontWeight = FontWeight.Bold, fontSize = 20.sp)
         }
     }

@@ -1,16 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<<<<<<< HEAD
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@drawable/brand_logo" />
 </layer-list>
-=======
-<<<<<<< HEAD
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/brand_logo" />
-</layer-list>
-=======
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/app_icon"
-    android:gravity="fill" />
->>>>>>> branch 'main' of https://github.com/alhlwqya-debug/notebk.git
->>>>>>> branch 'main' of https://github.com/alhlwqya-debug/notebk.git

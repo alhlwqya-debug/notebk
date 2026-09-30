@@ -114,6 +114,7 @@ class LedgerRepository(private val dao: RecordDao) {
         dao.updateAll(merged.map(RecordEntity::fromDomain))
         val newRecords = byId.values.filter { it.id == 0 }
         if (newRecords.isNotEmpty()) dao.insertAll(newRecords.map(RecordEntity::fromDomain))
+        recalculateBalances()
     }
 
     suspend fun clearDatabase() = dao.clearAll()

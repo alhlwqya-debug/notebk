@@ -13,10 +13,14 @@ data class RecordEntity(
     val pieceType: String = "ثابت كامل",
     val unitPrice: Double = 0.0,
     val personName: String = "",
+    val pageNumber: String = "",
+    val expenseType: String = "",
+    val recordType: String = "numeric",
     val timestamp: Long = System.currentTimeMillis()
 ) {
     fun toDomain() = TailorRecord(
-        id, dayName, itemQuantity, credit, debit, balance, note, pieceType, unitPrice, personName, timestamp
+        id, dayName, itemQuantity, credit, debit, balance, note,
+        pieceType, unitPrice, personName, pageNumber, expenseType, recordType, timestamp
     )
 
     companion object {
@@ -31,6 +35,9 @@ data class RecordEntity(
             pieceType = record.pieceType,
             unitPrice = record.unitPrice,
             personName = record.personName,
+            pageNumber = record.pageNumber,
+            expenseType = record.expenseType,
+            recordType = record.recordType,
             timestamp = record.timestamp
         )
     }

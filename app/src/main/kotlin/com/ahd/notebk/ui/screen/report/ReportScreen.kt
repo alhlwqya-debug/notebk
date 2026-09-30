@@ -60,7 +60,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
+fun ReportScreen(viewModel: LedgerViewModel, reportType: String = "all", onBack: () -> Unit) {
     val context = LocalContext.current
     val settings by viewModel.settingsState.collectAsState()
     val records by viewModel.recordsState.collectAsState()
@@ -102,9 +102,20 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
     LaunchedEffect(records, settings, selectedYear, selectedMonth) {
         isGenerating = true
         error = null
+        val sourceRecords = remember(records, reportType) {
+        when (reportType) {
+            "individual" -> records.filter { it.recordType == "individual" }
+            "numeric" -> records.filter { it.recordType == "numeric" }
+            else -> records
+        }
+    }
+
+    LaunchedEffect(sourceRecords, settings, selectedYear, selectedMonth) {
+        isGenerating = true
+        error = null
         val result = withContext(Dispatchers.IO) {
             runCatching {
-                TailorPdfReport.create(context, records, settings, selectedYear, selectedMonth)
+                TailorPdfReport.create(context, sourceRecords, settings, selectedYear, selectedMonth)
             }
         }
         file = result.getOrNull()
@@ -128,7 +139,14 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("التقرير الشهري", style = MaterialTheme.typography.titleLarge)
+            Text(
+                when (reportType) {
+                    "individual" -> "تقرير السجل الفردي"
+                    "numeric" -> "تقرير السجل العددي"
+                    else -> "التقرير الشهري العام"
+                },
+                style = MaterialTheme.typography.titleLarge
+            )
 
             Row(
                 Modifier.fillMaxWidth(),
@@ -148,7 +166,8 @@ fun ReportScreen(viewModel: LedgerViewModel, onBack: () -> Unit) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("محتوى التقرير", fontWeight = FontWeight.Bold)
                     Text("الملخص المالي، إجمالي القطع، ملخص أنواع القطع، النشاط، والسجل اليومي.")
-                    Text("السجلات: ${records.count { record ->
+                    Text("مصدر التقرير: ${when (reportType) { "individual" -> "السجل الفردي فقط"; "numeric" -> "السجل العددي فقط"; else -> "كل السجلات" }}")
+                    Text("السجلات: ${sourceRecords.count { record ->
                         val c = Calendar.getInstance().apply { timeInMillis = record.timestamp }
                         c.get(Calendar.YEAR) == selectedYear && c.get(Calendar.MONTH) == selectedMonth
                     }}")

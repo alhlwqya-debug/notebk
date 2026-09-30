@@ -12,23 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,10 +33,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ahd.notebk.data.local.AppSettings
-import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.components.BrandTopBar
+import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: LedgerViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -64,6 +57,7 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
     var currency by remember(settings) { mutableStateOf(settings.currencySymbol) }
     var showMoney by remember(settings) { mutableStateOf(settings.showDebitCredit) }
     var autoToday by remember(settings) { mutableStateOf(settings.autoFillToday) }
+    var darkMode by remember(settings) { mutableStateOf(settings.darkMode) }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching {
@@ -78,15 +72,9 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
         }.onFailure { Toast.makeText(context, it.message ?: "تعذر قراءة النسخة", Toast.LENGTH_SHORT).show() }
     }
 
-    Scaffold(topBar = {
-        BrandTopBar(title = "الملف الشخصي والإعدادات", onBack = onBack)
-    }) { padding ->
+    Scaffold(topBar = { BrandTopBar(title = "الملف الشخصي والإعدادات", onBack = onBack) }) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("الملف الشخصي", color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
@@ -106,8 +94,17 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
             }
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) { Text("إظهار له / عليه / الرصيد"); Switch(showMoney, { showMoney = it }) }
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) { Text("تعبئة اليوم تلقائياً"); Switch(autoToday, { autoToday = it }) }
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) { Text("الوضع الداكن"); Switch(darkMode, { darkMode = it }) }
             Button(onClick = {
-                settingsViewModel.save(AppSettings(shopName.trim().ifBlank { "ورشة الخياطة الرقمية" }, ownerName.trim(), shopNumber.trim(), phone.trim(), address.trim(), workerName.trim(), price.toDoubleOrNull() ?: 2000.0, currency.trim().ifBlank { "ر.ي" }, showMoney, autoToday))
+                settingsViewModel.save(
+                    AppSettings(
+                        shopName.trim().ifBlank { "ورشة الخياطة الرقمية" },
+                        ownerName.trim(), shopNumber.trim(), phone.trim(), address.trim(), workerName.trim(),
+                        price.toDoubleOrNull() ?: 2000.0,
+                        currency.trim().ifBlank { "ر.ي" },
+                        showMoney, autoToday, darkMode
+                    )
+                )
                 Toast.makeText(context, "تم حفظ الملف الشخصي والإعدادات", Toast.LENGTH_SHORT).show()
             }, Modifier.fillMaxWidth()) { Text("حفظ التغييرات") }
             HorizontalDivider()

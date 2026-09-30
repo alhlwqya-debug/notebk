@@ -68,7 +68,9 @@ class ShopManager(private val context: Context) {
             if (current.size <= 1) return@edit
             val remaining = current.filterNot { it.id == id }
             preferences[shopsKey] = encode(remaining)
-            if (preferences[selectedKey] == id) {\n                remaining.firstOrNull()?.id?.let { preferences[selectedKey] = it }\n            }
+            if (preferences[selectedKey] == id) {
+                remaining.firstOrNull()?.id?.let { preferences[selectedKey] = it }
+            }
         }
     }
 

@@ -8,7 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -108,7 +109,12 @@ fun AppNavigation(
                 val records by ledgerViewModel.recordsState.collectAsState()
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val workingDays = records.map { dateFormat.format(Date(it.timestamp)) }.distinct().size
-                StatisticsScreen(\n                    summary = summary,\n                    workingDays = workingDays,\n                    currency = settings.currencySymbol,\n                    onBack = { navController.popBackStack() }\n                )
+                StatisticsScreen(
+                    summary = summary,
+                    workingDays = workingDays,
+                    currency = settings.currencySymbol,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(AppRoutes.SETTINGS) {
                 SettingsScreen(settingsViewModel, ledgerViewModel) { navController.popBackStack() }

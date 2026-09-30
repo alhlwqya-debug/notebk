@@ -7,6 +7,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object LedgerEngine {
+    fun localDateKey(timestamp: Long): String {
+        val c = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+        return "%04d-%02d-%02d".format(
+            c.get(java.util.Calendar.YEAR),
+            c.get(java.util.Calendar.MONTH) + 1,
+            c.get(java.util.Calendar.DAY_OF_MONTH)
+        )
+    }
+
     fun recalculateBalances(records: List<TailorRecord>): List<TailorRecord> {
         var balance = 0.0
         return records.sortedWith(compareBy<TailorRecord> { it.timestamp }.thenBy { it.id }).map { record ->
@@ -16,7 +25,7 @@ object LedgerEngine {
     }
 
     fun normalizePersonName(name: String): String =
-        name.trim().replace(Regex("\\s+"), " ")
+        name.trim().replace(Regex("\s+"), " ")
 
     fun personNames(records: List<TailorRecord>): List<String> =
         records.map { normalizePersonName(it.personName) }
@@ -36,7 +45,7 @@ object LedgerEngine {
         val totalPieces = records.sumOf { it.itemQuantity }
         val totalCredit = records.sumOf { it.credit }
         val totalDebit = records.sumOf { it.debit }
-        val distinctDays = records.map { it.dayName.trim() }.filter { it.isNotEmpty() }.distinct().size
+        val distinctDays = records.map { localDateKey(it.timestamp) }.distinct().size
         val average = if (distinctDays > 0) totalPieces.toDouble() / distinctDays else 0.0
         return LedgerSummary(totalPieces, totalCredit, totalDebit, totalCredit - totalDebit, average)
     }
@@ -68,6 +77,7 @@ object LedgerEngine {
                 put("currencySymbol", settings.currencySymbol)
                 put("showDebitCredit", settings.showDebitCredit)
                 put("autoFillToday", settings.autoFillToday)
+                put("darkMode", settings.darkMode)
             })
             put("records", JSONArray().apply {
                 records.forEach { item ->
@@ -106,7 +116,8 @@ object LedgerEngine {
             defaultPiecePrice = settingsObject?.optDouble("defaultPiecePrice", 2000.0) ?: 2000.0,
             currencySymbol = settingsObject?.optString("currencySymbol", "ر.ي") ?: "ر.ي",
             showDebitCredit = settingsObject?.optBoolean("showDebitCredit", true) ?: true,
-            autoFillToday = settingsObject?.optBoolean("autoFillToday", true) ?: true
+            autoFillToday = settingsObject?.optBoolean("autoFillToday", true) ?: true,
+            darkMode = settingsObject?.optBoolean("darkMode", true) ?: true
         )
         val records = buildList {
             for (i in 0 until array.length()) {
@@ -137,5 +148,4 @@ object LedgerEngine {
     }
 
     fun importFromJson(jsonString: String): List<TailorRecord> = importBackup(jsonString).records
-
 }

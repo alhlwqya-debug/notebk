@@ -99,10 +99,7 @@ fun ReportScreen(viewModel: LedgerViewModel, reportType: String = "all", onBack:
         }
     }
 
-    LaunchedEffect(records, settings, selectedYear, selectedMonth) {
-        isGenerating = true
-        error = null
-        val sourceRecords = remember(records, reportType) {
+    val sourceRecords = remember(records, reportType) {
         when (reportType) {
             "individual" -> records.filter { it.recordType == "individual" }
             "numeric" -> records.filter { it.recordType == "numeric" }

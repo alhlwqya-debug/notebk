@@ -8,5 +8,6 @@ object AppRoutes {
     const val STATISTICS = "statistics"
     const val SETTINGS = "settings"
     const val REPORT = "report"
+    const val REPORT_TYPE = "report/{type}"
     const val LEDGER = NUMERIC
 }

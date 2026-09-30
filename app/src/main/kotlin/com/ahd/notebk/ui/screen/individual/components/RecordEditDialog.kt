@@ -31,6 +31,9 @@ fun RecordEditDialog(
         note: String,
         pieceType: String,
         personName: String,
+        pageNumber: String,
+        expenseType: String,
+        recordType: String,
         timestamp: Long
     ) -> Unit
 ) {
@@ -44,6 +47,8 @@ fun RecordEditDialog(
     var note by remember(record) { mutableStateOf(record.note) }
     var pieceType by remember(record) { mutableStateOf(record.pieceType) }
     var person by remember(record) { mutableStateOf(record.personName) }
+    var pageNumber by remember(record) { mutableStateOf(record.pageNumber) }
+    var expenseType by remember(record) { mutableStateOf(record.expenseType) }
 
     val dateText = remember(record) {
         SimpleDateFormat("yyyy/MM/dd", Locale.US).format(Date(record.timestamp))
@@ -59,6 +64,13 @@ fun RecordEditDialog(
                     onValueChange = { person = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("اسم الزبون") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = pageNumber,
+                    onValueChange = { pageNumber = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("رقم الصفحة") },
                     singleLine = true
                 )
                 OutlinedTextField(
@@ -93,6 +105,13 @@ fun RecordEditDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
                 OutlinedTextField(
+                    value = expenseType,
+                    onValueChange = { expenseType = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("نوع المصروف") },
+                    singleLine = true
+                )
+                OutlinedTextField(
                     value = pieceType,
                     onValueChange = { pieceType = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -123,7 +142,7 @@ fun RecordEditDialog(
                     val p = price.toDoubleOrNull() ?: 0.0
                     val a = amount.toDoubleOrNull() ?: 0.0
                     if (q >= 0 && p >= 0 && a >= 0) {
-                        onSave(day, q, a, isCredit, p, note, pieceType, person, record.timestamp)
+                        onSave(day, q, a, isCredit, p, note, pieceType, person, pageNumber, expenseType, record.recordType, record.timestamp)
                     }
                 }
             ) { Text("حفظ") }

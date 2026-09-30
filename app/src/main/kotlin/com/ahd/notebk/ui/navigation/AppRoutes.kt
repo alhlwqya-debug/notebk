@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.navigation
 
 object AppRoutes {
+    const val HOME = "home"
     const val NUMERIC = "numeric"
     const val INDIVIDUAL = "individual"
     const val SHOPS = "shops"

@@ -60,6 +60,9 @@ fun IndividualLedger(
     val filtered = remember(filteredByPerson, query) {
         if (query.isBlank()) filteredByPerson else filteredByPerson.filter {
             it.personName.contains(query, true) ||
+                it.pageNumber.contains(query, true) ||
+                it.pieceType.contains(query, true) ||
+                it.expenseType.contains(query, true) ||
                 it.note.contains(query, true) ||
                 it.itemQuantity.toString().contains(query) ||
                 individualDateFormat.format(Date(it.timestamp)).contains(query)
@@ -192,7 +195,7 @@ fun IndividualLedger(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                label = { Text("بحث باسم الزبون أو رقم/تاريخ السجل") },
+                label = { Text("بحث: الزبون، الصفحة، القطعة، المصروف، التاريخ") },
                 singleLine = true
             )
 

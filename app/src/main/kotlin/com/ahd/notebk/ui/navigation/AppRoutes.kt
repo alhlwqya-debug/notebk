@@ -1,10 +1,11 @@
 package com.ahd.notebk.ui.navigation
 
-/** Centralized navigation route names to prevent route typos across the app. */
 object AppRoutes {
-    const val LEDGER = "ledger"
-    const val STATISTICS = "statistics"
+    const val NUMERIC = "numeric"
     const val INDIVIDUAL = "individual"
+    const val SHOPS = "shops"
+    const val STATISTICS = "statistics"
     const val SETTINGS = "settings"
     const val REPORT = "report"
+    const val LEDGER = NUMERIC
 }

@@ -18,7 +18,7 @@ fun LedgerEntryBar(
     onAmountChange: (String) -> Unit, onNoteChange: (String) -> Unit,
     onPieceTypeClick: () -> Unit, onSave: () -> Unit
 ) {
-    Surface(shadowElevation = 6.dp, color = androidx.compose.ui.graphics.Color.White) {
+    Surface(shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             OutlinedTextField(quantity, onQuantityChange, Modifier.weight(.75f), singleLine = true, label = { Text("القطع") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             OutlinedTextField(personName, onPersonChange, Modifier.weight(1.1f), singleLine = true, label = { Text("الشخص") })

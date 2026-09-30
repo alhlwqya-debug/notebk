@@ -92,6 +92,9 @@ object LedgerEngine {
                         put("balance", item.balance)
                         put("note", item.note)
                         put("personName", item.personName)
+                        put("pageNumber", item.pageNumber)
+                        put("expenseType", item.expenseType)
+                        put("recordType", item.recordType)
                         put("timestamp", item.timestamp)
                     })
                 }
@@ -140,6 +143,9 @@ object LedgerEngine {
                     balance = obj.optDouble("balance", 0.0),
                     note = obj.optString("note", ""),
                     personName = normalizePersonName(obj.optString("personName", "")),
+                    pageNumber = obj.optString("pageNumber", ""),
+                    expenseType = obj.optString("expenseType", ""),
+                    recordType = obj.optString("recordType", "numeric").ifBlank { "numeric" },
                     timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                 ))
             }

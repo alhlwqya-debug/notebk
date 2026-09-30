@@ -75,4 +75,7 @@ fun PersonRecordsTable(
                         }
                     }
                 }
-
+            }
+        }
+    }
+}

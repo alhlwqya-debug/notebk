@@ -21,7 +21,8 @@ data class AppSettings(
     val defaultPiecePrice: Double = 2000.0,
     val currencySymbol: String = "ر.ي",
     val showDebitCredit: Boolean = true,
-    val autoFillToday: Boolean = true
+    val autoFillToday: Boolean = true,
+    val darkMode: Boolean = true
 )
 
 class AppSettingsManager(private val context: Context) {
@@ -36,6 +37,7 @@ class AppSettingsManager(private val context: Context) {
         private val CURRENCY = stringPreferencesKey("currency_symbol")
         private val SHOW_DEBIT_CREDIT = booleanPreferencesKey("show_debit_credit")
         private val AUTO_FILL_TODAY = booleanPreferencesKey("auto_fill_today")
+        private val DARK_MODE = booleanPreferencesKey("dark_mode")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -49,7 +51,8 @@ class AppSettingsManager(private val context: Context) {
             defaultPiecePrice = p[DEFAULT_PRICE] ?: 2000.0,
             currencySymbol = p[CURRENCY] ?: "ر.ي",
             showDebitCredit = p[SHOW_DEBIT_CREDIT] ?: true,
-            autoFillToday = p[AUTO_FILL_TODAY] ?: true
+            autoFillToday = p[AUTO_FILL_TODAY] ?: true,
+            darkMode = p[DARK_MODE] ?: true
         )
     }
 
@@ -65,6 +68,7 @@ class AppSettingsManager(private val context: Context) {
             p[CURRENCY] = settings.currencySymbol
             p[SHOW_DEBIT_CREDIT] = settings.showDebitCredit
             p[AUTO_FILL_TODAY] = settings.autoFillToday
+            p[DARK_MODE] = settings.darkMode
         }
     }
 }

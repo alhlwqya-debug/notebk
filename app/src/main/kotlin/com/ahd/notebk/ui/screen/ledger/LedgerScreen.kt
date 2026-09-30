@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ahd.notebk.domain.engine.PieceCalculator
+import com.ahd.notebk.domain.engine.LedgerEngine
 import com.ahd.notebk.ui.screen.ledger.components.*
 import com.ahd.notebk.ui.screen.individual.components.RecordEditDialog
 import java.text.SimpleDateFormat
@@ -53,7 +54,13 @@ fun LedgerScreen(
     val selectedDateText = ledgerDateFormat.format(Date(selectedDateMillis))
     val daysRegistered = records.map { viewModelDateKey(it.timestamp) }.distinct().size
 
-    val numericRecords = remember(records) { records.filter { it.recordType == "numeric" } }
+    val workerName = remember(settings.workerName) { LedgerEngine.normalizePersonName(settings.workerName) }
+    val numericRecords = remember(records, workerName) {
+        records.filter {
+            it.recordType == "numeric" &&
+                (LedgerEngine.normalizePersonName(it.personName).isBlank() || LedgerEngine.normalizePersonName(it.personName) == workerName)
+        }
+    }
     val visibleRecords = remember(numericRecords, query) {
         if (query.isBlank()) numericRecords else numericRecords.filter {
             it.dayName.contains(query, true) ||

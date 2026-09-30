@@ -11,5 +11,8 @@ data class TailorRecord(
     val pieceType: String = "ثابت كامل",
     val unitPrice: Double = 0.0,
     val personName: String = "",
+    val pageNumber: String = "",
+    val expenseType: String = "",
+    val recordType: String = "numeric",
     val timestamp: Long = System.currentTimeMillis()
 )

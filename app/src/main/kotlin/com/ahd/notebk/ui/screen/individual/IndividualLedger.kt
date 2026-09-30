@@ -21,7 +21,6 @@ import com.ahd.notebk.domain.model.TailorRecord
 import com.ahd.notebk.ui.components.BrandTopBar
 import com.ahd.notebk.ui.screen.individual.components.*
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
-import com.ahd.notebk.ui.theme.LightBackground
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -126,7 +125,7 @@ fun IndividualLedger(
         }
     ) { padding ->
         Column(
-            Modifier.fillMaxSize().background(LightBackground).padding(padding)
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(padding)
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(8.dp),

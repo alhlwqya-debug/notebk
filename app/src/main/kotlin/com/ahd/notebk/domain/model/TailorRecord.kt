@@ -9,5 +9,7 @@ data class TailorRecord(
     val balance: Double,
     val note: String,
     val pieceType: String = "ثابت كامل",
+    val unitPrice: Double = 0.0,
+    val personName: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,12 +40,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ahd.notebk.data.local.AppSettings
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
+import com.ahd.notebk.ui.components.BrandTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: LedgerViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val settings by settingsViewModel.settings.collectAsState()
+    val backupMessage by ledgerViewModel.backupMessage.collectAsState()
+    LaunchedEffect(backupMessage) {
+        backupMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            ledgerViewModel.clearBackupMessage()
+        }
+    }
     var shopName by remember(settings) { mutableStateOf(settings.shopName) }
     var ownerName by remember(settings) { mutableStateOf(settings.ownerName) }
     var shopNumber by remember(settings) { mutableStateOf(settings.shopNumber) }
@@ -64,22 +72,14 @@ fun SettingsScreen(settingsViewModel: SettingsViewModel, ledgerViewModel: Ledger
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
-            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }?.let(ledgerViewModel::importBackup)
-        }.also { Toast.makeText(context, "تم استيراد النسخة", Toast.LENGTH_SHORT).show() }
+            val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                ?: error("تعذر قراءة ملف النسخة الاحتياطية")
+            ledgerViewModel.importBackup(json)
+        }.onFailure { Toast.makeText(context, it.message ?: "تعذر قراءة النسخة", Toast.LENGTH_SHORT).show() }
     }
 
     Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("الملف الشخصي والإعدادات", fontWeight = FontWeight.Bold) },
-            navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF0F172A),
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White
-            )
-        )
+        BrandTopBar(title = "الملف الشخصي والإعدادات", onBack = onBack)
     }) { padding ->
         Column(
             modifier = Modifier

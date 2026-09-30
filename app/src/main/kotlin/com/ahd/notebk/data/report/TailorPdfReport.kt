@@ -1,10 +1,13 @@
 package com.ahd.notebk.data.report
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.RectF
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
+import com.ahd.notebk.R
 import com.ahd.notebk.data.local.AppSettings
 import com.ahd.notebk.domain.model.TailorRecord
 import java.io.File
@@ -32,6 +35,36 @@ object TailorPdfReport {
         var page: PdfDocument.Page? = null
         lateinit var canvas: Canvas
         var y = 0f
+        val logo = BitmapFactory.decodeResource(context.resources, R.drawable.brand_logo)
+        val logoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = 255 }
+
+        fun drawBrandHeader(pageTitle: String) {
+            val logoSize = 58f
+            val left = PAGE_W - MARGIN - logoSize
+            val top = 12f
+            canvas.drawBitmap(logo, null, RectF(left, top, left + logoSize, top + logoSize), logoPaint)
+            val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = Typeface.DEFAULT_BOLD
+                textSize = 10f
+                color = android.graphics.Color.rgb(55, 35, 110)
+                textAlign = Paint.Align.RIGHT
+            }
+            canvas.drawText("notebk", left - 8f, top + 22f, brand)
+            val sub = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = Typeface.DEFAULT
+                textSize = 8f
+                color = android.graphics.Color.DKGRAY
+                textAlign = Paint.Align.RIGHT
+            }
+            canvas.drawText(pageTitle, left - 8f, top + 36f, sub)
+            val team = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = Typeface.DEFAULT_BOLD
+                textSize = 7f
+                color = android.graphics.Color.rgb(70, 45, 130)
+                textAlign = Paint.Align.RIGHT
+            }
+            canvas.drawText("AHD DEV TEAM", left - 8f, top + 48f, team)
+        }
 
         fun newPage() {
             page?.let { document.finishPage(it) }
@@ -40,7 +73,8 @@ object TailorPdfReport {
             page = document.startPage(info)
             canvas = page!!.canvas
             canvas.drawColor(android.graphics.Color.WHITE)
-            y = MARGIN
+            drawBrandHeader("دفتر الحسابات")
+            y = 78f
         }
 
         fun finish() {
@@ -173,7 +207,14 @@ object TailorPdfReport {
             x += widths[i]
         }
         y += 38
-        canvas.drawText("تقرير مالي وإداري شامل — $year - ${String.format("%02d", month + 1)} — $todayText", PAGE_W / 2f, minOf(y, PAGE_H - 15f), body)
+        val footer = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = Typeface.DEFAULT
+            textSize = 8f
+            color = android.graphics.Color.GRAY
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText("notebk — $year - ${String.format("%02d", month + 1)} — $todayText", PAGE_W / 2f, minOf(y, PAGE_H - 27f), footer)
+        canvas.drawText("عمل المهندس أحمد عبدالودود الدبعي", PAGE_W / 2f, minOf(y, PAGE_H - 14f), footer)
         finish()
         return file
     }

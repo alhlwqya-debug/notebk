@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.ui.theme.*
+import com.ahd.notebk.ui.components.BrandTopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,10 +27,7 @@ fun StatisticsScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("الإحصائيات") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع") } }
-            )
+            BrandTopBar(title = "الإحصائيات", onBack = onBack)
         }
     ) { padding ->
         LazyColumn(

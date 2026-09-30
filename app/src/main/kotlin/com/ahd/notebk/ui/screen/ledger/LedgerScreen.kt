@@ -1,67 +1,17 @@
 package com.ahd.notebk.ui.screen.ledger
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.ahd.notebk.ui.components.GridCell
-import com.ahd.notebk.ui.components.StatCard
-import com.ahd.notebk.ui.components.ZoomableContainer
-import com.ahd.notebk.ui.theme.BorderDivider
-import com.ahd.notebk.ui.theme.ErrorRed
+import com.ahd.notebk.domain.engine.PieceCalculator
+import com.ahd.notebk.ui.screen.ledger.components.*
 import com.ahd.notebk.ui.theme.LightBackground
-import com.ahd.notebk.ui.theme.PrimaryPurple
-import com.ahd.notebk.ui.theme.SecondaryGreen
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 private val ledgerDateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
 private val arabicDayFormat = SimpleDateFormat("EEEE", Locale("ar"))
@@ -79,207 +29,105 @@ fun LedgerScreen(
     val records by viewModel.recordsState.collectAsState()
     val summary by viewModel.summaryState.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
-
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var quantity by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var personName by remember { mutableStateOf(settings.workerName) }
     var credit by remember { mutableStateOf(true) }
     var pieceType by remember { mutableStateOf("ثابت كامل") }
-
-    val pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه")
-    val selectedDate = Date(selectedDateMillis)
-    val selectedDayName = arabicDayFormat.format(selectedDate)
-    val selectedDateText = ledgerDateFormat.format(selectedDate)
-
-    val visibleRecords = if (query.isBlank()) {
-        records
-    } else {
-        records.filter {
-            it.dayName.contains(query, true) ||
-                it.note.contains(query, true) ||
-                it.itemQuantity.toString().contains(query) ||
-                it.pieceType.contains(query, true) ||
+    var unitPrice by remember(settings.defaultPiecePrice) { mutableStateOf(settings.defaultPiecePrice.toString()) }
+    val pieceTypes = remember { listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه") }
+    var editingRecord by remember { mutableStateOf<com.ahd.notebk.domain.model.TailorRecord?>(null) }
+    var deletingRecord by remember { mutableStateOf<com.ahd.notebk.domain.model.TailorRecord?>(null) }
+    val selectedDayName = arabicDayFormat.format(Date(selectedDateMillis))
+    val selectedDateText = ledgerDateFormat.format(Date(selectedDateMillis))
+    val visibleRecords = remember(records, query) {
+        if (query.isBlank()) records else records.filter {
+            it.dayName.contains(query, true) || it.note.contains(query, true) || it.personName.contains(query, true) ||
+                it.itemQuantity.toString().contains(query) || it.pieceType.contains(query, true) ||
                 ledgerDateFormat.format(Date(it.timestamp)).contains(query)
         }
+    }
+
+    editingRecord?.let { record ->
+        RecordEditDialog(
+            record = record,
+            defaultPrice = settings.defaultPiecePrice,
+            currency = settings.currencySymbol,
+            pieceTypes = pieceTypes,
+            onDismiss = { editingRecord = null },
+            onSave = { day, q, a, isCredit, price, editNote, type, person, timestamp ->
+                viewModel.updateRecord(record, day, q, a, isCredit, price, editNote, type, person, timestamp)
+                editingRecord = null
+            }
+        )
+    }
+
+    deletingRecord?.let { record ->
+        AlertDialog(
+            onDismissRequest = { deletingRecord = null },
+            title = { Text("حذف السجل") },
+            text = { Text("هل تريد حذف سجل ${record.personName.ifBlank { "غير محدد" }} بتاريخ ${ledgerDateFormat.format(Date(record.timestamp))}؟") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.deleteRecord(record); deletingRecord = null }) { Text("حذف", color = com.ahd.notebk.ui.theme.ErrorRed) }
+            },
+            dismissButton = { TextButton(onClick = { deletingRecord = null }) { Text("إلغاء") } }
+        )
     }
 
     if (showDatePicker) {
         val state = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let { selectedDateMillis = it }
-                    showDatePicker = false
-                }) { Text("اختيار") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("إلغاء") }
-            }
+            confirmButton = { TextButton(onClick = { state.selectedDateMillis?.let { selectedDateMillis = it }; showDatePicker = false }) { Text("اختيار") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("إلغاء") } }
         ) { DatePicker(state = state) }
     }
 
     Column(Modifier.fillMaxSize().background(LightBackground)) {
-        Surface(color = PrimaryPurple, contentColor = Color.White) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(settings.shopName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("دفتر الحسابات • ${summary.totalPieces} قطعة", fontSize = 11.sp)
-                }
-                Row {
-                    IconButton(onClick = onOpenStatistics) { Icon(Icons.Default.Analytics, "الإحصائيات") }
-                    IconButton(onClick = onOpenIndividualLedger) { Icon(Icons.Default.Person, "السجل الفردي") }
-                    IconButton(onClick = onOpenReport) { Icon(Icons.Default.PictureAsPdf, "التقرير") }
-                    IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "الإعدادات") }
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatCard("القطع", summary.totalPieces.toString(), Modifier.weight(1f))
-            StatCard("له", "%.0f %s".format(summary.totalCredit, settings.currencySymbol), Modifier.weight(1f), SecondaryGreen)
-            StatCard("عليه", "%.0f %s".format(summary.totalDebit, settings.currencySymbol), Modifier.weight(1f), ErrorRed)
-            StatCard("الصافي", "%.0f %s".format(summary.netBalance, settings.currencySymbol), Modifier.weight(1f), PrimaryPurple)
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = { showDatePicker = true },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.CalendarMonth, null)
-                Spacer(Modifier.width(4.dp))
-                Text(selectedDateText)
-            }
-            Button(
-                onClick = { credit = true },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
-            ) { Text("+ إنتاج") }
-            Button(
-                onClick = { credit = false },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
-            ) { Text("+ مصروف") }
-        }
-
-        OutlinedTextField(
-            value = query,
-            onValueChange = viewModel::onSearchQueryChange,
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            label = { Text("بحث في السجلات") },
-            singleLine = true
+        LedgerTopBar(settings, summary, onOpenStatistics, onOpenIndividualLedger, onOpenReport, onOpenSettings)
+        LedgerSummaryCards(summary, settings)
+        LedgerFilterBar(
+            selectedDateText = selectedDateText,
+            query = query,
+            onDateClick = { showDatePicker = true },
+            onProductionClick = {
+                credit = true
+                val q = quantity.toIntOrNull() ?: 0
+                val price = unitPrice.toDoubleOrNull() ?: settings.defaultPiecePrice
+                amount = if (q > 0) PieceCalculator.calculateTotal(q, price).toString() else ""
+            },
+            onExpenseClick = { credit = false },
+            onQueryChange = viewModel::onSearchQueryChange
         )
-
-        ZoomableContainer(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp)
-        ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(2.dp)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().background(Color(0xFFF1F3F5)).border(.5.dp, BorderDivider)
-                    ) {
-                        GridCell("التاريخ", 1.2f, true)
-                        GridCell("اليوم", 1f, true)
-                        GridCell("القطع", .8f, true, PrimaryPurple)
-                        if (settings.showDebitCredit) {
-                            GridCell("له (+)", 1f, true, SecondaryGreen)
-                            GridCell("عليه (-)", 1f, true, ErrorRed)
-                            GridCell("الرصيد", 1f, true)
-                        }
-                        GridCell("الملاحظات", 1.3f, true)
-                    }
-                    LazyColumn(Modifier.fillMaxWidth()) {
-                        items(visibleRecords, key = { it.id }) { item ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().background(
-                                    if (item.id % 2 == 0) Color.White else LightBackground
-                                )
-                            ) {
-                                GridCell(ledgerDateFormat.format(Date(item.timestamp)), 1.2f, fontWeight = FontWeight.SemiBold)
-                                GridCell(item.dayName, 1f, fontWeight = FontWeight.SemiBold)
-                                GridCell(item.itemQuantity.toString(), .8f, color = PrimaryPurple, fontWeight = FontWeight.Bold)
-                                if (settings.showDebitCredit) {
-                                    GridCell(if (item.credit > 0) "%.0f".format(item.credit) else "-", 1f, color = SecondaryGreen)
-                                    GridCell(if (item.debit > 0) "%.0f".format(item.debit) else "-", 1f, color = ErrorRed)
-                                    GridCell("%.0f".format(item.balance), 1f, fontWeight = FontWeight.Bold)
-                                }
-                                GridCell(item.note.ifBlank { item.pieceType }, 1.3f)
-                            }
-                        }
-                    }
+        LedgerTable(visibleRecords, settings.showDebitCredit, onEdit = { editingRecord = it }, onDelete = { deletingRecord = it })
+        Spacer(Modifier.height(6.dp))
+        LedgerEntryBar(
+            quantity, personName, unitPrice, amount, note, pieceType, credit, settings.currencySymbol, pieceTypes,
+            onQuantityChange = {
+                val clean = it.filter(Char::isDigit)
+                quantity = clean
+                if (credit) {
+                    val q = clean.toIntOrNull() ?: 0
+                    val price = unitPrice.toDoubleOrNull() ?: settings.defaultPiecePrice
+                    amount = if (q > 0 && price >= 0) PieceCalculator.calculateTotal(q, price).toString() else ""
+                }
+            },
+            onPersonChange = { personName = it },
+            onAmountChange = { if (!credit) amount = it.filter { c -> c.isDigit() || c == '.' } },
+            onNoteChange = { note = it },
+            onPieceTypeClick = { pieceType = pieceTypes[(pieceTypes.indexOf(pieceType) + 1) % pieceTypes.size] },
+            onSave = {
+                val q = quantity.toIntOrNull() ?: 0
+                val price = unitPrice.toDoubleOrNull() ?: settings.defaultPiecePrice
+                val a = if (credit) PieceCalculator.calculateTotal(q, price) else (amount.toDoubleOrNull() ?: 0.0)
+                if ((credit && q > 0 && price >= 0) || (!credit && a > 0)) {
+                    viewModel.addNewRecord(selectedDayName, q, a, credit, price, note, pieceType, personName, selectedDateMillis)
+                    quantity = ""; amount = ""; note = ""
                 }
             }
-        }
-
-        Surface(shadowElevation = 6.dp, color = Color.White) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = {
-                        quantity = it
-                        val q = it.toIntOrNull() ?: 0
-                        if (q > 0 && amount.isBlank()) amount = (q * settings.defaultPiecePrice).toString()
-                    },
-                    modifier = Modifier.weight(.8f),
-                    singleLine = true,
-                    label = { Text("القطع") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    label = { Text("المبلغ") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
-                FilterChip(
-                    selected = true,
-                    onClick = { pieceType = pieceTypes[(pieceTypes.indexOf(pieceType) + 1) % pieceTypes.size] },
-                    label = { Text(pieceType, fontSize = 11.sp) }
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    modifier = Modifier.weight(1.2f),
-                    singleLine = true,
-                    label = { Text("ملاحظة") }
-                )
-                Button(
-                    onClick = {
-                        val q = quantity.toIntOrNull() ?: 0
-                        val a = amount.toDoubleOrNull() ?: 0.0
-                        if (q > 0 || a > 0) {
-                            viewModel.addNewRecord(selectedDayName, q, a, credit, note, pieceType, selectedDateMillis)
-                            quantity = ""
-                            amount = ""
-                            note = ""
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
-                ) { Text("حفظ") }
-            }
-        }
+        )
     }
 }

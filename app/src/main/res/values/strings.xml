@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">notebk</string>
+    <string name="brand_tagline">كل سجل .. يروي قصة</string>
+    <string name="brand_subtitle">إدارة سجلاتك بكل سهولة</string>
+    <string name="brand_author">عمل المهندس أحمد عبدالودود الدبعي</string>
+    <string name="brand_team">AHD DEV TEAM</string>
 </resources>

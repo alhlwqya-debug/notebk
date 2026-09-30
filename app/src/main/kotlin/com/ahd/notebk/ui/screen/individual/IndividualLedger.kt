@@ -37,7 +37,8 @@ fun IndividualLedger(
     shopName: String,
     onOpenReport: () -> Unit
 ) {
-    val people = remember(records) { LedgerEngine.personNames(records) }
+    val individualRecords = remember(records) { records.filter { it.recordType == "individual" } }
+    val people = remember(individualRecords) { LedgerEngine.personNames(individualRecords) }
     var selectedPerson by remember { mutableStateOf<String?>(null) }
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var query by remember { mutableStateOf("") }
@@ -47,8 +48,8 @@ fun IndividualLedger(
     var deletingRecord by remember { mutableStateOf<TailorRecord?>(null) }
 
     val availableSelection = selectedPerson?.takeIf { it == "__UNASSIGNED__" || it in people }
-    val filteredByPerson = remember(records, availableSelection) {
-        LedgerEngine.recordsForPerson(records, availableSelection)
+    val filteredByPerson = remember(individualRecords, availableSelection) {
+        LedgerEngine.recordsForPerson(individualRecords, availableSelection)
     }
     val filtered = remember(filteredByPerson, query) {
         if (query.isBlank()) filteredByPerson else filteredByPerson.filter {
@@ -60,7 +61,7 @@ fun IndividualLedger(
     }
     val calculated = remember(filteredByPerson) { LedgerEngine.recalculateBalances(filteredByPerson) }
     val summary = remember(calculated) { LedgerEngine.calculateSummary(calculated) }
-    val hasUnassigned = remember(records) { records.any { LedgerEngine.normalizePersonName(it.personName).isBlank() } }
+    val hasUnassigned = remember(individualRecords) { individualRecords.any { LedgerEngine.normalizePersonName(it.personName).isBlank() } }
     val peopleWithRecords = people.size + if (hasUnassigned) 1 else 0
 
     val calendar = remember(selectedDateMillis) {
@@ -68,7 +69,7 @@ fun IndividualLedger(
     }
     val yearText = calendar.get(Calendar.YEAR).toString()
     val monthText = (calendar.get(Calendar.MONTH) + 1).toString()
-    val daysRegistered = records.map { LedgerEngine.localDateKey(it.timestamp) }.distinct().size
+    val daysRegistered = individualRecords.map { LedgerEngine.localDateKey(it.timestamp) }.distinct().size
 
     editingRecord?.let { record ->
         RecordEditDialog(
@@ -77,8 +78,8 @@ fun IndividualLedger(
             currency = settings.currencySymbol,
             pieceTypes = listOf("ثابت كامل", "ثابت نص", "زوج كامل", "زوج نص", "فرده كامل", "فرده نص", "فرشه"),
             onDismiss = { editingRecord = null },
-            onSave = { day, q, amount, isCredit, price, note, type, person, timestamp ->
-                viewModel.updateRecord(record, day, q, amount, isCredit, price, note, type, person, timestamp)
+            onSave = { day, q, amount, isCredit, price, note, type, person, pageNumber, expenseType, recordType, timestamp ->
+                viewModel.updateRecord(record, day, q, amount, isCredit, price, note, type, person, pageNumber, expenseType, recordType, timestamp)
                 editingRecord = null
             }
         )
@@ -269,7 +270,7 @@ fun IndividualLedger(
             initialPerson = selectedPerson.orEmpty(),
             selectedDate = selectedDateMillis,
             onDismiss = { showAddPerson = false },
-            onSave = { person, quantity, price, note, pieceType, timestamp ->
+            onSave = { person, pageNumber, quantity, price, note, pieceType, expenseType, timestamp ->
                 viewModel.addNewRecord(
                     dayName = SimpleDateFormat("EEEE", Locale("ar")).format(Date(timestamp)),
                     quantity = quantity,
@@ -279,6 +280,9 @@ fun IndividualLedger(
                     note = note,
                     pieceType = pieceType,
                     personName = person,
+                    pageNumber = pageNumber,
+                    expenseType = expenseType,
+                    recordType = "individual",
                     timestamp = timestamp
                 )
                 selectedPerson = person
@@ -295,9 +299,11 @@ private fun AddIndividualRecordDialog(
     initialPerson: String,
     selectedDate: Long,
     onDismiss: () -> Unit,
-    onSave: (String, Int, Double, String, String, Long) -> Unit
+    onSave: (String, String, Int, Double, String, String, String, Long) -> Unit
 ) {
     var person by remember { mutableStateOf(initialPerson) }
+    var pageNumber by remember { mutableStateOf("") }
+    var expenseType by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var price by remember { mutableStateOf(defaultPrice.toString()) }
     var note by remember { mutableStateOf("") }
@@ -309,9 +315,11 @@ private fun AddIndividualRecordDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(person, { person = it }, label = { Text("اسم الزبون *") }, singleLine = true)
+                OutlinedTextField(pageNumber, { pageNumber = it }, label = { Text("رقم الصفحة") }, singleLine = true)
                 OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit) }, label = { Text("عدد القطع") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 OutlinedTextField(price, { price = it }, label = { Text("سعر القطعة ($currency)") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                 OutlinedTextField(pieceType, { pieceType = it }, label = { Text("نوع القطعة") }, singleLine = true)
+                OutlinedTextField(expenseType, { expenseType = it }, label = { Text("نوع المصروف") }, singleLine = true)
                 OutlinedTextField(note, { note = it }, label = { Text("ملاحظة") }, singleLine = true)
             }
         },
@@ -320,7 +328,7 @@ private fun AddIndividualRecordDialog(
                 onClick = {
                     val q = quantity.toIntOrNull() ?: 0
                     val p = price.toDoubleOrNull() ?: 0.0
-                    if (person.isNotBlank() && q > 0 && p >= 0) onSave(person.trim(), q, p, note, pieceType, selectedDate)
+                    if (person.isNotBlank() && q > 0 && p >= 0) onSave(person.trim(), pageNumber.trim(), q, p, note, pieceType, expenseType, selectedDate)
                 },
                 enabled = person.isNotBlank() && (quantity.toIntOrNull() ?: 0) > 0
             ) {

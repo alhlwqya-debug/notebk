@@ -173,7 +173,8 @@ fun IndividualLedger(
                 }
                 Button(
                     onClick = { selectedDateMillis = System.currentTimeMillis() },
-                    Modifier.weight(1f)
+                    modifier = Modifier.weight(1f)
+                ) { Text("إضافة يوم") }
                 ) { Text("إضافة يوم") }
                 OutlinedButton(onClick = onOpenReport, Modifier.weight(1f)) {
                     Icon(Icons.Default.PictureAsPdf, null)

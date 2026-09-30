@@ -51,22 +51,23 @@ class LedgerViewModel(application: Application) : AndroidViewModel(application) 
     fun clearBackupMessage() { _backupMessage.value = null }
 
     fun addNewRecord(dayName: String, quantity: Int, amount: Double, isCredit: Boolean, unitPrice: Double,
-                     note: String, pieceType: String = "ثابت كامل", personName: String = "",
+                     note: String, pieceType: String = "ثابت كامل", personName: String = "", pageNumber: String = "",
+                     expenseType: String = "", recordType: String = "numeric",
                      timestamp: Long = System.currentTimeMillis()) {
         if (dayName.isBlank() || quantity < 0 || amount < 0.0 || unitPrice < 0.0) {
             _operationError.value = "بيانات السجل غير صالحة"; return
         }
         val finalAmount = if (isCredit) PieceCalculator.calculateTotal(quantity, unitPrice) else amount
         viewModelScope.launch {
-            runCatching { repository.addRecord(dayName, quantity, finalAmount, isCredit, note, pieceType, unitPrice, personName, timestamp) }
+            runCatching { repository.addRecord(dayName, quantity, finalAmount, isCredit, note, pieceType, unitPrice, personName, pageNumber, expenseType, recordType, timestamp) }
                 .onFailure { _operationError.value = it.message ?: "تعذر حفظ السجل" }
         }
     }
 
-    fun updateRecord(record: TailorRecord, dayName: String, quantity: Int, amount: Double, isCredit: Boolean, unitPrice: Double, note: String, pieceType: String, personName: String, timestamp: Long) {
+    fun updateRecord(record: TailorRecord, dayName: String, quantity: Int, amount: Double, isCredit: Boolean, unitPrice: Double, note: String, pieceType: String, personName: String, pageNumber: String = record.pageNumber, expenseType: String = record.expenseType, recordType: String = record.recordType, timestamp: Long) {
         viewModelScope.launch {
             runCatching {
-                repository.updateRecord(record, dayName, quantity, amount, isCredit, unitPrice, note, pieceType, personName, timestamp)
+                repository.updateRecord(record, dayName, quantity, amount, isCredit, unitPrice, note, pieceType, personName, pageNumber, expenseType, recordType, timestamp)
             }.onFailure { _operationError.value = it.message ?: "تعذر تعديل السجل" }
         }
     }

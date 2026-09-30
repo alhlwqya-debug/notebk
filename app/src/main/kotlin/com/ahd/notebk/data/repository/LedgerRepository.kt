@@ -20,6 +20,9 @@ class LedgerRepository(private val dao: RecordDao) {
         pieceType: String,
         unitPrice: Double,
         personName: String,
+        pageNumber: String = "",
+        expenseType: String = "",
+        recordType: String = "numeric",
         timestamp: Long
     ) {
         require(dayName.isNotBlank()) { "dayName is required" }
@@ -38,6 +41,9 @@ class LedgerRepository(private val dao: RecordDao) {
                 pieceType = pieceType.ifBlank { "ثابت كامل" }.trim(),
                 unitPrice = unitPrice,
                 personName = LedgerEngine.normalizePersonName(personName),
+                pageNumber = pageNumber.trim(),
+                expenseType = expenseType.trim(),
+                recordType = recordType.trim().ifBlank { "numeric" },
                 timestamp = timestamp
             )
         )
@@ -54,6 +60,9 @@ class LedgerRepository(private val dao: RecordDao) {
         note: String,
         pieceType: String,
         personName: String,
+        pageNumber: String = record.pageNumber,
+        expenseType: String = record.expenseType,
+        recordType: String = record.recordType,
         timestamp: Long
     ) {
         require(dayName.isNotBlank()) { "dayName is required" }
@@ -71,6 +80,9 @@ class LedgerRepository(private val dao: RecordDao) {
                     pieceType = pieceType.ifBlank { "ثابت كامل" }.trim(),
                     unitPrice = unitPrice,
                     personName = LedgerEngine.normalizePersonName(personName),
+                    pageNumber = pageNumber.trim(),
+                    expenseType = expenseType.trim(),
+                    recordType = recordType.trim().ifBlank { record.recordType },
                     timestamp = timestamp
                 )
             )
@@ -84,9 +96,24 @@ class LedgerRepository(private val dao: RecordDao) {
     }
 
     suspend fun restoreAll(records: List<TailorRecord>) {
-        dao.clearAll()
-        val recalculated = LedgerEngine.recalculateBalances(records)
-        if (recalculated.isNotEmpty()) dao.insertAll(recalculated.map(RecordEntity::fromDomain))
+        val existing = dao.getAllRecordsOnce().map { it.toDomain() }
+        val byId = existing.associateBy { it.id }.toMutableMap()
+        records.forEach { imported ->
+            val normalized = imported.copy(
+                pageNumber = imported.pageNumber.trim(),
+                expenseType = imported.expenseType.trim(),
+                recordType = imported.recordType.ifBlank { "numeric" }
+            )
+            if (normalized.id > 0 && byId.containsKey(normalized.id)) {
+                byId[normalized.id] = normalized
+            } else {
+                byId[-(byId.size + 1)] = normalized.copy(id = 0)
+            }
+        }
+        val merged = LedgerEngine.recalculateBalances(byId.values.filter { it.id != 0 })
+        dao.updateAll(merged.map(RecordEntity::fromDomain))
+        val newRecords = byId.values.filter { it.id == 0 }
+        if (newRecords.isNotEmpty()) dao.insertAll(newRecords.map(RecordEntity::fromDomain))
     }
 
     suspend fun clearDatabase() = dao.clearAll()

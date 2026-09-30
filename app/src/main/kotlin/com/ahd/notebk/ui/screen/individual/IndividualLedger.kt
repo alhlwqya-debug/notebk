@@ -167,7 +167,7 @@ fun IndividualLedger(
                 Modifier.fillMaxWidth().padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                OutlinedButton(onClick = { showDatePicker = true }, Modifier.weight(1f)) {
+                OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.CalendarMonth, null)
                     Text(" التاريخ")
                 }
@@ -202,14 +202,12 @@ fun IndividualLedger(
                 }
                 OutlinedButton(
                     onClick = { filtered.firstOrNull()?.let { editingRecord = it } },
-                    enabled = filtered.isNotEmpty(),
-                    Modifier.weight(1f)
+                    enabled = filtered.isNotEmpty(), modifier = Modifier.weight(1f)
                 ) {
                     Text("تعديل القطع")
                 }
                 OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    Modifier.weight(1f)
+                    onClick = { showDatePicker = true }, modifier = Modifier.weight(1f)
                 ) { Text("إدارة اليوم") }
             }
 
@@ -238,8 +236,7 @@ fun IndividualLedger(
                             add(Calendar.DAY_OF_MONTH, -1)
                         }
                         selectedDateMillis = c.timeInMillis
-                    },
-                    Modifier.weight(1f)
+                    }, modifier = Modifier.weight(1f)
                 ) { Text("← اليوم السابق") }
                 Surface(
                     modifier = Modifier.weight(1f),
@@ -259,8 +256,7 @@ fun IndividualLedger(
                             add(Calendar.DAY_OF_MONTH, 1)
                         }
                         selectedDateMillis = c.timeInMillis
-                    },
-                    Modifier.weight(1f)
+                    }, modifier = Modifier.weight(1f)
                 ) { Text("اليوم التالي →") }
             }
         }

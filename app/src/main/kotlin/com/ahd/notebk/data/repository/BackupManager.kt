@@ -6,7 +6,7 @@ import com.ahd.notebk.domain.model.TailorRecord
 
 /** Versioned, validated backup boundary. Keeps file-format concerns outside the UI. */
 object BackupManager {
-    const val CURRENT_VERSION = 5
+    const val CURRENT_VERSION = 7
 
     data class BackupData(
         val records: List<TailorRecord>,
@@ -28,6 +28,9 @@ object BackupManager {
             require(record.credit >= 0.0 && record.debit >= 0.0 && record.unitPrice >= 0.0) { "قيمة مالية سالبة" }
             require(record.dayName.length <= 120) { "اسم اليوم غير صالح" }
             require(record.personName.length <= 160) { "اسم الشخص غير صالح" }
+            require(record.pageNumber.length <= 80) { "رقم الصفحة غير صالح" }
+            require(record.expenseType.length <= 160) { "نوع المصروف غير صالح" }
+            require(record.recordType == "numeric" || record.recordType == "individual") { "نوع السجل غير صالح" }
             require(record.note.length <= 2000) { "الملاحظة طويلة جدًا" }
         }
         return BackupData(result.records, result.settings)

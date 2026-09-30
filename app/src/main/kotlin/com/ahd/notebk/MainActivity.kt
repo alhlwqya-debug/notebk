@@ -19,12 +19,14 @@ import androidx.navigation.compose.rememberNavController
 import com.ahd.notebk.ui.navigation.AppNavigation
 import com.ahd.notebk.ui.screen.ledger.LedgerViewModel
 import com.ahd.notebk.ui.screen.settings.SettingsViewModel
+import com.ahd.notebk.ui.screen.shops.ShopViewModel
 import com.ahd.notebk.ui.screen.splash.SplashScreen
 import com.ahd.notebk.ui.theme.NotebkTheme
 
 class MainActivity : ComponentActivity() {
     private val ledgerViewModel: LedgerViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val shopViewModel: ShopViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +39,12 @@ class MainActivity : ComponentActivity() {
                         if (showSplash) {
                             SplashScreen { showSplash = false }
                         } else {
-                            AppNavigation(rememberNavController(), ledgerViewModel, settingsViewModel)
+                            AppNavigation(
+                                rememberNavController(),
+                                ledgerViewModel,
+                                settingsViewModel,
+                                shopViewModel
+                            )
                         }
                     }
                 }

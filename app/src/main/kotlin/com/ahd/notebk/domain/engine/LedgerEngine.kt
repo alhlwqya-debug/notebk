@@ -1,7 +1,7 @@
 package com.ahd.notebk.domain.engine
 
-import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.data.local.AppSettings
+import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.domain.model.TailorRecord
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,7 +25,7 @@ object LedgerEngine {
     }
 
     fun normalizePersonName(name: String): String =
-        name.trim().replace(Regex("\s+"), " ")
+        name.trim().replace(Regex("\\s+"), " ")
 
     fun personNames(records: List<TailorRecord>): List<String> =
         records.map { normalizePersonName(it.personName) }

@@ -15,36 +15,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahd.notebk.R
-import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.data.local.AppSettings
+import com.ahd.notebk.domain.model.LedgerSummary
 import com.ahd.notebk.ui.theme.PrimaryPurple
 
 @Composable
 fun LedgerTopBar(
     settings: AppSettings,
     summary: LedgerSummary,
+    shopName: String,
     onOpenStatistics: () -> Unit,
     onOpenIndividualLedger: () -> Unit,
     onOpenReport: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     Surface(color = PrimaryPurple, contentColor = Color.White) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Image(
                 painter = painterResource(R.drawable.brand_logo),
                 contentDescription = "شعار التطبيق",
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(50.dp),
                 contentScale = ContentScale.Fit
             )
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text(settings.shopName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("دفتر الحسابات • ${summary.totalPieces} قطعة", fontSize = 11.sp)
+                Text("التسجيل العددي", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                val subtitle = if (settings.workerName.isBlank()) {
+                    shopName.ifBlank { settings.shopName }
+                } else {
+                    shopName.ifBlank { settings.shopName } + " • " + settings.workerName
+                }
+                Text(subtitle, fontSize = 11.sp)
+                Text("الإنتاج: " + summary.totalPieces + " قطعة", fontSize = 10.sp)
             }
             Row {
                 IconButton(onClick = onOpenStatistics) { Icon(Icons.Default.Analytics, "الإحصائيات") }
-                IconButton(onClick = onOpenIndividualLedger) { Icon(Icons.Default.Person, "السجل الفردي") }
-                IconButton(onClick = onOpenReport) { Icon(Icons.Default.PictureAsPdf, "التقرير") }
+                IconButton(onClick = onOpenIndividualLedger) { Icon(Icons.Default.Person, "التسجيل الفردي") }
+                IconButton(onClick = onOpenReport) { Icon(Icons.Default.PictureAsPdf, "PDF") }
                 IconButton(onClick = onOpenSettings) { Icon(Icons.Default.Settings, "الإعدادات") }
             }
         }

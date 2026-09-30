@@ -84,6 +84,9 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
         put("pieceType", record.pieceType)
         put("unitPrice", record.unitPrice)
         put("personName", record.personName)
+        put("pageNumber", record.pageNumber)
+        put("expenseType", record.expenseType)
+        put("recordType", record.recordType)
         put("timestamp", record.timestamp)
     }
 
@@ -102,6 +105,9 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
             val pieceType = cursor.getColumnIndexOrThrow("pieceType")
             val unitPrice = cursor.getColumnIndexOrThrow("unitPrice")
             val personName = cursor.getColumnIndexOrThrow("personName")
+            val pageNumber = cursor.getColumnIndexOrThrow("pageNumber")
+            val expenseType = cursor.getColumnIndexOrThrow("expenseType")
+            val recordType = cursor.getColumnIndexOrThrow("recordType")
             val timestamp = cursor.getColumnIndexOrThrow("timestamp")
             while (cursor.moveToNext()) {
                 result += RecordEntity(
@@ -110,6 +116,9 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
                     debit = cursor.getDouble(debit), balance = cursor.getDouble(balance),
                     note = cursor.getString(note), pieceType = cursor.getString(pieceType),
                     unitPrice = cursor.getDouble(unitPrice), personName = cursor.getString(personName),
+                    pageNumber = cursor.getString(pageNumber),
+                    expenseType = cursor.getString(expenseType),
+                    recordType = cursor.getString(recordType),
                     timestamp = cursor.getLong(timestamp)
                 )
             }
@@ -123,7 +132,7 @@ class RecordDao internal constructor(private val database: SQLiteDatabase) {
         private const val TABLE = "tailor_records"
         private val COLUMNS = arrayOf(
             "id", "dayName", "itemQuantity", "credit", "debit", "balance",
-            "note", "pieceType", "unitPrice", "personName", "timestamp"
+            "note", "pieceType", "unitPrice", "personName", "pageNumber", "expenseType", "recordType", "timestamp"
         )
     }
 }

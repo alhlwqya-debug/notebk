@@ -175,8 +175,7 @@ fun IndividualLedger(
                     onClick = { selectedDateMillis = System.currentTimeMillis() },
                     modifier = Modifier.weight(1f)
                 ) { Text("إضافة يوم") }
-                ) { Text("إضافة يوم") }
-                OutlinedButton(onClick = onOpenReport, Modifier.weight(1f)) {
+                OutlinedButton(onClick = onOpenReport, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.PictureAsPdf, null)
                     Text(" PDF")
                 }
@@ -196,7 +195,7 @@ fun IndividualLedger(
             ) {
                 Button(
                     onClick = { showAddPerson = true },
-                    Modifier.weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.PersonAdd, null)
                     Text(" إضافة زبون جديد")
@@ -243,7 +242,7 @@ fun IndividualLedger(
                     Modifier.weight(1f)
                 ) { Text("← اليوم السابق") }
                 Surface(
-                    Modifier.weight(1f),
+                    modifier = Modifier.weight(1f),
                     shape = MaterialTheme.shapes.medium,
                     tonalElevation = 2.dp
                 ) {

@@ -56,6 +56,9 @@ class AppDatabase private constructor(context: Context) {
                     pieceType TEXT NOT NULL DEFAULT 'ثابت كامل',
                     unitPrice REAL NOT NULL DEFAULT 0,
                     personName TEXT NOT NULL DEFAULT '',
+                    pageNumber TEXT NOT NULL DEFAULT '',
+                    expenseType TEXT NOT NULL DEFAULT '',
+                    recordType TEXT NOT NULL DEFAULT 'numeric',
                     timestamp INTEGER NOT NULL
                 )
                 """.trimIndent()
@@ -85,6 +88,15 @@ class AppDatabase private constructor(context: Context) {
                     "UPDATE tailor_records SET personName = TRIM(note) WHERE TRIM(note) <> '' AND personName = ''"
                 )
             }
+            if (oldVersion < 6 && !hasColumn(db, "tailor_records", "pageNumber")) {
+                db.execSQL("ALTER TABLE tailor_records ADD COLUMN pageNumber TEXT NOT NULL DEFAULT ''")
+            }
+            if (oldVersion < 6 && !hasColumn(db, "tailor_records", "expenseType")) {
+                db.execSQL("ALTER TABLE tailor_records ADD COLUMN expenseType TEXT NOT NULL DEFAULT ''")
+            }
+            if (oldVersion < 7 && !hasColumn(db, "tailor_records", "recordType")) {
+                db.execSQL("ALTER TABLE tailor_records ADD COLUMN recordType TEXT NOT NULL DEFAULT 'numeric'")
+            }
             createIndexes(db)
         }
 
@@ -105,7 +117,7 @@ class AppDatabase private constructor(context: Context) {
 
         companion object {
             private const val DATABASE_NAME = "tailor_master_db"
-            private const val DATABASE_VERSION = 5
+            private const val DATABASE_VERSION = 7
         }
     }
 }

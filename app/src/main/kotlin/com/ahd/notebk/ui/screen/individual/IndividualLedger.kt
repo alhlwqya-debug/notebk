@@ -115,11 +115,15 @@ fun IndividualLedger(
             BrandTopBar(
                 title = "التسجيل الفردي",
                 trailing = {
-                    Text(
-                        shopName.ifBlank { settings.shopName },
+                    Column(
                         modifier = Modifier.padding(end = 10.dp),
-                        fontWeight = FontWeight.Bold
-                    )
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(shopName.ifBlank { settings.shopName }, fontWeight = FontWeight.Bold)
+                        if (settings.workerName.isNotBlank()) {
+                            Text(settings.workerName, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
             )
         }

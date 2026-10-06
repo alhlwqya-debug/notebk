@@ -207,8 +207,6 @@ fun WorkLedgerDialogsHost(
     onReminderChange: (Boolean) -> Unit,
     onDarkThemeChange: (Boolean) -> Unit,
     onSecurity: () -> Unit,
-    onSecurityDialogChange: (Boolean) -> Unit,
-    onHelpChange: (Boolean) -> Unit,
     onSystemSettings: () -> Unit,
     onAccountAuth: () -> Unit,
     onHelp: () -> Unit,

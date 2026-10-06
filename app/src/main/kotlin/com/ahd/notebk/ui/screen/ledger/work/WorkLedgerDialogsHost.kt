@@ -202,6 +202,8 @@ private fun WorkLedgerDialogsHost(
     onReminderChange: (Boolean) -> Unit,
     onDarkThemeChange: (Boolean) -> Unit,
     onSecurity: () -> Unit,
+    onSecurityDialogChange: (Boolean) -> Unit,
+    onHelpChange: (Boolean) -> Unit,
     onSystemSettings: () -> Unit,
     onAccountAuth: () -> Unit,
     onHelp: () -> Unit,
@@ -226,10 +228,10 @@ private fun WorkLedgerDialogsHost(
             userEmail = userEmail,
             userShop = userShop,
             userImagePath = userImagePath,
-            onUserNameChange = { userName = it },
-            onUserPhoneChange = { userPhone = it },
-            onUserEmailChange = { userEmail = it },
-            onUserShopChange = { userShop = it },
+            onUserNameChange = onUserNameChange,
+            onUserPhoneChange = onUserPhoneChange,
+            onUserEmailChange = onUserEmailChange,
+            onUserShopChange = onUserShopChange,
             onSelectImage = { imagePickerLauncher.launch("image/*") },
             onSave = {
                 when {
@@ -247,20 +249,20 @@ private fun WorkLedgerDialogsHost(
                             .putString("user_shop", userShop.trim())
                             .putString("user_image", userImagePath)
                             .apply()
-                        showUserProfile = false
+                        onShowUserProfile(false)
                         Toast.makeText(context, "تم حفظ البيانات الشخصية", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
             onAccountAuth = { onOpenAuth() },
-            onBack = { showUserProfile = false }
+            onBack = { onShowUserProfile(false) }
         )
     }
 
     // 2. حوار إضافة محل
     if (showShopDialog) {
         AlertDialog(
-            onDismissRequest = { showShopDialog = false },
+            onDismissRequest = { onShowShopDialog(false) },
             title = { Text("إضافة محل جديد", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -268,7 +270,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newShopName,
-                        onValueChange = { newShopName = it },
+                        onValueChange = { onNewShopName(it) },
                         singleLine = true,
                         label = { Text("اسم المحل") },
                         modifier = Modifier.fillMaxWidth()
@@ -276,7 +278,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newShopRegistrationNumber,
-                        onValueChange = { newShopRegistrationNumber = it },
+                        onValueChange = { onNewShopRegistrationNumber(it) },
                         singleLine = true,
                         label = { Text("رقم المحل / التسجيل *") },
                         modifier = Modifier.fillMaxWidth()
@@ -285,7 +287,7 @@ private fun WorkLedgerDialogsHost(
                     Text("نوع الحساب لهذا المحل", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(
-                            onClick = { newShopMode = RegistrationMode.NUMERIC },
+                            onClick = { onNewShopMode(RegistrationMode.NUMERIC) },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (newShopMode == RegistrationMode.NUMERIC) Blue.copy(alpha = 0.12f) else Color.Transparent,
@@ -293,7 +295,7 @@ private fun WorkLedgerDialogsHost(
                             )
                         ) { Text("تسجيل عددي", fontSize = 11.sp) }
                         OutlinedButton(
-                            onClick = { newShopMode = RegistrationMode.INDIVIDUAL },
+                            onClick = { onNewShopMode(RegistrationMode.INDIVIDUAL) },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (newShopMode == RegistrationMode.INDIVIDUAL) Purple.copy(alpha = 0.12f) else Color.Transparent,
@@ -316,10 +318,10 @@ private fun WorkLedgerDialogsHost(
                             val id = database.addShop(name, newShopMode, registrationNumber)
                             if (id > 0L) {
                                 selectedShopId = id
-                                selectedMonthId = null
+                                onSelectedMonthId(null)
                                 bundle = null
                                 refreshAll()
-                                showShopDialog = false
+                                onShowShopDialog(false)
                                 Toast.makeText(context, "تم إضافة المحل", Toast.LENGTH_SHORT).show()
                             }
                         }
@@ -327,14 +329,14 @@ private fun WorkLedgerDialogsHost(
                     colors = ButtonDefaults.buttonColors(containerColor = Green)
                 ) { Text("إضافة") }
             },
-            dismissButton = { TextButton(onClick = { showShopDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowShopDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 3. حوار إضافة شهر (مع التوليد التلقائي للتاريخ)
     if (showMonthDialog && selectedShopId != null) {
         AlertDialog(
-            onDismissRequest = { showMonthDialog = false },
+            onDismissRequest = { onShowMonthDialog(false) },
             title = { Text("إضافة سجل شهر جديد", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -394,27 +396,27 @@ private fun WorkLedgerDialogsHost(
                         if (id > 0L) {
                             selectedMonthId = id
                             refreshAll()
-                            showMonthDialog = false
+                            onShowMonthDialog(false)
                             Toast.makeText(context, "تم إنشاء الشهر وتجهيز أيامه من 01/${monthName(month)}", Toast.LENGTH_SHORT).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Green)
                 ) { Text("إنشاء") }
             },
-            dismissButton = { TextButton(onClick = { showMonthDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowMonthDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 4. حوار إضافة قطعة
     if (showPieceDialog && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showPieceDialog = false },
+            onDismissRequest = { onShowPieceDialog(false) },
             title = { Text("إضافة قطعة جديدة", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = newPieceName,
-                        onValueChange = { newPieceName = it },
+                        onValueChange = { onNewPieceName(it) },
                         singleLine = true,
                         label = { Text("اسم القطعة") },
                         modifier = Modifier.fillMaxWidth()
@@ -438,14 +440,14 @@ private fun WorkLedgerDialogsHost(
                             Toast.makeText(context, "اكتب اسم القطعة", Toast.LENGTH_SHORT).show()
                         } else {
                             database.addPiece(currentBundle.month.shopId, name, price)
-                            newPieceName = ""
-                            newPiecePrice = ""
-                            showPieceDialog = false
+                            onNewPieceName("")
+                            onNewPiecePrice("")
+                            onShowPieceDialog(false)
                             reloadBundle()
                         }
                 }) { Text("إضافة") }
             },
-            dismissButton = { TextButton(onClick = { showPieceDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowPieceDialog(false) }) { Text("إلغاء") } }
         )
     }
 
@@ -453,12 +455,12 @@ private fun WorkLedgerDialogsHost(
     if (showPieceManager && currentBundle != null) {
         PieceManagerDialog(
             pieces = pieces,
-            onDismiss = { showPieceManager = false },
+            onDismiss = { onShowPieceManager(false) },
             onAdd = {
-                showPieceManager = false
-                newPieceName = ""
-                newPiecePrice = ""
-                showPieceDialog = true
+                onShowPieceManager(false)
+                onNewPieceName("")
+                onNewPiecePrice("")
+                onShowPieceDialog(true)
             },
             onUpdate = { piece, newName, newPrice ->
                 database.updatePiece(piece.id, newName, newPrice)
@@ -478,7 +480,7 @@ private fun WorkLedgerDialogsHost(
     // 6. حوار المصروف (مع عرض البيان)
     if (showExpenseDialog && activeExpenseDay != null && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showExpenseDialog = false },
+            onDismissRequest = { onShowExpenseDialog(false) },
             title = { Text("تعديل مصروف اليوم", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -497,7 +499,7 @@ private fun WorkLedgerDialogsHost(
 
                     OutlinedTextField(
                         value = expenseNote,
-                        onValueChange = { expenseNote = it },
+                        onValueChange = { onExpenseNote(it) },
                         singleLine = true,
                         label = { Text("بيان المصروف") },
                         modifier = Modifier.fillMaxWidth()
@@ -523,18 +525,18 @@ private fun WorkLedgerDialogsHost(
                             expenseAmount.toIntOrNull() ?: 0,
                             expenseNote
                         )
-                        showExpenseDialog = false
+                        onShowExpenseDialog(false)
                         reloadBundle()
                 }) { Text("حفظ") }
             },
-            dismissButton = { TextButton(onClick = { showExpenseDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowExpenseDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 7. حوار مسح البيانات
     if (showClearDialog && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showClearDialog = false },
+            onDismissRequest = { onShowClearDialog(false) },
             title = { Text("مسح بيانات الشهر", color = Red, fontWeight = FontWeight.Bold) },
             text = { Text("سيتم مسح الكميات والمصروفات فقط") },
             confirmButton = {
@@ -542,20 +544,20 @@ private fun WorkLedgerDialogsHost(
                     onClick = {
                         createInternalAutoBackup(context)
                         database.clearMonthData(currentBundle.month.id)
-                        showClearDialog = false
+                        onShowClearDialog(false)
                         reloadBundle()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Red)
                 ) { Text("مسح البيانات") }
             },
-            dismissButton = { TextButton(onClick = { showClearDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowClearDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 8. حوار حذف الشهر
     if (showDeleteMonthDialog && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showDeleteMonthDialog = false },
+            onDismissRequest = { onShowDeleteMonthDialog(false) },
             title = { Text("حذف الشهر", color = Red, fontWeight = FontWeight.Bold) },
             text = { Text("هل أنت متأكد من حذف ${currentBundle.month.name}؟") },
             confirmButton = {
@@ -563,22 +565,22 @@ private fun WorkLedgerDialogsHost(
                     onClick = {
                         createInternalAutoBackup(context)
                         database.deleteMonth(currentBundle.month.id)
-                        showDeleteMonthDialog = false
-                        selectedMonthId = null
+                        onShowDeleteMonthDialog(false)
+                        onSelectedMonthId(null)
                         reloadMonths()
                         reloadBundle()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Red)
                 ) { Text("حذف") }
             },
-            dismissButton = { TextButton(onClick = { showDeleteMonthDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowDeleteMonthDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 9. حوار حذف المحل
     if (showDeleteShopDialog && selectedShopId != null) {
         AlertDialog(
-            onDismissRequest = { showDeleteShopDialog = false },
+            onDismissRequest = { onShowDeleteShopDialog(false) },
             title = { Text("حذف المحل", color = Red, fontWeight = FontWeight.Bold) },
             text = { Text("سيتم حذف المحل وكل شهوره وعملياته") },
             confirmButton = {
@@ -586,28 +588,28 @@ private fun WorkLedgerDialogsHost(
                     onClick = {
                         createInternalAutoBackup(context)
                         database.deleteShop(selectedShopId!!)
-                        showDeleteShopDialog = false
+                        onShowDeleteShopDialog(false)
                         selectedShopId = null
-                        selectedMonthId = null
+                        onSelectedMonthId(null)
                         bundle = null
                         refreshAll()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Red)
                 ) { Text("حذف المحل") }
             },
-            dismissButton = { TextButton(onClick = { showDeleteShopDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowDeleteShopDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 10. حوار تعديل اسم الشهر
     if (showRenameMonthDialog && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showRenameMonthDialog = false },
+            onDismissRequest = { onShowRenameMonthDialog(false) },
             title = { Text("تعديل اسم الشهر") },
             text = {
                 OutlinedTextField(
                     value = renamedMonth,
-                    onValueChange = { renamedMonth = it },
+                    onValueChange = { onRenamedMonth(it) },
                     singleLine = true,
                     label = { Text("اسم السجل") },
                     modifier = Modifier.fillMaxWidth()
@@ -617,20 +619,20 @@ private fun WorkLedgerDialogsHost(
                 Button(onClick = {
                         if (renamedMonth.trim().isNotEmpty()) {
                             database.renameMonth(currentBundle.month.id, renamedMonth.trim())
-                            showRenameMonthDialog = false
+                            onShowRenameMonthDialog(false)
                             reloadMonths()
                             reloadBundle()
                         }
                 }) { Text("حفظ") }
             },
-            dismissButton = { TextButton(onClick = { showRenameMonthDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowRenameMonthDialog(false) }) { Text("إلغاء") } }
         )
     }
 
     // 11. حوار نسخ الشهر
     if (showCopyMonthDialog && currentBundle != null) {
         AlertDialog(
-            onDismissRequest = { showCopyMonthDialog = false },
+            onDismissRequest = { onShowCopyMonthDialog(false) },
             title = { Text("نسخ الشهر") },
             text = {
                 Column {
@@ -668,14 +670,14 @@ private fun WorkLedgerDialogsHost(
                             )
                             if (id > 0L) {
                                 selectedMonthId = id
-                                showCopyMonthDialog = false
+                                onShowCopyMonthDialog(false)
                                 reloadMonths()
                                 reloadBundle()
                             }
                         }
                 }) { Text("نسخ") }
             },
-            dismissButton = { TextButton(onClick = { showCopyMonthDialog = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowCopyMonthDialog(false) }) { Text("إلغاء") } }
         )
     }
 
@@ -690,17 +692,17 @@ private fun WorkLedgerDialogsHost(
         }
         val state = rememberDatePickerState(initialSelectedDateMillis = millis)
         DatePickerDialog(
-            onDismissRequest = { showStartDatePicker = false },
+            onDismissRequest = { onShowStartDatePicker(false) },
             confirmButton = {
                 TextButton(onClick = {
                         state.selectedDateMillis?.let {
                             val calendar = Calendar.getInstance().apply { timeInMillis = it }
                             newStartDate = SimpleDateFormat("yyyy/MM/dd", Locale.ENGLISH).format(calendar.time)
                         }
-                        showStartDatePicker = false
+                        onShowStartDatePicker(false)
                 }) { Text("موافق") }
             },
-            dismissButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("إلغاء") } }
+            dismissButton = { TextButton(onClick = { onShowStartDatePicker(false) }) { Text("إلغاء") } }
         ) { DatePicker(state) }
     }
 
@@ -710,9 +712,9 @@ private fun WorkLedgerDialogsHost(
             mode = registrationMode,
             bundle = currentBundle,
             database = database,
-            onDismiss = { showPdfRangeDialog = false },
+            onDismiss = { onShowPdfRangeDialog(false) },
             onPrint = { range, selectedDate, selectedMonthId, sharePdf ->
-                showPdfRangeDialog = false
+                onShowPdfRangeDialog(false)
                 val allBundles = months.mapNotNull { database.loadMonthBundle(it.id) }
                 if (registrationMode == RegistrationMode.NUMERIC) {
                     printNumericReportRange(
@@ -755,14 +757,14 @@ private fun WorkLedgerDialogsHost(
         if (targetShop != null) {
             ShopSettingsPage(
                 shop = targetShop,
-                onBack = { showShopSettings = false },
+                onBack = { onShowShopSettings(false) },
                 onSave = { name, registrationNumber, mode ->
                     database.updateShop(targetShop.id, name)
                     database.updateShopRegistrationNumber(targetShop.id, registrationNumber)
                     database.updateShopRegistrationMode(targetShop.id, mode)
                     reloadShops()
                     if (selectedShopId == targetShop.id) registrationMode = mode
-                    showShopSettings = false
+                    onShowShopSettings(false)
                     dataRevision++
                     Toast.makeText(context, "تم حفظ إعدادات المحل", Toast.LENGTH_SHORT).show()
                 }
@@ -783,11 +785,13 @@ private fun WorkLedgerDialogsHost(
                 darkTheme = enabled
                 prefs.edit().putBoolean("dark_theme", enabled).apply()
             },
-            onSecurity = { showAppSettings = false; showSecurityDialog = true },
-            onSystemSettings = { showAppSettings = false; showSystemSettings = true },
-            onAccountAuth = { showAppSettings = false; onOpenAuth() },
-            onHelp = { showAppSettings = false; showHelp = true },
-            onBack = { showAppSettings = false }
+            onSecurityDialogChange = { showSecurityDialog = it },
+        onHelpChange = { showHelp = it },
+        onSecurity = { onShowAppSettings(false); onSecurityDialogChange(true) },
+            onSystemSettings = { onShowAppSettings(false); onShowSystemSettings(true) },
+            onAccountAuth = { onShowAppSettings(false); onOpenAuth() },
+            onHelp = { onShowAppSettings(false); onHelpChange(true) },
+            onBack = { onShowAppSettings(false) }
         )
     }
 
@@ -811,7 +815,7 @@ private fun WorkLedgerDialogsHost(
             onOpenBattery = {
                 context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
             },
-            onBack = { showSystemSettings = false }
+            onBack = { onShowSystemSettings(false) }
         )
     }
 

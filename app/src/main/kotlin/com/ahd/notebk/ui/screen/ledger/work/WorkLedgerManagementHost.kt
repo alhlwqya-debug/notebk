@@ -12,7 +12,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,15 +47,15 @@ fun WorkLedgerManagementHost(
     onBundleChange: (MonthBundle?) -> Unit,
     onDashboardChange: (Boolean) -> Unit,
     onNewMonth: () -> Unit,
-    onRenameMonth: (Month) -> Unit,
+    onRenameMonth: (MonthRecord) -> Unit,
     onCopyMonth: (Month) -> Unit,
     onDeleteMonth: (Month) -> Unit,
     onNewPiece: () -> Unit,
-    onEditPiece: (Piece) -> Unit,
+    onEditPiece: (PieceRecord) -> Unit,
     onDeletePiece: (Piece) -> Unit,
     onRefresh: () -> Unit,
     onReloadBundle: () -> Unit,
-    onEditPieceTargetChange: (Piece?) -> Unit,
+    onEditPieceTargetChange: (PieceRecord?) -> Unit,
     onEditPieceNameChange: (String) -> Unit,
     onEditPiecePriceChange: (String) -> Unit,
     onOpenReport: () -> Unit

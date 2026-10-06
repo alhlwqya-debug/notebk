@@ -510,255 +510,48 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             )
         }
 
-        // ===== القائمة الجانبية =====
-        if (drawerOpen) {
-            Box(
-                modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.35f))
-                .clickable { drawerOpen = false }
-            )
-            DrawerContent(
-                modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(0.82f)
-                .fillMaxSize(),
-                shops = shops,
-                selectedShopId = selectedShopId,
-                userName = userName,
-                userImagePath = userImagePath,
-                onClose = { drawerOpen = false },
-                onSelectShop = { id ->
-                    selectedShopId = id
-                    registrationMode = database.getShops().firstOrNull { it.id == id }?.registrationMode ?: RegistrationMode.NUMERIC
-                    drawerOpen = false
-                },
-                onHome = {
-                    drawerOpen = false
-                    showDashboard = true
-                    dataRevision++
-                },
-                onLedger = {
-                    drawerOpen = false
-                    showDashboard = false
-                    openDailyWorkRequested = false
-                    dataRevision++
-                },
-                onDailyWork = {
-                    drawerOpen = false
-                    showDashboard = false
-                    openDailyWorkRequested = true
-                },
-                onMonths = {
-                    drawerOpen = false
-                    showMonthsPage = true
-                },
-                onPieces = {
-                    drawerOpen = false
-                    showPiecesPage = true
-                },
-                onReports = {
-                    drawerOpen = false
-                    showReportsPage = true
-                },
-                onAddShop = {
-                    drawerOpen = false
-                    newShopName = ""
-                    newShopRegistrationNumber = ""
-                    newShopMode = RegistrationMode.NUMERIC
-                    showShopDialog = true
-                },
-                onUserProfile = {
-                    drawerOpen = false
-                    showUserProfile = true
-                },
-                onStatistics = {
-                    drawerOpen = false
-                    showStatisticsPage = true
-                },
-                onAbout = {
-                    drawerOpen = false
-                    showAbout = true
-                },
-                onHelp = {
-                    drawerOpen = false
-                    showHelp = true
-                },
-                onShopSettings = { shopId ->
-                    drawerOpen = false
-                    shopSettingsTargetId = shopId
-                    showShopSettings = true
-                },
-                onAppSettings = {
-                    drawerOpen = false
-                    showAppSettings = true
-                },
-                onDeleteShop = {
-                    drawerOpen = false
-                    if (selectedShopId != null) showDeleteShopDialog = true
-                }
-            )
-        }
-
-        if (showFeatureHub) {
-            NotebkFeatureHub(
-                onBack = { showFeatureHub = false },
-                onDailyWork = { showFeatureHub = false; showDashboard = false; openDailyWorkRequested = true },
-                onMonths = { showFeatureHub = false; showMonthsPage = true },
-                onPieces = { showFeatureHub = false; showPiecesPage = true },
-                onReports = { showFeatureHub = false; showReportsPage = true },
-                onStats = { showFeatureHub = false; showStatisticsPage = true },
-                onProfile = { showFeatureHub = false; showUserProfile = true },
-                onShopSettings = {
-                    showFeatureHub = false
-                    shopSettingsTargetId = selectedShopId
-                    showShopSettings = selectedShopId != null
-                }
-            )
-        }
-
-        if (showControlCenter) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFF6F4FB))
-            ) {
-                ControlCenterScreen(
-                    shopName = shops.firstOrNull { it.id == selectedShopId }?.name.orEmpty(),
-                    reminderEnabled = reminderEnabled,
-                    onBack = { showControlCenter = false },
-                    onProfile = { showControlCenter = false; showUserProfile = true },
-                    onShopSettings = {
-                        showControlCenter = false
-                        shopSettingsTargetId = selectedShopId
-                        showShopSettings = selectedShopId != null
-                    },
-                    onRegistrationSettings = {
-                        showControlCenter = false
-                        showRegistrationSettings = selectedShopId != null
-                    },
-                    onDailyWork = { showControlCenter = false; showDashboard = false; openDailyWorkRequested = true },
-                    onLedger = { showControlCenter = false; showDashboard = false; openDailyWorkRequested = false; dataRevision++ },
-                    onMonths = { showControlCenter = false; showMonthsPage = true },
-                    onPieces = { showControlCenter = false; showPiecesPage = true },
-                    onReports = { showControlCenter = false; showReportsPage = true },
-                    onStatistics = { showControlCenter = false; showStatisticsPage = true },
-                    onSecurity = { showControlCenter = false; showSecurityDialog = true },
-                    onAccountAuth = { showControlCenter = false; onOpenAuth() },
-                    onAppSettings = { showControlCenter = false; showAppSettings = true }
-                )
-            }
-        }
-    }
-
-    // ===== صفحات إدارة العمل الكاملة =====
-    if (showMonthsPage) {
-        MonthsPage(
-            months = months,
-            selectedMonthId = selectedMonthId,
-            onBack = { showMonthsPage = false },
-            onSelect = { id ->
-                selectedMonthId = id
-                bundle = database.loadMonthBundle(id)
-                showMonthsPage = false
-                showDashboard = false
-            },
-            onAdd = {
-                newYear = Calendar.getInstance().get(Calendar.YEAR).toString()
-                newMonthNumber = (Calendar.getInstance().get(Calendar.MONTH) + 1).toString()
-                newStartDate = todayString()
-                showMonthDialog = true
-            },
-            onRename = { month ->
-                renamedMonth = month.name
-                selectedMonthId = month.id
-                showRenameMonthDialog = true
-            },
-            onCopy = { month ->
-                selectedMonthId = month.id
-                copyYear = month.year.toString()
-                copyMonth = month.month.toString()
-                showCopyMonthDialog = true
-            },
-            onDelete = { month ->
-                selectedMonthId = month.id
-                bundle = database.loadMonthBundle(month.id)
-                showDeleteMonthDialog = true
-            },
-            onRefresh = { refreshAll() }
+        WorkLedgerDrawerHost(
+            database = database, shops = shops, selectedShopId = selectedShopId, userName = userName, userImagePath = userImagePath,
+            drawerOpen = drawerOpen, showDashboard = showDashboard, openDailyWorkRequested = openDailyWorkRequested,
+            showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage, showReportsPage = showReportsPage,
+            showStatisticsPage = showStatisticsPage, showAbout = showAbout, showHelp = showHelp,
+            showShopSettings = showShopSettings, showAppSettings = showAppSettings, showDeleteShopDialog = showDeleteShopDialog,
+            showFeatureHub = showFeatureHub, showControlCenter = showControlCenter, reminderEnabled = reminderEnabled,
+            onDrawerOpenChange = { drawerOpen = it }, onSelectedShopChange = { selectedShopId = it },
+            onRegistrationModeChange = { registrationMode = it }, onDashboardChange = { showDashboard = it },
+            onDailyWorkRequestChange = { openDailyWorkRequested = it }, onMonthsPageChange = { showMonthsPage = it },
+            onPiecesPageChange = { showPiecesPage = it }, onReportsPageChange = { showReportsPage = it },
+            onStatisticsPageChange = { showStatisticsPage = it }, onAboutChange = { showAbout = it },
+            onHelpChange = { showHelp = it }, onShopSettingsChange = { showShopSettings = it },
+            onAppSettingsChange = { showAppSettings = it }, onDeleteShopDialogChange = { showDeleteShopDialog = it },
+            onFeatureHubChange = { showFeatureHub = it }, onControlCenterChange = { showControlCenter = it },
+            onShopSettingsTargetChange = { shopSettingsTargetId = it },
+            onNewShop = { newShopName = ""; newShopRegistrationNumber = ""; newShopMode = RegistrationMode.NUMERIC; showShopDialog = true },
+            onProfile = { showUserProfile = true }, onRefreshRevision = { dataRevision++ },
+            onOpenAuth = onOpenAuth, onSecurity = { showSecurityDialog = true },
+            onRegistrationSettings = { showRegistrationSettings = selectedShopId != null }
         )
-    }
 
-    if (showPiecesPage) {
-        PiecesPage(
-            pieces = pieces,
-            onBack = { showPiecesPage = false },
-            onAdd = {
-                newPieceName = ""
-                newPiecePrice = ""
-                showPieceDialog = true
-            },
-            onEdit = { piece ->
-                editPieceTarget = piece
-                editPieceName = piece.name
-                editPiecePrice = piece.price.toString()
-            },
-            onDelete = { piece ->
-                if (database.deletePiece(piece.id)) {
-                    reloadBundle()
-                    Toast.makeText(context, "تم حذف القطعة", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "لا يمكن حذف قطعة عليها كميات مسجلة", Toast.LENGTH_LONG).show()
-                }
-            },
-            onRefresh = { refreshAll() }
-        )
-    }
-
-    if (showReportsPage) {
-        ReportsPage(
-            hasMonth = currentBundle != null,
-            onBack = { showReportsPage = false },
-            onOpenReport = { if (currentBundle != null) showPdfRangeDialog = true },
-            onRefresh = { refreshAll() }
-        )
-    }
-
-    if (showStatisticsPage) {
-        StatisticsPage(
-            bundle = currentBundle,
-            database = database,
-            onBack = { showStatisticsPage = false },
-            onRefresh = { reloadBundle() }
-        )
-    }
-
-    if (editPieceTarget != null) {
-        AlertDialog(
-            onDismissRequest = { editPieceTarget = null },
-            title = { Text("تعديل القطعة", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = editPieceName, onValueChange = { editPieceName = it }, singleLine = true, label = { Text("اسم القطعة") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = editPiecePrice, onValueChange = { editPiecePrice = it.filter(Char::isDigit) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("السعر") }, modifier = Modifier.fillMaxWidth())
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    val target = editPieceTarget
-                    val name = editPieceName.trim()
-                    val price = editPiecePrice.toIntOrNull()
-                    if (target != null && name.isNotEmpty() && price != null && price >= 0) {
-                        database.updatePiece(target.id, name, price)
-                        editPieceTarget = null
-                        reloadBundle()
-                        Toast.makeText(context, "تم تحديث القطعة", Toast.LENGTH_SHORT).show()
-                    } else Toast.makeText(context, "تحقق من الاسم والسعر", Toast.LENGTH_SHORT).show()
-                }) { Text("حفظ") }
-            },
-            dismissButton = { TextButton(onClick = { editPieceTarget = null }) { Text("إلغاء") } }
-        )
-    }
+    WorkLedgerManagementHost(
+        context = context, database = database, months = months, pieces = pieces, currentBundle = currentBundle,
+        selectedMonthId = selectedMonthId, showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage,
+        showReportsPage = showReportsPage, showStatisticsPage = showStatisticsPage, editPieceTarget = editPieceTarget,
+        editPieceName = editPieceName, editPiecePrice = editPiecePrice,
+        onMonthsPageChange = { showMonthsPage = it }, onPiecesPageChange = { showPiecesPage = it },
+        onReportsPageChange = { showReportsPage = it }, onStatisticsPageChange = { showStatisticsPage = it },
+        onSelectedMonthChange = { selectedMonthId = it }, onBundleChange = { bundle = it },
+        onDashboardChange = { showDashboard = it },
+        onNewMonth = { newYear = Calendar.getInstance().get(Calendar.YEAR).toString(); newMonthNumber = (Calendar.getInstance().get(Calendar.MONTH) + 1).toString(); newStartDate = todayString(); showMonthDialog = true },
+        onRenameMonth = { month -> renamedMonth = month.name; selectedMonthId = month.id; showRenameMonthDialog = true },
+        onCopyMonth = { month -> selectedMonthId = month.id; copyYear = month.year.toString(); copyMonth = month.month.toString(); showCopyMonthDialog = true },
+        onDeleteMonth = { month -> selectedMonthId = month.id; bundle = database.loadMonthBundle(month.id); showDeleteMonthDialog = true },
+        onNewPiece = { newPieceName = ""; newPiecePrice = ""; showPieceDialog = true },
+        onEditPiece = { piece -> editPieceTarget = piece; editPieceName = piece.name; editPiecePrice = piece.price.toString() },
+        onDeletePiece = { piece -> if (database.deletePiece(piece.id)) { reloadBundle(); Toast.makeText(context, "تم حذف القطعة", Toast.LENGTH_SHORT).show() } else Toast.makeText(context, "لا يمكن حذف قطعة عليها كميات مسجلة", Toast.LENGTH_LONG).show() },
+        onRefresh = { refreshAll() }, onReloadBundle = { reloadBundle() },
+        onEditPieceTargetChange = { editPieceTarget = it }, onEditPieceNameChange = { editPieceName = it },
+        onEditPiecePriceChange = { editPiecePrice = it }, onOpenReport = { showPdfRangeDialog = true }
+    )
 
         WorkLedgerDialogsHost(
         context = context, database = database, prefs = prefs, currentBundle = currentBundle, currentShop = currentShop,

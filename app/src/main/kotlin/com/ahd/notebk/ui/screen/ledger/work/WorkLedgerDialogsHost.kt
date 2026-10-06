@@ -782,8 +782,9 @@ fun WorkLedgerDialogsHost(
             reminderEnabled = reminderEnabled,
             darkTheme = darkTheme,
             onReminderChange = { enabled ->
+                prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
+                if (enabled) WorkReminderScheduler.schedule(context) else WorkReminderScheduler.cancel(context)
                 onReminderChange(enabled)
-
             },
             onDarkThemeChange = { enabled ->
                 onDarkThemeChange(enabled)

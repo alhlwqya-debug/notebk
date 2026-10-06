@@ -2,13 +2,13 @@ package com.ahd.notebk.ui.screen.ledger.work
 
 import androidx.compose.runtime.Composable
 import com.ahd.notebk.data.local.LedgerDatabase
-import com.ahd.notebk.domain.model.Shop
+import com.ahd.notebk.domain.model.ShopRecord
 import com.ahd.notebk.ui.screen.home.HomeDashboard
 
 @Composable
 fun WorkLedgerDashboardHost(
     database: LedgerDatabase,
-    shops: List<Shop>,
+    shops: List<ShopRecord>,
     selectedShopId: Long?,
     userName: String,
     refreshKey: Int,

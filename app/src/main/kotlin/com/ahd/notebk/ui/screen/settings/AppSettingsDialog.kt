@@ -1,7 +1,5 @@
 package com.ahd.notebk.ui.screen.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Backup
@@ -28,7 +25,12 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import com.ahd.notebk.ui.components.AppMuted
+import com.ahd.notebk.ui.components.AppPrimarySoft
+import com.ahd.notebk.ui.components.AppSettingItem
+import com.ahd.notebk.ui.components.AppSurface
+import com.ahd.notebk.ui.components.AppText
+import com.ahd.notebk.ui.components.NotebkBrandPurple
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,9 +54,9 @@ internal fun AppSettingsDialog(
     onLedger: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val text = MaterialTheme.colorScheme.onSurface
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val primary = NotebkBrandPurple
+    val text = AppText
+    val muted = AppMuted
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -101,7 +103,7 @@ internal fun AppSettingsDialog(
                 )
 
                 Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = com.ahd.notebk.ui.components.AppBorder)
                 Spacer(Modifier.height(8.dp))
 
                 SettingsSectionTitle("مكونات التطبيق")
@@ -193,39 +195,12 @@ private fun SettingsRow(
     description: String,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                RoundedCornerShape(14.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                description,
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    AppSettingItem(
+        title = title,
+        description = description,
+        icon = icon,
+        onClick = onClick
+    )
 }
 
 @Composable
@@ -236,36 +211,32 @@ private fun SettingsSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
+    androidx.compose.material3.Card(
+        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = AppSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.ahd.notebk.ui.components.AppBorder),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                description,
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.Surface(
+                color = AppPrimarySoft,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                modifier = androidx.compose.ui.Modifier.size(44.dp)
+            ) {
+                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, tint = NotebkBrandPurple, modifier = androidx.compose.ui.Modifier.size(24.dp))
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = AppText)
+                Spacer(Modifier.height(2.dp))
+                Text(description, fontSize = 10.sp, color = AppMuted)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
-        )
     }
 }

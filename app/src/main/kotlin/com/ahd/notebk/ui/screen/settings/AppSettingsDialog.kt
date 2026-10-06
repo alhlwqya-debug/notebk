@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import com.ahd.notebk.ui.components.AppMuted
 import com.ahd.notebk.ui.components.AppPrimarySoft

@@ -320,7 +320,7 @@ private fun WorkLedgerDialogsHost(
                         } else {
                             val id = database.addShop(name, newShopMode, registrationNumber)
                             if (id > 0L) {
-                                selectedShopId = id
+                                onSelectedShopId(id)
                                 onSelectedMonthId(null)
                                 onBundleChange(null)
                                 refreshAll()
@@ -592,9 +592,9 @@ private fun WorkLedgerDialogsHost(
                         createInternalAutoBackup(context)
                         database.deleteShop(selectedShopId!!)
                         onShowDeleteShopDialog(false)
-                        selectedShopId = null
+                        onSelectedShopId(null)
                         onSelectedMonthId(null)
-                        bundle = null
+                        onBundleChange(null)
                         refreshAll()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Red)
@@ -672,7 +672,7 @@ private fun WorkLedgerDialogsHost(
                                 month
                             )
                             if (id > 0L) {
-                                selectedMonthId = id
+                                onSelectedMonthId(id)
                                 onShowCopyMonthDialog(false)
                                 reloadMonths()
                                 reloadBundle()
@@ -700,7 +700,7 @@ private fun WorkLedgerDialogsHost(
                 TextButton(onClick = {
                         state.selectedDateMillis?.let {
                             val calendar = Calendar.getInstance().apply { timeInMillis = it }
-                            newStartDate = SimpleDateFormat("yyyy/MM/dd", Locale.ENGLISH).format(calendar.time)
+                            onNewStartDate(SimpleDateFormat("yyyy/MM/dd", Locale.ENGLISH).format(calendar.time))
                         }
                         onShowStartDatePicker(false)
                 }) { Text("موافق") }
@@ -766,7 +766,7 @@ private fun WorkLedgerDialogsHost(
                     database.updateShopRegistrationNumber(targetShop.id, registrationNumber)
                     database.updateShopRegistrationMode(targetShop.id, mode)
                     reloadShops()
-                    if (selectedShopId == targetShop.id) registrationMode = mode
+                    if (selectedShopId == targetShop.id) onRegistrationModeChange(mode)
                     onShowShopSettings(false)
                     dataRevision++
                     Toast.makeText(context, "تم حفظ إعدادات المحل", Toast.LENGTH_SHORT).show()

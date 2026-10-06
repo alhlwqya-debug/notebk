@@ -193,6 +193,9 @@ private fun WorkLedgerDialogsHost(
     onCopyYear: (String) -> Unit,
     onCopyMonth: (String) -> Unit,
     onSelectedMonthId: (Long?) -> Unit,
+    onSelectedShopId: (Long?) -> Unit,
+    onBundleChange: (MonthBundle?) -> Unit,
+    onRegistrationModeChange: (RegistrationMode) -> Unit,
     onUserNameChange: (String) -> Unit,
     onUserPhoneChange: (String) -> Unit,
     onUserEmailChange: (String) -> Unit,
@@ -319,7 +322,7 @@ private fun WorkLedgerDialogsHost(
                             if (id > 0L) {
                                 selectedShopId = id
                                 onSelectedMonthId(null)
-                                bundle = null
+                                onBundleChange(null)
                                 refreshAll()
                                 onShowShopDialog(false)
                                 Toast.makeText(context, "تم إضافة المحل", Toast.LENGTH_SHORT).show()
@@ -394,7 +397,7 @@ private fun WorkLedgerDialogsHost(
                             workerId = null
                         )
                         if (id > 0L) {
-                            selectedMonthId = id
+                            onSelectedMonthId(id)
                             refreshAll()
                             onShowMonthDialog(false)
                             Toast.makeText(context, "تم إنشاء الشهر وتجهيز أيامه من 01/${monthName(month)}", Toast.LENGTH_SHORT).show()

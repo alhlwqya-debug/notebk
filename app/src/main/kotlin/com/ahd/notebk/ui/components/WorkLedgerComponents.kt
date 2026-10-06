@@ -156,14 +156,14 @@ internal fun CellText(
     bg: Color = Color.White,
     size: Int = 11,
     bold: Boolean = false,
-    color: Color = Color.Black
+    color: Color = AppText
 ) {
     Box(
         modifier = Modifier
         .width(width)
         .height(height)
-        .border(1.dp, Color.Black)
-        .background(bg),
+        .border(1.dp, AppBorder)
+        .background(if (bg == Color.White) AppSurface else bg),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -189,8 +189,8 @@ internal fun CellEdit(
         modifier = Modifier
         .width(width)
         .height(height)
-        .border(1.dp, Color.Black)
-        .background(bg)
+        .border(1.dp, AppBorder)
+        .background(if (bg == Color.White) AppSurface else bg)
         .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -205,7 +205,7 @@ internal fun CellEdit(
             },
             textStyle = TextStyle(
                 fontSize = 11.sp,
-                color = Color.Black,
+                color = AppText,
                 textAlign = TextAlign.Center
             ),
             modifier = Modifier.fillMaxWidth()

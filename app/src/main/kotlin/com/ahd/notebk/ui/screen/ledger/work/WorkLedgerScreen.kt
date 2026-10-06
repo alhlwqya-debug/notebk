@@ -511,7 +511,6 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onUserNameChange = { userName = it }, onUserPhoneChange = { userPhone = it }, onUserEmailChange = { userEmail = it },
         onUserShopChange = { userShop = it }, onUserImagePathChange = { userImagePath = it }, imagePickerLauncher = imagePickerLauncher,
         onReminderChange = { reminderEnabled = it }, onDarkThemeChange = { darkTheme = it },
-        onSecurityDialogChange = { showSecurityDialog = it }, onHelpChange = { showHelp = it },
         onSecurity = { showAppSettings = false; showSecurityDialog = true },
         onSystemSettings = { showAppSettings = false; showSystemSettings = true },
         onAccountAuth = { showAppSettings = false; onOpenAuth() }, onHelp = { showAppSettings = false; showHelp = true },

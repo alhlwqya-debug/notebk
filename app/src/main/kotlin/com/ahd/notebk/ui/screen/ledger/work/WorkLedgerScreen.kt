@@ -346,7 +346,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 onAppSettings = { showFeatureHub = true },
                 onHelp = { showHelp = true },
                 onStatistics = { showStatistics = true }
-            )            )
+            )
         } else if (shops.isEmpty()) {
             StartScreen(
                 onAddShop = {
@@ -369,24 +369,18 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     showMonthDialog = true
                 }
             )
-        } else if (registrationMode == RegistrationMode.NUMERIC) {
-            MainLedger(
-                database = database,
-                bundle = currentBundle,
-                shops = shops,
-                pieces = pieces,
-                selectedShopId = selectedShopId,
-                selectedMonthId = selectedMonthId,
-                months = months,
-                userName = userName,
-                shopMenuOpen = shopMenuOpen,
-                onMenu = { drawerOpen = true },
-                onShopMenu = { shopMenuOpen = true },
+        } else {
+            WorkLedgerContentHost(
+                context = context, database = database, currentBundle = currentBundle,
+                shops = shops, pieces = pieces, months = months,
+                selectedShopId = selectedShopId, selectedMonthId = selectedMonthId,
+                registrationMode = registrationMode, userName = userName,
+                shopMenuOpen = shopMenuOpen, openDailyWorkRequested = openDailyWorkRequested,
+                onMenu = { drawerOpen = true }, onShopMenu = { shopMenuOpen = true },
                 onSelectShop = { id ->
                     selectedShopId = id
                     registrationMode = database.getShops().firstOrNull { it.id == id }?.registrationMode ?: RegistrationMode.NUMERIC
-                    shopMenuOpen = false
-                    drawerOpen = false
+                    shopMenuOpen = false; drawerOpen = false
                 },
                 onSelectMonth = { selectedMonthId = it },
                 onAddMonth = {
@@ -396,7 +390,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     showMonthDialog = true
                 },
                 onAddPiece = { showPieceDialog = true },
-                onManagePieces = { showPieceManager = true }, // ✅ جديد
+                onManagePieces = { showPieceManager = true },
                 onEditStartDate = { showStartDatePicker = true },
                 onClear = { showClearDialog = true },
                 onDeleteMonth = { showDeleteMonthDialog = true },
@@ -407,25 +401,17 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 },
                 onCopyMonth = {
                     copyYear = currentBundle.month.year.toString()
+                    newYear = currentBundle.month.year.toString()
+                    copyYear = currentBundle.month.year.toString()
                     copyMonth = currentBundle.month.month.toString()
                     showCopyMonthDialog = true
                 },
                 onEditQuantity = { day, piece, value ->
-                    database.setQuantity(
-                        currentBundle.month.id,
-                        day.date,
-                        piece.id,
-                        value.filter(Char::isDigit).toIntOrNull() ?: 0
-                    )
+                    database.setQuantity(currentBundle.month.id, day.date, piece.id, value.filter(Char::isDigit).toIntOrNull() ?: 0)
                     reloadBundle()
                 },
                 onEditExpense = { day, value ->
-                    database.setExpense(
-                        currentBundle.month.id,
-                        day.date,
-                        value.filter(Char::isDigit).toIntOrNull() ?: 0,
-                        day.expenseNote
-                    )
+                    database.setExpense(currentBundle.month.id, day.date, value.filter(Char::isDigit).toIntOrNull() ?: 0, day.expenseNote)
                     reloadBundle()
                 },
                 onOpenExpense = { day ->
@@ -434,66 +420,18 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     expenseNote = day.expenseNote
                     showExpenseDialog = true
                 },
-                openDailyWork = openDailyWorkRequested,
                 onDailyWorkOpened = { openDailyWorkRequested = false },
                 onSaveDailyWork = { day, quantities, expense ->
                     quantities.forEach { (pieceId, quantity) ->
-                        database.setQuantity(
-                            currentBundle.month.id,
-                            day.date,
-                            pieceId,
-                            quantity
-                        )
+                        database.setQuantity(currentBundle.month.id, day.date, pieceId, quantity)
                     }
-                    database.setExpense(
-                        currentBundle.month.id,
-                        day.date,
-                        expense,
-                        day.expenseNote
-                    )
+                    database.setExpense(currentBundle.month.id, day.date, expense, day.expenseNote)
                     reloadBundle()
                     Toast.makeText(context, "تم حفظ العمل اليومي", Toast.LENGTH_SHORT).show()
                 },
-                onPrint = {
-                    showPdfRangeDialog = true
-                }
-            )
-        } else {
-            IndividualLedger(
-                database = database,
-                bundle = currentBundle,
-                pieces = pieces,
-                months = months,
-                selectedMonthId = selectedMonthId,
-                selectedShopId = selectedShopId,
-                shops = shops,
-                userName = userName,
-                onMenu = { drawerOpen = true },
-                onSelectMonth = { selectedMonthId = it },
-                onSelectShop = { id ->
-                    selectedShopId = id
-                    registrationMode = database.getShops().firstOrNull { it.id == id }?.registrationMode ?: RegistrationMode.NUMERIC
-                    shopMenuOpen = false
-                },
-                onAddMonth = {
-                    newYear = currentBundle.month.year.toString()
-                    newMonthNumber = currentBundle.month.month.toString()
-                    newStartDate = currentBundle.month.startDate.ifBlank { todayString() }
-                    showMonthDialog = true
-                },
-                onAddPiece = { showPieceDialog = true },
-                onManagePieces = { showPieceManager = true },
-                onDeleteMonth = { showDeleteMonthDialog = true },
-                onPrintPdf = {
-                    showPdfRangeDialog = true
-                },
-                onDataChanged = {
-                    reloadBundle()
-                },
-                onSelectSearchResult = { monthId, date ->
-                    selectedMonthId = monthId
-                    // يتم تحديد اليوم داخل شاشة التسجيل الفردي بعد تحميل الشهر.
-                },
+                onPrint = { showPdfRangeDialog = true },
+                onDataChanged = { reloadBundle() },
+                onSelectSearchResult = { monthId, _ -> selectedMonthId = monthId }
             )
         }
 

@@ -9,19 +9,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 private val NotebkLightColors = lightColorScheme(
-    primary = PrimaryPurple,
-    secondary = SecondaryGreen,
-    tertiary = AccentBlue,
+    primary = Color(0xFF9C4DFF),
+    secondary = Color(0xFF39D98A),
+    tertiary = Color(0xFF58A6FF),
     error = ErrorRed,
-    background = LightBackground,
-    surface = SurfaceWhite,
-    surfaceVariant = Color(0xFFEDECF4),
+    background = Color(0xFF070019),
+    surface = Color(0xFF12072E),
+    surfaceVariant = Color(0xFF190B3E),
     onPrimary = SurfaceWhite,
     onSecondary = SurfaceWhite,
     onTertiary = SurfaceWhite,
     onError = SurfaceWhite,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary
+    onBackground = Color(0xFFF9F5FF),
+    onSurface = Color(0xFFF9F5FF)
 )
 
 private val NotebkDarkColors = darkColorScheme(

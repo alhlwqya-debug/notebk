@@ -20,13 +20,13 @@ import com.ahd.notebk.R
 
 /** Shared notebk visual language. Feature/data logic stays outside this file. */
 // Canonical palette used by every screen, including the work/ledger pages.
-val AppBackground = Color(0xFFFAF8FC)
+val AppBackground = Color(0xFFF7F5F9)
 val AppSurface = Color.White
-val AppSurfaceAlt = Color(0xFFF5F0F8)
-val AppPrimarySoft = Color(0xFFF0E8F6)
-val AppBorder = Color(0xFFDDD2E6)
-val AppText = Color(0xFF25212A)
-val AppMuted = Color(0xFF746C7A)
+val AppSurfaceAlt = Color(0xFFF2EDF5)
+val AppPrimarySoft = Color(0xFFEDE3F4)
+val AppBorder = Color(0xFFD9CEDF)
+val AppText = Color(0xFF211D24)
+val AppMuted = Color(0xFF6F6875)
 val Purple = Color(0xFF5E2A84)
 val Green = Color(0xFF2E7D32)
 val Blue = Color(0xFF1976D2)
@@ -35,7 +35,13 @@ val Orange = Color(0xFFF57C00)
 val CardWorkBg = Color(0xFFEAF6EC)
 val CardExpBg = Color(0xFFFCECEC)
 val CardNetBg = Color(0xFFEAF2FB)
-val AppButtonShape = RoundedCornerShape(12.dp)
+val AppButtonShape = RoundedCornerShape(14.dp)
+val AppRadiusSmall = 12.dp
+val AppRadiusMedium = 16.dp
+val AppRadiusLarge = 20.dp
+val AppContentPadding = 16.dp
+val AppItemSpacing = 10.dp
+val AppControlHeight = 48.dp
 val PageBg = AppBackground
 val Yellow = Color(0xFFFDE48B)
 val LightBlue = Color(0xFFC9D4EA)
@@ -100,7 +106,7 @@ fun NotebkPage(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = AppSurface,
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(AppRadiusLarge),
             tonalElevation = 0.dp,
             shadowElevation = 1.dp
         ) {
@@ -144,7 +150,7 @@ fun NotebkSectionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(AppRadiusMedium),
         colors = CardDefaults.cardColors(containerColor = AppSurface),
         border = androidx.compose.foundation.BorderStroke(1.dp, AppBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

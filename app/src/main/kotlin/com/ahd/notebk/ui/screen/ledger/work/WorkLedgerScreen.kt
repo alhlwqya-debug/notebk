@@ -328,27 +328,14 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         .background(PageBg)
     ) {
         if (showDashboard) {
-            HomeDashboard(
-                database = database,
-                shops = shops,
-                selectedShopId = selectedShopId,
-                userName = userName,
-                refreshKey = dataRevision,
+            WorkLedgerDashboardHost(
+                database = database, shops = shops, selectedShopId = selectedShopId,
+                userName = userName, refreshKey = dataRevision,
                 onMenu = { drawerOpen = true },
-                onOpenLedger = {
-                    showDashboard = false
-                    openDailyWorkRequested = false
-                    dataRevision++
-                },
-                onOpenDailyWork = {
-                    showDashboard = false
-                    openDailyWorkRequested = true
-                    dataRevision++
-                },
+                onOpenLedger = { showDashboard = false; openDailyWorkRequested = false; dataRevision++ },
+                onOpenDailyWork = { showDashboard = false; openDailyWorkRequested = true; dataRevision++ },
                 onAddShop = {
-                    newShopName = ""
-                    newShopRegistrationNumber = ""
-                    newShopMode = RegistrationMode.NUMERIC
+                    newShopName = ""; newShopRegistrationNumber = ""; newShopMode = RegistrationMode.NUMERIC
                     showShopDialog = true
                 },
                 onShopSettings = {
@@ -359,7 +346,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 onAppSettings = { showFeatureHub = true },
                 onHelp = { showHelp = true },
                 onStatistics = { showStatistics = true }
-            )
+            )            )
         } else if (shops.isEmpty()) {
             StartScreen(
                 onAddShop = {

@@ -593,4 +593,4 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         )
     }
 }
-
+}

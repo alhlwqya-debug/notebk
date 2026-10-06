@@ -507,6 +507,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onNewPieceName = { newPieceName = it }, onNewPiecePrice = { newPiecePrice = it },
         onExpenseAmount = { expenseAmount = it }, onExpenseNote = { expenseNote = it }, onRenamedMonth = { renamedMonth = it },
         onCopyYear = { copyYear = it }, onCopyMonth = { copyMonth = it }, onSelectedMonthId = { selectedMonthId = it },
+        onSelectedShopId = { selectedShopId = it }, onBundleChange = { bundle = it }, onRegistrationModeChange = { registrationMode = it },
         onUserNameChange = { userName = it }, onUserPhoneChange = { userPhone = it }, onUserEmailChange = { userEmail = it },
         onUserShopChange = { userShop = it }, onUserImagePathChange = { userImagePath = it }, imagePickerLauncher = imagePickerLauncher,
         onReminderChange = { reminderEnabled = it }, onDarkThemeChange = { darkTheme = it },

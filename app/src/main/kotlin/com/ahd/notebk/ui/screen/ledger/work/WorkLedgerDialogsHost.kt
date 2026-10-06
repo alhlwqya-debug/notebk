@@ -112,7 +112,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private fun WorkLedgerDialogsHost(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WorkLedgerDialogsHost(
     context: Context,
     database: LedgerDatabase,
     prefs: android.content.SharedPreferences,
@@ -347,7 +349,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newYear,
-                        onValueChange = { newYear = it.filter(Char::isDigit) },
+                        onValueChange = { onNewYear(it.filter(Char::isDigit)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         label = { Text("السنة") },
@@ -356,7 +358,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newMonthNumber,
-                        onValueChange = { newMonthNumber = it.filter(Char::isDigit) },
+                        onValueChange = { onNewMonthNumber(it.filter(Char::isDigit)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         label = { Text("رقم الشهر (1-12)") },
@@ -427,7 +429,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newPiecePrice,
-                        onValueChange = { newPiecePrice = it.filter(Char::isDigit) },
+                        onValueChange = { onNewPiecePrice(it.filter(Char::isDigit)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         label = { Text("السعر") },
@@ -492,7 +494,7 @@ private fun WorkLedgerDialogsHost(
 
                     OutlinedTextField(
                         value = expenseAmount,
-                        onValueChange = { expenseAmount = it.filter(Char::isDigit) },
+                        onValueChange = { onExpenseAmount(it.filter(Char::isDigit)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         label = { Text("المبلغ") },
@@ -643,7 +645,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         copyYear,
-                        { copyYear = it.filter(Char::isDigit) },
+                        { onCopyYear(it.filter(Char::isDigit)) },
                         singleLine = true,
                         label = { Text("السنة") },
                         modifier = Modifier.fillMaxWidth()
@@ -651,7 +653,7 @@ private fun WorkLedgerDialogsHost(
                     Spacer(Modifier.height(7.dp))
                     OutlinedTextField(
                         copyMonth,
-                        { copyMonth = it.filter(Char::isDigit) },
+                        { onCopyMonth(it.filter(Char::isDigit)) },
                         singleLine = true,
                         label = { Text("رقم الشهر") },
                         modifier = Modifier.fillMaxWidth()
@@ -768,7 +770,7 @@ private fun WorkLedgerDialogsHost(
                     reloadShops()
                     if (selectedShopId == targetShop.id) onRegistrationModeChange(mode)
                     onShowShopSettings(false)
-                    dataRevision++
+                    onDataRevisionChange()
                     Toast.makeText(context, "تم حفظ إعدادات المحل", Toast.LENGTH_SHORT).show()
                 }
             )
@@ -780,20 +782,17 @@ private fun WorkLedgerDialogsHost(
             reminderEnabled = reminderEnabled,
             darkTheme = darkTheme,
             onReminderChange = { enabled ->
-                reminderEnabled = enabled
-                prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
-                if (enabled) WorkReminderScheduler.schedule(context) else WorkReminderScheduler.cancel(context)
+                onReminderChange(enabled)
+
             },
             onDarkThemeChange = { enabled ->
-                darkTheme = enabled
+                onDarkThemeChange(enabled)
                 prefs.edit().putBoolean("dark_theme", enabled).apply()
             },
-            onSecurityDialogChange = { showSecurityDialog = it },
-        onHelpChange = { showHelp = it },
-        onSecurity = { onShowAppSettings(false); onSecurityDialogChange(true) },
+            onSecurity = { onShowAppSettings(false); onSecurity() },
             onSystemSettings = { onShowAppSettings(false); onShowSystemSettings(true) },
             onAccountAuth = { onShowAppSettings(false); onOpenAuth() },
-            onHelp = { onShowAppSettings(false); onHelpChange(true) },
+            onHelp = { onShowAppSettings(false); onHelp() },
             onBack = { onShowAppSettings(false) }
         )
     }

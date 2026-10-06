@@ -18,7 +18,7 @@ import com.ahd.notebk.ui.screen.settings.ControlCenterScreen
 @Composable
 fun WorkLedgerDrawerHost(
     database: LedgerDatabase,
-    shops: List<com.ahd.notebk.domain.model.Shop>,
+    shops: List<com.ahd.notebk.domain.model.ShopRecord>,
     selectedShopId: Long?,
     userName: String,
     userImagePath: String,

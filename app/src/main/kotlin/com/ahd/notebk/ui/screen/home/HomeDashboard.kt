@@ -60,6 +60,7 @@ import com.ahd.notebk.ui.components.AppSurface
 import com.ahd.notebk.ui.components.AppSurfaceAlt
 import com.ahd.notebk.ui.components.AppText
 import com.ahd.notebk.ui.components.AppTopBar
+import com.ahd.notebk.ui.components.NotebkScreenBackground
 import com.ahd.notebk.ui.components.NotebkBrand
 import com.ahd.notebk.ui.components.Blue
 import com.ahd.notebk.ui.components.CardExpBg
@@ -199,7 +200,7 @@ fun HomeDashboard(
         matchesFilter && matchesQuery
     }
 
-    Box(Modifier.fillMaxSize().background(Color(0xFFF6F4FB))) {
+    NotebkScreenBackground {
         Column(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
             AppTopBar(
                 title = "الرئيسية",
@@ -228,7 +229,7 @@ fun HomeDashboard(
                         Spacer(Modifier.height(7.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                             DashboardStat("الصافي", totals.net, CardNetBg, Blue, Modifier.weight(1f), Icons.Default.Wallet)
-                            DashboardStat("القطع", totals.pieces, Color(0xFFFFF3E0), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth)
+                            DashboardStat("القطع", totals.pieces, Color(0xFF3A2A12), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth)
                         }
                     }
                     item {
@@ -295,7 +296,7 @@ fun HomeDashboard(
                     }
                     item {
                         Column(
-                            modifier = Modifier.fillMaxWidth().background(Color(0xFFF3ECFA), RoundedCornerShape(18.dp)).border(1.dp, AppBorder, RoundedCornerShape(18.dp)).padding(12.dp)
+                            modifier = Modifier.fillMaxWidth().background(AppSurfaceAlt, RoundedCornerShape(18.dp)).border(1.dp, AppBorder, RoundedCornerShape(18.dp)).padding(12.dp)
                         ) {
                             Text("طريقة الاستخدام السريعة", color = Purple, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(7.dp))

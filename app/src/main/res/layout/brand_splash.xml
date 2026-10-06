@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Canonical notebk brand composition for XML-based screens. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:background="@drawable/notebk_splash_background"
+    android:paddingStart="22dp"
+    android:paddingEnd="22dp"
+    android:paddingTop="70dp"
+    android:paddingBottom="40dp"
+    android:layoutDirection="rtl">
+
+    <TextView
+        android:id="@+id/brand_story"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/brand_tagline"
+        android:textColor="#F7F3FF"
+        android:textSize="21sp" />
+
+    <ImageView
+        android:id="@+id/brand_app_icon"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:layout_marginTop="28dp"
+        android:src="@drawable/brand_logo"
+        android:contentDescription="@string/app_name"
+        android:scaleType="fitCenter" />
+
+    <ImageView
+        android:id="@+id/brand_wordmark"
+        android:layout_width="235dp"
+        android:layout_height="70dp"
+        android:layout_marginTop="12dp"
+        android:src="@drawable/notebk_wordmark"
+        android:contentDescription="@string/brand_app_name"
+        android:scaleType="fitCenter"
+        android:layoutDirection="ltr" />
+
+    <TextView
+        android:id="@+id/brand_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="@string/brand_subtitle"
+        android:textColor="#EAE3F8"
+        android:textSize="18sp" />
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/developer_logo"
+        android:layout_width="72dp"
+        android:layout_height="52dp"
+        android:src="@drawable/ahd_mark"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/brand_team" />
+
+    <TextView
+        android:id="@+id/developer_team"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="@string/brand_team"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:letterSpacing="0.20"
+        android:textSize="12sp"
+        android:layoutDirection="ltr" />
+
+    <TextView
+        android:id="@+id/developer_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="@string/brand_author"
+        android:textColor="#EDE8F7"
+        android:textSize="14sp" />
+</LinearLayout>

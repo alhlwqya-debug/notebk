@@ -1,0 +1,7 @@
+<resources>
+    <color name="ic_launcher_background">#3B0AA3</color>
+    <color name="notebk_background">#070019</color>
+    <color name="notebk_purple">#5B1BFF</color>
+    <color name="notebk_violet">#B94CFF</color>
+    <color name="notebk_text">#FFFFFF</color>
+</resources>

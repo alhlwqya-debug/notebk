@@ -42,7 +42,7 @@ private val NotebkDarkColors = darkColorScheme(
 )
 
 @Composable
-fun NotebkTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
+fun NotebkTheme(darkTheme: Boolean = false, content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (darkTheme) NotebkDarkColors else NotebkLightColors,
         typography = NotebkTypography,

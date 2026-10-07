@@ -69,7 +69,7 @@ fun WorkLedgerDrawerHost(
                 }
             )
             DrawerContent(
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxWidth(0.82f).fillMaxSize(),
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxWidth(0.82f).fillMaxSize(),
                 shops = shops,
                 selectedShopId = selectedShopId,
                 userName = userName,

@@ -786,7 +786,7 @@ fun WorkLedgerDialogsHost(
             },
             onDarkThemeChange = { enabled ->
                 onDarkThemeChange(enabled)
-                prefs.edit().putBoolean("dark_theme", enabled).apply()
+                prefs.edit().putBoolean("dark_theme", enabled).putBoolean("theme_mode_dark", enabled).apply()
             },
             onSecurity = { onShowAppSettings(false); onSecurity() },
             onSystemSettings = { onShowAppSettings(false); onShowSystemSettings(true) },

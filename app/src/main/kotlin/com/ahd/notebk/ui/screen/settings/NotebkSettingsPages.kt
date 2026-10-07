@@ -415,7 +415,7 @@ fun AppSettingsPage(
 
             if (match("مساعدة", "حول", "دليل")) item {
                 SettingsGroup("about", "ℹ️ حول التطبيق والمساعدة", "الدليل، الدعم، الإصدار وهوية AHD DEV TEAM", expanded, ::toggle) {
-                    Text("notebk", fontSize=20.sp, fontWeight=FontWeight.Bold)
+                    NotebkWordmark(fontSize = 24.sp, normalColor = AppText)
                     Text("AHD DEV TEAM • ${com.ahd.notebk.ui.components.NotebkBrand.TAGLINE}", fontSize=11.sp, color=AppMuted)
                     NotebkSecondaryAction("فتح دليل الاستخدام", onHelp)
                     NotebkSecondaryAction("إعدادات النظام", onSystemSettings)

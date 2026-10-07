@@ -59,6 +59,36 @@ fun NotebkScreenBackground(content: @Composable BoxScope.() -> Unit) {
 }
 
 @Composable
+fun NotebkBrandTitle(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
+    NotebkWordmark(
+        modifier = modifier,
+        fontSize = if (compact) 18.sp else 22.sp,
+        normalColor = AppText
+    )
+}
+
+@Composable
+private fun NotebkTitleOrText(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    if (title == NotebkBrand.APP_NAME) {
+        NotebkBrandTitle(modifier)
+    } else {
+        Text(
+            brandifyText(title, AppText),
+            modifier = modifier,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = AppText
+        )
+    }
+}
+
+@Composable
 fun NotebkBrandHeader(
     modifier: Modifier = Modifier,
     compact: Boolean = false
@@ -132,7 +162,7 @@ fun NotebkPage(
                     }
                 }
                 Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
-                    Text(brandifyText(title, AppText), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = AppText)
+                    NotebkTitleOrText(title, Modifier.fillMaxWidth())
                     if (subtitle != null) Text(brandifyText(subtitle, AppMuted), fontSize = 11.sp, color = AppMuted)
                 }
                 Image(
@@ -245,7 +275,7 @@ fun AppTopBar(
                 }
             }
             Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
-                Text(brandifyText(title, AppText), color = AppText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                NotebkTitleOrText(title)
                 if (!subtitle.isNullOrBlank()) Text(brandifyText(subtitle, AppMuted), color = AppMuted, fontSize = 10.sp)
             }
             Image(

@@ -86,10 +86,10 @@ internal fun DrawerContent(
     onDeleteShop: () -> Unit
 ) {
     val currentShop = shops.firstOrNull { it.id == selectedShopId }
-    val primary = MaterialTheme.colorScheme.primary
-    val surface = MaterialTheme.colorScheme.surface
-    val text = MaterialTheme.colorScheme.onSurface
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val primary = NotebkBrandPurple
+    val surface = AppSurface
+    val text = AppText
+    val muted = AppMuted
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Surface(
@@ -157,7 +157,7 @@ internal fun DrawerContent(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .background(AppSurfaceAlt)
                         ) {
                             Icon(
                                 Icons.Default.Close,
@@ -169,7 +169,7 @@ internal fun DrawerContent(
                     }
 
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant,
+                        color = AppBorder,
                         modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
                     )
                 }
@@ -340,7 +340,7 @@ internal fun DrawerContent(
                         DrawerActionItem(
                             text = "حذف المحل الحالي",
                             icon = Icons.Default.Delete,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = Red,
                             onClick = onDeleteShop
                         )
                     }
@@ -440,7 +440,7 @@ private fun DrawerSectionTitle(title: String) {
             .padding(horizontal = 8.dp, vertical = 7.dp),
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        color = AppMuted
     )
 }
 
@@ -451,8 +451,8 @@ private fun DrawerNavItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val itemColor = if (selected) primary else MaterialTheme.colorScheme.onSurface
+    val primary = NotebkBrandPurple
+    val itemColor = if (selected) primary else AppText
     val background = if (selected) {
         primary.copy(alpha = 0.12f)
     } else {

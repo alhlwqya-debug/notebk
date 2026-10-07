@@ -39,9 +39,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settingsPrefs = getSharedPreferences("add_paper_user", Context.MODE_PRIVATE)
             val centralSettings = remember { NotebkSettingsStore(applicationContext) }
+            val centralPrefs = getSharedPreferences("notebk_settings", Context.MODE_PRIVATE)
             var darkTheme by remember { mutableStateOf(settingsPrefs.getBoolean("dark_theme", centralSettings.getString("theme_mode", "light") == "dark")) }
             var secureScreen by remember { mutableStateOf(centralSettings.getBoolean("prevent_screenshot", false)) }
-            DisposableEffect(settingsPrefs, centralSettings) {
+            DisposableEffect(settingsPrefs, centralPrefs) {
                 val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                     if (key == "dark_theme") darkTheme = settingsPrefs.getBoolean("dark_theme", false)
                     if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
@@ -51,10 +52,10 @@ class MainActivity : ComponentActivity() {
                     if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
                     if (key == "theme_mode") darkTheme = centralSettings.getString("theme_mode", "light") == "dark"
                 }
-                centralSettings.registerOnSharedPreferenceChangeListener(centralListener)
+                centralPrefs.registerOnSharedPreferenceChangeListener(centralListener)
                 onDispose {
                     settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener)
-                    centralSettings.unregisterOnSharedPreferenceChangeListener(centralListener)
+                    centralPrefs.unregisterOnSharedPreferenceChangeListener(centralListener)
                 }
             }
             LaunchedEffect(secureScreen) {

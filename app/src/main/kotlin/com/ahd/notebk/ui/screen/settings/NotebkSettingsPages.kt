@@ -322,7 +322,7 @@ fun AppSettingsPage(
                     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الحركة والتأثيرات", Modifier.weight(1f)); Switch(animations, { animations=it; store.putBoolean("animations_enabled", it) }) }
                     Text("حجم الخط: ${(fontScale*100).toInt()}%", fontSize=12.sp)
                     androidx.compose.material3.Slider(value=fontScale, onValueChange={fontScale=it;store.putFloat("font_scale",it)}, valueRange=0.9f..1.3f, steps=3)
-                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { store.resetGeneral(); currency="YER"; symbol="ريال"; decimalPlaces=0; dateFormat="yyyy/MM/dd"; timeFormat="24h"; reportLanguage="ar"; fontScale=1f; density="normal" })
+                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { store.resetGeneral(); currency="YER"; symbol="ريال"; decimalPlaces=0; dateFormat="yyyy/MM/dd"; timeFormat="24h"; reportLanguage="ar"; fontScale=1f; density="normal"; animations=true; showSearch=true; showFab=true; showBottomNav=true; cloudSync=false; lockBackground=false; hideAmounts=false; screenshotBlock=false; defaultPage="home"; onDarkThemeChange(false) })
                 }
             }
 

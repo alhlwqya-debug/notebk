@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -46,8 +47,11 @@ class MainActivity : ComponentActivity() {
                     if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
                 }
                 settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
-                onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener)
-                    if (secureScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+                onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
+            LaunchedEffect(secureScreen) {
+                if (secureScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
             NotebkTheme(darkTheme = darkTheme) {
                 Surface(Modifier.fillMaxSize()) {

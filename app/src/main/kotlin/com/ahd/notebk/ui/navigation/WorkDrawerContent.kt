@@ -178,7 +178,7 @@ internal fun DrawerContent(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = AppSurfaceAlt,
                         tonalElevation = 1.dp
                     ) {
                         Row(
@@ -402,7 +402,7 @@ internal fun DrawerContent(
                 item {
                     Spacer(Modifier.height(18.dp))
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = AppBorder
                     )
                     Spacer(Modifier.height(12.dp))
                     NotebkWordmark(
@@ -492,9 +492,9 @@ private fun DrawerShopItem(
     onSelect: () -> Unit,
     onSettings: () -> Unit
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val text = MaterialTheme.colorScheme.onSurface
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val primary = NotebkBrandPurple
+    val text = AppText
+    val muted = AppMuted
 
     Row(
         modifier = Modifier

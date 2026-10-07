@@ -52,6 +52,7 @@ import com.ahd.notebk.ui.components.NotebkSectionCard
 import com.ahd.notebk.ui.components.NotebkSecondaryAction
 import com.ahd.notebk.ui.components.NotebkWordmark
 import com.ahd.notebk.ui.components.AppText
+import com.ahd.notebk.ui.components.AppMuted
 import com.ahd.notebk.notification.WorkReminderScheduler
 
 @Composable
@@ -109,7 +110,7 @@ fun ProfilePage(
                             Text(
                                 if (hasContact) "بيانات الاتصال متوفرة" else "أضف رقم الهاتف أو البريد الإلكتروني",
                                 fontSize = 12.sp,
-                                color = Color.Gray
+                                color = AppMuted
                             )
                         }
                     }

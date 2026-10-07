@@ -106,7 +106,7 @@ fun ControlCenterScreen(
                     Icon(
                         Icons.Default.Settings,
                         contentDescription = null,
-                        tint = androidx.compose.ui.graphics.Color.White,
+                        tint = com.ahd.notebk.ui.components.AppText,
                         modifier = Modifier.size(24.dp)
                     )
                 }

@@ -207,7 +207,7 @@ fun HomeDashboard(
                 subtitle = if (userName.isBlank()) NotebkBrand.APP_NAME else "أهلاً بك، $userName",
                 onMenu = onMenu,
                 trailingContent = {
-                    Icon(Icons.Default.Home, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Home, contentDescription = null, tint = AppText, modifier = Modifier.size(24.dp))
                 }
             )
 
@@ -229,7 +229,7 @@ fun HomeDashboard(
                         Spacer(Modifier.height(7.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                             DashboardStat("الصافي", totals.net, CardNetBg, Blue, Modifier.weight(1f), Icons.Default.Wallet)
-                            DashboardStat("القطع", totals.pieces, Color(0xFF3A2A12), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth)
+                            DashboardStat("القطع", totals.pieces, Color(0xFFFFF4DD), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth)
                         }
                     }
                     item {

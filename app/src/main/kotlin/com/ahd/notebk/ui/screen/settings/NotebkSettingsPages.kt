@@ -144,7 +144,7 @@ fun ProfilePage(
                     NotebkSecondaryAction("تغيير الصورة الشخصية", onSelectImage)
                     Text(
                         if (userImagePath.isBlank()) "لم يتم اختيار صورة شخصية" else "تم حفظ الصورة الشخصية على الجهاز",
-                        fontSize = 11.sp, color = Color.Gray
+                        fontSize = 11.sp, color = AppMuted
                     )
                 }
             }
@@ -197,10 +197,10 @@ fun ProfilePage(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         NotebkWordmark(fontSize = 22.sp, normalColor = AppText)
                         Spacer(Modifier.weight(1f))
-                        Text("AHD DEV TEAM", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                        Text("AHD DEV TEAM", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = AppMuted)
                     }
                     Spacer(Modifier.size(6.dp))
-                    Text("كل سجل .. يروي قصة", fontSize = 11.sp, color = Color.Gray)
+                    Text("كل سجل .. يروي قصة", fontSize = 11.sp, color = AppMuted)
                 }
             }
             item { NotebkPrimaryAction("حفظ جميع بيانات الملف", { saveExtendedProfile(); onSave() }) }
@@ -235,7 +235,7 @@ private fun varName(initial:String, onSave:(String,String,RegistrationMode)->Uni
 
 @Composable private fun ModeRow(title:String, desc:String, selected:Boolean, onClick:()->Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical=5.dp), verticalAlignment=Alignment.CenterVertically) {
-        RadioButton(selected,onClick); Column(Modifier.weight(1f)){Text(title,fontWeight=FontWeight.Bold);Text(desc,fontSize=11.sp,color=Color.Gray)}
+        RadioButton(selected,onClick); Column(Modifier.weight(1f)){Text(title,fontWeight=FontWeight.Bold);Text(desc,fontSize=11.sp,color=AppMuted)}
     }
 }
 
@@ -362,7 +362,7 @@ fun AppSettingsPage(
                     SettingsChoice("دورية المزامنة", store.getString("sync_frequency","manual"), store.getString("sync_frequency","manual")) { store.putString("sync_frequency", if(store.getString("sync_frequency","manual")=="manual") "daily" else "manual") }
                     SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)
-                    Text("التصدير والاستيراد الفعليان يستخدمان نظام النسخ الموجود في التطبيق، ولا يتم حذف قاعدة البيانات تلقائيًا.", fontSize=11.sp, color=Color.Gray)
+                    Text("التصدير والاستيراد الفعليان يستخدمان نظام النسخ الموجود في التطبيق، ولا يتم حذف قاعدة البيانات تلقائيًا.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
@@ -372,7 +372,7 @@ fun AppSettingsPage(
                     SettingsSwitch("إخفاء المبالغ", hideAmounts, {hideAmounts=it;store.putBoolean("hide_amounts",it)})
                     SettingsSwitch("منع تصوير الشاشة", screenshotBlock, {screenshotBlock=it;store.putBoolean("prevent_screenshot",it)})
                     NotebkSecondaryAction("فتح إعدادات PIN والنسخ الاحتياطي", onSecurity)
-                    Text("لا نعرض خيارات بصمة أو تشفير قاعدة البيانات هنا ما لم يكن التنفيذ الفعلي متاحًا، حتى لا تكون الإعدادات شكلية.", fontSize=11.sp, color=Color.Gray)
+                    Text("لا نعرض خيارات بصمة أو تشفير قاعدة البيانات هنا ما لم يكن التنفيذ الفعلي متاحًا، حتى لا تكون الإعدادات شكلية.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
@@ -384,7 +384,7 @@ fun AppSettingsPage(
                     SettingsSwitch("إظهار Bottom Navigation", showBottomNav, {showBottomNav=it;store.putBoolean("show_bottom_nav",it)})
                     SettingsSwitch("إظهار Drawer", store.getBoolean("show_drawer",true), {store.putBoolean("show_drawer",it)})
                     SettingsSwitch("حفظ آخر صفحة", store.getBoolean("remember_page",true), {store.putBoolean("remember_page",it)})
-                    Text("ترتيب الصفحات بالسحب سيظهر فقط بعد ربطه بمسارات التنقل الفعلية، لمنع فقدان صفحات موجودة.", fontSize=11.sp, color=Color.Gray)
+                    Text("ترتيب الصفحات بالسحب سيظهر فقط بعد ربطه بمسارات التنقل الفعلية، لمنع فقدان صفحات موجودة.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
@@ -396,14 +396,14 @@ fun AppSettingsPage(
                     SettingsSwitch("إظهار صف الإجمالي", store.getBoolean("show_total_row",true), {store.putBoolean("show_total_row",it)})
                     SettingsChoice("عدد الصفوف في الجدول", store.getInt("table_rows",20).toString(), store.getInt("table_rows",20).toString()) { store.putInt("table_rows", if(store.getInt("table_rows",20)>=50) 10 else store.getInt("table_rows",20)+10) }
                     SettingsSwitch("تمييز الصفوف غير المكتملة", store.getBoolean("highlight_incomplete",true), {store.putBoolean("highlight_incomplete",it)})
-                    Text("نوع التسجيل (عددي/فردي) يبقى إعدادًا مستقلًا لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=Color.Gray)
+                    Text("نوع التسجيل (عددي/فردي) يبقى إعدادًا مستقلًا لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
             if (match("الحساب", "مزامنة", "تسجيل الدخول")) item {
                 SettingsGroup("account", "👤 الحساب والمزامنة", "حالة الحساب واتصال المزامنة", expanded, ::toggle) {
                     NotebkSecondaryAction("تسجيل الدخول / إنشاء حساب", onAccountAuth)
-                    Text("يمكن استخدام التطبيق بدون حساب ثم ربط الحساب لاحقًا دون حذف السجلات المحلية.", fontSize=11.sp, color=Color.Gray)
+                    Text("يمكن استخدام التطبيق بدون حساب ثم ربط الحساب لاحقًا دون حذف السجلات المحلية.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
@@ -416,7 +416,7 @@ fun AppSettingsPage(
             if (match("مساعدة", "حول", "دليل")) item {
                 SettingsGroup("about", "ℹ️ حول التطبيق والمساعدة", "الدليل، الدعم، الإصدار وهوية AHD DEV TEAM", expanded, ::toggle) {
                     Text("notebk", fontSize=20.sp, fontWeight=FontWeight.Bold)
-                    Text("AHD DEV TEAM • ${com.ahd.notebk.ui.components.NotebkBrand.TAGLINE}", fontSize=11.sp, color=Color.Gray)
+                    Text("AHD DEV TEAM • ${com.ahd.notebk.ui.components.NotebkBrand.TAGLINE}", fontSize=11.sp, color=AppMuted)
                     NotebkSecondaryAction("فتح دليل الاستخدام", onHelp)
                     NotebkSecondaryAction("إعدادات النظام", onSystemSettings)
                 }
@@ -425,7 +425,7 @@ fun AppSettingsPage(
             item {
                 NotebkSectionCard("إدارة الإعدادات", "الحفظ تلقائي. يمكنك إعادة الإعدادات العامة إلى القيم الافتراضية.") {
                     NotebkSecondaryAction("إعادة ضبط الإعدادات العامة", { store.resetGeneral() })
-                    Text("لا يتم مسح قاعدة البيانات أو السجلات عند إعادة ضبط الإعدادات.", fontSize=11.sp, color=Color.Gray)
+                    Text("لا يتم مسح قاعدة البيانات أو السجلات عند إعادة ضبط الإعدادات.", fontSize=11.sp, color=AppMuted)
                 }
             }
         }
@@ -438,7 +438,7 @@ private fun SettingsGroup(id:String, title:String, description:String, expanded:
         Row(Modifier.fillMaxWidth().clickable { toggle(id) }, verticalAlignment=Alignment.CenterVertically) {
             Text(if(expanded.contains(id)) "−" else "+", fontSize=22.sp, color=com.ahd.notebk.ui.components.NotebkBrandPurple)
             Spacer(Modifier.size(8.dp))
-            Text(if(expanded.contains(id)) "إخفاء التفاصيل" else "عرض التفاصيل", fontSize=11.sp, color=Color.Gray)
+            Text(if(expanded.contains(id)) "إخفاء التفاصيل" else "عرض التفاصيل", fontSize=11.sp, color=AppMuted)
         }
         if(expanded.contains(id)) { Spacer(Modifier.size(8.dp)); content() }
     }
@@ -447,7 +447,7 @@ private fun SettingsGroup(id:String, title:String, description:String, expanded:
 @Composable
 private fun SettingsSwitch(title:String, checked:Boolean, onChange:(Boolean)->Unit, description:String?=null) {
     Row(Modifier.fillMaxWidth().padding(vertical=4.dp), verticalAlignment=Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium); if(description!=null) Text(description,fontSize=10.sp,color=Color.Gray) }
+        Column(Modifier.weight(1f)) { Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium); if(description!=null) Text(description,fontSize=10.sp,color=AppMuted) }
         Switch(checked=checked,onCheckedChange=onChange)
     }
 }
@@ -455,7 +455,7 @@ private fun SettingsSwitch(title:String, checked:Boolean, onChange:(Boolean)->Un
 @Composable
 private fun SettingsChoice(title:String, value:String, current:String, onClick:()->Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick=onClick).padding(vertical=7.dp), verticalAlignment=Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title,fontSize=13.sp,fontWeight=FontWeight.Medium); Text(value,fontSize=10.sp,color=Color.Gray) }
+        Column(Modifier.weight(1f)) { Text(title,fontSize=13.sp,fontWeight=FontWeight.Medium); Text(value,fontSize=10.sp,color=AppMuted) }
         Text("تغيير",fontSize=11.sp,color=com.ahd.notebk.ui.components.NotebkBrandPurple,fontWeight=FontWeight.Bold)
     }
 }
@@ -482,7 +482,7 @@ fun SystemSettingsPage(
                 NotebkSecondaryAction("اللغة والمنطقة", onOpenLanguage)
             } }
             item {
-                Text("ملاحظة: تغيير إعدادات Android قد يؤثر في الإشعارات أو عمل التذكير اليومي بحسب إعدادات النظام.", fontSize = 11.sp, color = Color.Gray)
+                Text("ملاحظة: تغيير إعدادات Android قد يؤثر في الإشعارات أو عمل التذكير اليومي بحسب إعدادات النظام.", fontSize = 11.sp, color = AppMuted)
             }
         }
     }

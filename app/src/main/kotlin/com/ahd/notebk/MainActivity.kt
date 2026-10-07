@@ -41,13 +41,21 @@ class MainActivity : ComponentActivity() {
             val centralSettings = remember { NotebkSettingsStore(applicationContext) }
             var darkTheme by remember { mutableStateOf(settingsPrefs.getBoolean("dark_theme", centralSettings.getString("theme_mode", "light") == "dark")) }
             var secureScreen by remember { mutableStateOf(centralSettings.getBoolean("prevent_screenshot", false)) }
-            DisposableEffect(settingsPrefs) {
+            DisposableEffect(settingsPrefs, centralSettings) {
                 val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                     if (key == "dark_theme") darkTheme = settingsPrefs.getBoolean("dark_theme", false)
                     if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
                 }
                 settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
-                onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+                val centralListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
+                    if (key == "theme_mode") darkTheme = centralSettings.getString("theme_mode", "light") == "dark"
+                }
+                centralSettings.registerOnSharedPreferenceChangeListener(centralListener)
+                onDispose {
+                    settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+                    centralSettings.unregisterOnSharedPreferenceChangeListener(centralListener)
+                }
             }
             LaunchedEffect(secureScreen) {
                 if (secureScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

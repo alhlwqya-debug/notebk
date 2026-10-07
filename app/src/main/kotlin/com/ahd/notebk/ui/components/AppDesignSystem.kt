@@ -24,21 +24,21 @@ import com.ahd.notebk.R
 
 /** Shared notebk visual language. Feature/data logic stays outside this file. */
 // Canonical palette used by every screen, including the work/ledger pages.
-val AppBackground = Color(0xFF070019)
-val AppSurface = Color(0xFF12072E)
-val AppSurfaceAlt = Color(0xFF190B3E)
-val AppPrimarySoft = Color(0xFF2B1166)
-val AppBorder = Color(0xFF5630A2)
-val AppText = Color(0xFFF9F5FF)
-val AppMuted = Color(0xFFC8B9DF)
-val Purple = Color(0xFF9C4DFF)
-val Green = Color(0xFF39D98A)
-val Blue = Color(0xFF58A6FF)
-val Red = Color(0xFFFF6B8A)
-val Orange = Color(0xFFFFB52E)
-val CardWorkBg = Color(0xFF103A31)
-val CardExpBg = Color(0xFF3A1728)
-val CardNetBg = Color(0xFF172C4A)
+val AppBackground = Color(0xFFFFFFFF)
+val AppSurface = Color(0xFFFFFFFF)
+val AppSurfaceAlt = Color(0xFFF8F6FC)
+val AppPrimarySoft = Color(0xFFF0E7FF)
+val AppBorder = Color(0xFFD8C8EF)
+val AppText = Color(0xFF211B2B)
+val AppMuted = Color(0xFF756C80)
+val Purple = Color(0xFF7C3AED)
+val Green = Color(0xFF22B573)
+val Blue = Color(0xFF3B82D0)
+val Red = Color(0xFFE2556B)
+val Orange = Color(0xFFE7A51C)
+val CardWorkBg = Color(0xFFEAF8F1)
+val CardExpBg = Color(0xFFFFEEF1)
+val CardNetBg = Color(0xFFEDF5FF)
 val AppButtonShape = RoundedCornerShape(14.dp)
 val AppRadiusSmall = 12.dp
 val AppRadiusMedium = 16.dp
@@ -51,25 +51,11 @@ val Yellow = Color(0xFFFDE48B)
 val LightBlue = Color(0xFFC9D4EA)
 val HeaderBlue = Color(0xFFD8E1F3)
 val NotebkBrandPurple = Purple
-val AppGradient = Brush.linearGradient(listOf(Color(0xFF17004A), Color(0xFF070019), Color(0xFF020008)))
+val AppGradient = Brush.linearGradient(listOf(Color.White, Color(0xFFFBF9FE)))
 
 @Composable
 fun NotebkScreenBackground(content: @Composable BoxScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().background(AppGradient)) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            drawArc(Color(0xFF5B1BFF).copy(alpha = 0.28f), 205f, 105f, false,
-                androidx.compose.ui.geometry.Offset(-w * 0.40f, -h * 0.12f),
-                androidx.compose.ui.geometry.Size(w * 1.02f, h * 0.50f),
-                style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round))
-            drawArc(Color(0xFFB94CFF).copy(alpha = 0.20f), 20f, 120f, false,
-                androidx.compose.ui.geometry.Offset(w * 0.42f, h * 0.70f),
-                androidx.compose.ui.geometry.Size(w * 0.84f, h * 0.44f),
-                style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-        }
-        content()
-    }
+    Box(Modifier.fillMaxSize().background(AppGradient)) { content() }
 }
 
 @Composable

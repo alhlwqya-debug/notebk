@@ -2,6 +2,7 @@ package com.ahd.notebk.notification
 import com.ahd.notebk.security.createInternalAutoBackup
 import com.ahd.notebk.MainActivity
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -56,7 +57,10 @@ class WorkReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, channelId)
+        val settings = NotebkSettingsStore(context)
+        val soundEnabled = settings.getBoolean("notification_sound", true)
+        val vibrateEnabled = settings.getBoolean("notification_vibrate", true)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle("تذكير تسجيل العمل")
             .setContentText("لم تقم بتسجيل العمل اليوم، قم بتسجيل عملك")
@@ -67,7 +71,9 @@ class WorkReminderReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .build()
+        if (soundEnabled) builder.setDefaults(NotificationCompat.DEFAULT_SOUND)
+        if (vibrateEnabled) builder.setVibrate(longArrayOf(0, 250, 120, 250))
+        val notification = builder.build()
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             androidx.core.app.ActivityCompat.checkSelfPermission(
@@ -86,8 +92,16 @@ object WorkReminderScheduler {
     const val ALARM_REQUEST_CODE = 2002
     const val OPEN_APP_REQUEST_CODE = 2003
 
-    private const val HOUR = 20
-    private const val MINUTE = 0
+    private const val DEFAULT_HOUR = 20
+    private const val DEFAULT_MINUTE = 0
+
+    private fun reminderTime(context: Context): Pair<Int, Int> {
+        val value = NotebkSettingsStore(context).getString("reminder_time", "20:00")
+        val parts = value.split(":")
+        val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: DEFAULT_HOUR
+        val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: DEFAULT_MINUTE
+        return hour to minute
+    }
 
     fun schedule(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
@@ -101,9 +115,10 @@ object WorkReminderScheduler {
 
         alarmManager.cancel(pendingIntent)
 
+        val (hour, minute) = reminderTime(context)
         val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, HOUR)
-            set(Calendar.MINUTE, MINUTE)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
             if (timeInMillis <= System.currentTimeMillis()) {

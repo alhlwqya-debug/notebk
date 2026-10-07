@@ -52,6 +52,7 @@ import com.ahd.notebk.ui.components.NotebkSectionCard
 import com.ahd.notebk.ui.components.NotebkSecondaryAction
 import com.ahd.notebk.ui.components.NotebkWordmark
 import com.ahd.notebk.ui.components.AppText
+import com.ahd.notebk.notification.WorkReminderScheduler
 
 @Composable
 fun ProfilePage(
@@ -328,7 +329,7 @@ fun AppSettingsPage(
             if (match("إشعارات", "تذكير", "نسخ احتياطي")) item {
                 SettingsGroup("notifications", "🔔 الإشعارات والتذكيرات", "كل ما يتعلق بالتنبيهات الدورية", expanded, ::toggle) {
                     SettingsSwitch("تذكير تسجيل العمل", reminderEnabled, onReminderChange, "يُستخدم نظام التذكير الحالي في التطبيق")
-                    SettingsChoice("وقت التذكير", store.getString("reminder_time", "20:00"), store.getString("reminder_time", "20:00")) { store.putString("reminder_time", if (store.getString("reminder_time","20:00")=="20:00") "18:00" else "20:00") }
+                    SettingsChoice("وقت التذكير", store.getString("reminder_time", "20:00"), store.getString("reminder_time", "20:00")) { val next = if (store.getString("reminder_time","20:00")=="20:00") "18:00" else "20:00"; store.putString("reminder_time", next); if (reminderEnabled) WorkReminderScheduler.schedule(context) }
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })

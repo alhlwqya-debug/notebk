@@ -140,6 +140,7 @@ internal fun MainLedger(
     val context = LocalContext.current
     val horizontal = rememberScrollState()
     val settingsStore = remember(context) { NotebkSettingsStore(context) }
+    val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", Context.MODE_PRIVATE) }
     var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
     var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
     DisposableEffect(settingsStore) {
@@ -149,8 +150,8 @@ internal fun MainLedger(
                 "show_total_row" -> showTotalRow = settingsStore.getBoolean("show_total_row", true)
             }
         }
-        settingsStore.preferences.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { settingsStore.preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     val totalEarned = database.calculateMonthEarned(bundle)
     val totalExpenses = database.calculateMonthExpenses(bundle)

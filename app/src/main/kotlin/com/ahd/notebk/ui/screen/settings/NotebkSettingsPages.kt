@@ -458,7 +458,7 @@ fun AppSettingsPage(
                         "الحالة: $cloudSyncStatus",
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         fontSize = 11.sp,
-                        color = if (cloudSyncStatus.startsWith("فشلت")) Color(0xFFB3261E) else AppMuted
+                        color = if (cloudSyncStatus.startsWith("فشلت")) androidx.compose.material3.MaterialTheme.colorScheme.error else AppMuted
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(

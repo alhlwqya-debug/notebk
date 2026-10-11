@@ -174,6 +174,8 @@ internal object SupabaseSyncManager {
                         // entries are logically unique per user + day + piece; record_key can
                         // differ when the same ledger row was created on another device.
                         "entries" -> "/rest/v1/$table?on_conflict=user_id,day_legacy_id,piece_legacy_id"
+                        // An individual row can contain only one quantity per entry + piece.
+                        "individual_entry_items" -> "/rest/v1/$table?on_conflict=user_id,entry_legacy_id,piece_legacy_id"
                         else -> "/rest/v1/$table?on_conflict=user_id,record_key"
                     },
                     body = batch.toString(),

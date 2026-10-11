@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.individual.work
 import com.ahd.notebk.ui.components.*
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import com.ahd.notebk.domain.model.*
 
 
@@ -51,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +105,16 @@ internal fun IndividualLedger(
 ) {
     val context = LocalContext.current
     val horizontal = rememberScrollState()
+    val settingsStore = remember(context) { NotebkSettingsStore(context) }
+    val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE) }
+    var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    DisposableEffect(settingsPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "hide_amounts") hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+        }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     val years = remember(months) { months.map { it.year }.distinct().sortedDescending() }
     var selectedYear by remember(months, selectedMonthId) {
         mutableStateOf(
@@ -564,9 +576,9 @@ internal fun IndividualLedger(
         Spacer(Modifier.height(5.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            SummaryCard("الإنتاج", earned.toString(), CardWorkBg, Green, Modifier.weight(1f))
-            SummaryCard("المصروف", expense.toString(), CardExpBg, Red, Modifier.weight(1f))
-            SummaryCard("الصافي", net.toString(), CardNetBg, Blue, Modifier.weight(1f))
+            SummaryCard("الإنتاج", if (hideAmounts) "••••" else earned.toString(), CardWorkBg, Green, Modifier.weight(1f))
+            SummaryCard("المصروف", if (hideAmounts) "••••" else expense.toString(), CardExpBg, Red, Modifier.weight(1f))
+            SummaryCard("الصافي", if (hideAmounts) "••••" else net.toString(), CardNetBg, Blue, Modifier.weight(1f))
             SummaryCard("الزبائن", totalCustomers.toString(), Color(0xFFFFF3E0), Orange, Modifier.weight(1f))
         }
 
@@ -666,7 +678,7 @@ internal fun IndividualLedger(
                                 )
                             }
                             CellText(
-                                if (entryTotal == 0) "" else entryTotal.toString(),
+                                if (hideAmounts || entryTotal == 0) "" else entryTotal.toString(),
                                 IndividualTotalWidth,
                                 rowH,
                                 LightBlue,

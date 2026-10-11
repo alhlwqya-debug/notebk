@@ -154,8 +154,13 @@ internal object SupabaseSyncManager {
 
 private object LocalSyncImporter {
     fun apply(context: Context, remote: Map<String, JSONArray>, deviceId: String) {
-        val db = LedgerDatabase(context).writableDatabase
-        db.execSQL("CREATE TABLE IF NOT EXISTS sync_records (record_key TEXT PRIMARY KEY, table_name TEXT NOT NULL, local_id INTEGER NOT NULL)")
+        // Keep a helper reference so the database handle is always released.
+        val helper = LedgerDatabase(context)
+        try {
+            val db = helper.writableDatabase
+            db.beginTransaction()
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS sync_records (record_key TEXT PRIMARY KEY, table_name TEXT NOT NULL, local_id INTEGER NOT NULL)")
         val ids = mutableMapOf<String, Long>()
         fun resolve(table: String, recordKey: String, legacyId: Long): Long? {
             ids[recordKey]?.let { return it }
@@ -237,6 +242,14 @@ private object LocalSyncImporter {
                 .putString("user_shop", profile.optString("shop_name", ""))
                 .putString("user_image", profile.optString("avatar_path", ""))
                 .apply()
+        }
+                db.setTransactionSuccessful()
+            } finally {
+                // Roll back all related rows if any import fails.
+                if (db.inTransaction()) db.endTransaction()
+            }
+        } finally {
+            helper.close()
         }
     }
 

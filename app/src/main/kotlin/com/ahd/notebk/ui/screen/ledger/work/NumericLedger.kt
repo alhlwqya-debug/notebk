@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.ledger.work
 import com.ahd.notebk.ui.components.*
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import com.ahd.notebk.domain.model.*
 
 
@@ -62,6 +63,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -137,6 +139,19 @@ internal fun MainLedger(
 ) {
     val context = LocalContext.current
     val horizontal = rememberScrollState()
+    val settingsStore = remember(context) { NotebkSettingsStore(context) }
+    var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
+    DisposableEffect(settingsStore) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            when (key) {
+                "hide_amounts" -> hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+                "show_total_row" -> showTotalRow = settingsStore.getBoolean("show_total_row", true)
+            }
+        }
+        settingsStore.preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsStore.preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     val totalEarned = database.calculateMonthEarned(bundle)
     val totalExpenses = database.calculateMonthExpenses(bundle)
     val net = database.calculateMonthNet(bundle)
@@ -210,9 +225,9 @@ internal fun MainLedger(
             Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            SummaryCard("الإنتاج", totalEarned.toString(), CardWorkBg, Green, Modifier.weight(1f))
-            SummaryCard("المصروف", totalExpenses.toString(), CardExpBg, Red, Modifier.weight(1f))
-            SummaryCard("الصافي", net.toString(), CardNetBg, Blue, Modifier.weight(1f))
+            SummaryCard("الإنتاج", if (hideAmounts) "••••" else totalEarned.toString(), CardWorkBg, Green, Modifier.weight(1f))
+            SummaryCard("المصروف", if (hideAmounts) "••••" else totalExpenses.toString(), CardExpBg, Red, Modifier.weight(1f))
+            SummaryCard("الصافي", if (hideAmounts) "••••" else net.toString(), CardNetBg, Blue, Modifier.weight(1f))
             SummaryCard("القطع", totalPieces.toString(), Color(0xFFFFF3E0), Orange, Modifier.weight(1f))
         }
 
@@ -364,7 +379,7 @@ internal fun MainLedger(
                     }
                 }
 
-                Row {
+                if (showTotalRow) Row {
                     CellText("الإجمالي", wDay + wDate, 34.dp, Color(0xFFFFE58F), bold = true, size = 10, color = AppText)
 
                     // ✅ عرض مجموع كل قطعة على حدة وليس الإجمالي الكلي

@@ -4,6 +4,7 @@ import com.ahd.notebk.domain.model.*
 import com.ahd.notebk.data.local.LedgerDatabase
 import com.ahd.notebk.R
 import com.ahd.notebk.ui.components.NotebkBrand
+import com.ahd.notebk.data.local.NotebkSettingsStore
 
 import android.app.Activity
 import android.content.Context
@@ -19,6 +20,51 @@ import android.widget.Toast
 import java.io.ByteArrayOutputStream
 import java.io.File
 import android.util.Base64
+
+/**
+ * Applies report preferences supported by the current HTML report renderer.
+ * Options without a matching renderer feature are not simulated.
+ */
+internal fun applyReportPreferences(context: Context, sourceHtml: String): String {
+    val settings = NotebkSettingsStore(context)
+    var html = sourceHtml
+    val css = buildString {
+        if (!settings.getBoolean("report_header", true)) append(".top{display:none!important;}\n")
+        if (!settings.getBoolean("report_footer", true)) append(".footer{display:none!important;}\n")
+        if (!settings.getBoolean("report_logo", true)) append(".top img{display:none!important;}\n")
+        if (!settings.getBoolean("report_shop_data", true)) append(".profile{display:none!important;}\n")
+        val orientation = settings.getString("paper_orientation", "portrait")
+        val size = settings.getString("paper_size", "A4")
+        append("@page{size:$size $orientation;}\n")
+    }
+    html = html.replace("</style>", "$css</style>")
+    val customTitle = settings.getString("report_title", "").trim()
+    if (customTitle.isNotEmpty()) {
+        val safeTitle = escapeHtml(customTitle)
+        html = Regex("""<div class=['"]top-title['"]>.*?</div>""")
+            .replaceFirst(html) { "<div class='top-title'>$safeTitle</div>" }
+    }
+    val customFooter = settings.getString("report_footer_text", "").trim()
+    if (customFooter.isNotEmpty()) {
+        val safeFooter = escapeHtml(customFooter)
+        html = Regex("""<div class=['"]footer['"]>.*?</div>""", setOf(RegexOption.DOT_MATCHES_ALL))
+            .replace(html) { "<div class='footer'>$safeFooter</div>" }
+    }
+    return html
+}
+
+internal fun reportMediaSize(context: Context): PrintAttributes.MediaSize {
+    val settings = NotebkSettingsStore(context)
+    val size = when (settings.getString("paper_size", "A4").uppercase()) {
+        "A5" -> PrintAttributes.MediaSize.ISO_A5
+        else -> PrintAttributes.MediaSize.ISO_A4
+    }
+    return if (settings.getString("paper_orientation", "portrait") == "landscape") {
+        size.asLandscape()
+    } else {
+        size.asPortrait()
+    }
+}
 
 private fun buildBrandLogoHtml(context: Context): String {
     return runCatching {
@@ -67,7 +113,7 @@ internal fun generatePdf(
         fun signed(value: Int): String = if (value < 0) "-${amount(-value)}" else amount(value)
 
         val profileImageHtml = buildProfileImageHtml(userImagePath)
-        val brandLogoHtml = buildBrandLogoHtml(context)
+        val brandLogoHtml = if (NotebkSettingsStore(context).getBoolean("report_logo", true)) buildBrandLogoHtml(context) else ""
 
         val html = buildString {
             append("""
@@ -249,6 +295,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
             append("</div></body></html>")
         }
 
+        val configuredHtml = applyReportPreferences(context, html)
         val webView = WebView(context)
         webView.settings.javaScriptEnabled = false
         webView.settings.defaultTextEncodingName = "UTF-8"
@@ -279,7 +326,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                             jobName,
                             adapter,
                             PrintAttributes.Builder()
-                                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                .setMediaSize(reportMediaSize(context))
                                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                                 .build()
                         )
@@ -294,7 +341,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                 }, 180L)
             }
         }
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL(null, configuredHtml, "text/html", "UTF-8", null)
     } catch (e: Exception) {
         Toast.makeText(context, "حدث خطأ أثناء إنشاء PDF: ${e.message ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show()
     }
@@ -489,6 +536,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
             append("</body></html>")
         }
 
+        val configuredHtml = applyReportPreferences(context, html)
         val webView = WebView(context)
         webView.settings.javaScriptEnabled = false
         webView.settings.defaultTextEncodingName = "UTF-8"

@@ -358,7 +358,46 @@ fun AppSettingsPage(
 
             if (match("بيانات", "نسخ", "استيراد", "تصدير", "مزامنة")) item {
                 SettingsGroup("data", "💾 البيانات والنسخ الاحتياطي", "إدارة النسخ والاستيراد والتصدير والمزامنة", expanded, ::toggle) {
-                    SettingsSwitch("المزامنة السحابية", cloudSync, {cloudSync=it;store.putBoolean("cloud_sync",it)})
+                    val syncScope = androidx.compose.runtime.rememberCoroutineScope()
+                    var syncBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    SettingsSwitch(
+                        "المزامنة السحابية",
+                        cloudSync,
+                        { enabled ->
+                            if (!enabled) {
+                                cloudSync = false
+                                store.putBoolean("cloud_sync", false)
+                                android.widget.Toast.makeText(context, "تم إيقاف المزامنة السحابية", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                val session = com.ahd.notebk.data.cloud.SupabaseSessionStore.load(context)
+                                if (session == null) {
+                                    cloudSync = false
+                                    store.putBoolean("cloud_sync", false)
+                                    android.widget.Toast.makeText(context, "سجّل الدخول أولاً لتفعيل المزامنة السحابية", android.widget.Toast.LENGTH_LONG).show()
+                                    onAccountAuth()
+                                } else if (!syncBusy) {
+                                    syncBusy = true
+                                    syncScope.launch {
+                                        try {
+                                            val result = com.ahd.notebk.data.cloud.SupabaseSyncManager.sync(context, session)
+                                            cloudSync = true
+                                            store.putBoolean("cloud_sync", true)
+                                            store.putString("last_cloud_sync_message", result.message)
+                                            store.putString("last_cloud_sync_at", System.currentTimeMillis().toString())
+                                            android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_LONG).show()
+                                        } catch (error: Exception) {
+                                            cloudSync = false
+                                            store.putBoolean("cloud_sync", false)
+                                            android.widget.Toast.makeText(context, "فشلت المزامنة: " + (error.message ?: "تحقق من الاتصال وإعدادات Supabase"), android.widget.Toast.LENGTH_LONG).show()
+                                        } finally {
+                                            syncBusy = false
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        if (syncBusy) "جارٍ مزامنة السجلات مع الحساب الحالي…" else "تتطلب تسجيل الدخول. عند التفعيل تُرفع السجلات المحلية وتُحمّل السجلات السحابية."
+                    )
                     SettingsChoice("دورية المزامنة", store.getString("sync_frequency","manual"), store.getString("sync_frequency","manual")) { store.putString("sync_frequency", if(store.getString("sync_frequency","manual")=="manual") "daily" else "manual") }
                     SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)

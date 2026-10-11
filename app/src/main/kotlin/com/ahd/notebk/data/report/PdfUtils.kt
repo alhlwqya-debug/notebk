@@ -41,8 +41,10 @@ internal fun applyReportPreferences(context: Context, sourceHtml: String): Strin
     val customTitle = settings.getString("report_title", "").trim()
     if (customTitle.isNotEmpty()) {
         val safeTitle = escapeHtml(customTitle)
-        html = Regex("""<div class=['"]top-title['"]>.*?</div>""")
-            .replaceFirst(html) { "<div class='top-title'>$safeTitle</div>" }
+        val titleMatch = Regex("""<div class=['"]top-title['"]>.*?</div>""").find(html)
+        if (titleMatch != null) {
+            html = html.replaceRange(titleMatch.range, "<div class='top-title'>$safeTitle</div>")
+        }
     }
     val customFooter = settings.getString("report_footer_text", "").trim()
     if (customFooter.isNotEmpty()) {
@@ -50,6 +52,8 @@ internal fun applyReportPreferences(context: Context, sourceHtml: String): Strin
         html = Regex("""<div class=['"]footer['"]>.*?</div>""", setOf(RegexOption.DOT_MATCHES_ALL))
             .replace(html) { "<div class='footer'>$safeFooter</div>" }
     }
+    val currencySymbol = settings.getString("currency_symbol", "ريال").trim()
+    if (currencySymbol.isNotEmpty() && currencySymbol != "ريال") html = html.replace("ريال", escapeHtml(currencySymbol))
     return html
 }
 

@@ -2,6 +2,7 @@ package com.ahd.notebk.data.report
 import com.ahd.notebk.ui.components.Purple
 import com.ahd.notebk.domain.model.*
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 
 import android.app.Activity
 import android.content.Context
@@ -436,6 +437,7 @@ private fun verifyShopMode(
 
 internal fun printHtmlRange(context: Context, jobName: String, html: String) {
     try {
+        val configuredHtml = applyReportPreferences(context, html)
         val webView = WebView(context)
         webView.settings.javaScriptEnabled = false
         webView.settings.defaultTextEncodingName = "UTF-8"
@@ -459,7 +461,7 @@ internal fun printHtmlRange(context: Context, jobName: String, html: String) {
                         jobName,
                         adapter,
                         PrintAttributes.Builder()
-                            .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                            .setMediaSize(reportMediaSize(context))
                             .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                             .build()
                     )
@@ -480,7 +482,7 @@ internal fun printHtmlRange(context: Context, jobName: String, html: String) {
                 }, 180L)
             }
         }
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL(null, configuredHtml, "text/html", "UTF-8", null)
     } catch (e: Exception) {
         Toast.makeText(
             context,

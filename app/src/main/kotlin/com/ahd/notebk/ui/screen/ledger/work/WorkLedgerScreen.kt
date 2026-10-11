@@ -190,6 +190,21 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showSecurityDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
     var appPinEnabled by remember { mutableStateOf(hasAppPin(context)) }
+    var lockedByBackground by remember { mutableStateOf(false) }
+    val lifecycleOwner = context as? androidx.lifecycle.LifecycleOwner
+    DisposableEffect(lifecycleOwner, appPinEnabled) {
+        val owner = lifecycleOwner ?: return@DisposableEffect onDispose { }
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP &&
+                centralSettings.getBoolean("lock_on_background", false) &&
+                hasAppPin(context)
+            ) {
+                lockedByBackground = true
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
     var registrationMode by remember(selectedShopId, shops) {
         mutableStateOf(
             shops.firstOrNull { it.id == selectedShopId }?.registrationMode
@@ -612,6 +627,15 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             userName = userName,
             onDismiss = { showStatistics = false }
         )
+    }
+
+    if (lockedByBackground && hasAppPin(context)) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = androidx.compose.material3.MaterialTheme.colorScheme.background
+        ) {
+            AppLockScreen(context) { lockedByBackground = false }
+        }
     }
 }
 }

@@ -102,6 +102,20 @@ internal object SupabaseAuth {
             refreshed
         }
 
+    /** Refreshes and persists a session using the latest stored refresh token. */
+    @Synchronized
+    fun refreshBlocking(context: Context, session: SupabaseSession): SupabaseSession {
+        val current = SupabaseSessionStore.load(context)?.takeIf { it.userId == session.userId } ?: session
+        val body = JSONObject().put("refresh_token", current.refreshToken)
+        val json = SupabaseHttp.request("POST", "/auth/v1/token?grant_type=refresh_token", body.toString())
+        val refreshed = sessionFrom(json)
+        check(refreshed.userId == current.userId) {
+            "تغيّر حساب الجلسة أثناء التجديد؛ أوقفنا العملية لحماية بياناتك."
+        }
+        SupabaseSessionStore.save(context, refreshed)
+        return refreshed
+    }
+
     private fun sessionFrom(json: JSONObject): SupabaseSession {
         val user = json.optJSONObject("user") ?: throw IllegalStateException("لم يعثر Supabase على بيانات المستخدم")
         val access = json.optString("access_token")
@@ -132,35 +146,63 @@ internal object SupabaseSyncManager {
                 "تعذر حفظ هوية حساب المزامنة على هذا الجهاز."
             }
         }
+        var activeSession = SupabaseSessionStore.load(context)
+            ?.takeIf { it.userId == session.userId } ?: session
+        if (activeSession.expiresAt <= System.currentTimeMillis() + 60_000L) {
+            activeSession = SupabaseAuth.refreshBlocking(context, activeSession)
+        }
         val deviceId = SupabaseSessionStore.deviceId(context)
-        val snapshot = LocalSyncSnapshot.read(context, session.userId, deviceId)
+        val snapshot = LocalSyncSnapshot.read(context, activeSession.userId, deviceId)
         val order = listOf(
             "user_profiles", "shops", "workers", "months", "pieces", "days",
             "entries", "individual_entries", "individual_entry_items"
         )
+        val batchSize = 200
         var uploaded = 0
         for (table in order) {
             val rows = snapshot[table] ?: JSONArray()
             if (rows.length() == 0) continue
-            SupabaseHttp.request(
-                method = "POST",
-                path = if (table == "user_profiles") "/rest/v1/$table?on_conflict=user_id" else "/rest/v1/$table?on_conflict=user_id,record_key",
-                body = rows.toString(),
-                session = session,
-                prefer = "resolution=merge-duplicates,return=minimal",
-            )
-            uploaded += rows.length()
+            var offset = 0
+            while (offset < rows.length()) {
+                val batch = JSONArray()
+                val end = minOf(offset + batchSize, rows.length())
+                for (index in offset until end) batch.put(rows.getJSONObject(index))
+                SupabaseHttp.request(
+                    method = "POST",
+                    path = if (table == "user_profiles") "/rest/v1/$table?on_conflict=user_id" else "/rest/v1/$table?on_conflict=user_id,record_key",
+                    body = batch.toString(),
+                    session = activeSession,
+                    prefer = "resolution=merge-duplicates,return=minimal",
+                    context = context
+                )
+                uploaded += batch.length()
+                offset = end
+            }
         }
-        val remote = downloadRemote(session)
+        val remote = downloadRemote(context, activeSession)
         LocalSyncImporter.apply(context, remote, deviceId)
-        SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا")
+        SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا على دفعات")
     }
 
-    private suspend fun downloadRemote(session: SupabaseSession): Map<String, JSONArray> = withContext(Dispatchers.IO) {
+    private suspend fun downloadRemote(context: Context, session: SupabaseSession): Map<String, JSONArray> = withContext(Dispatchers.IO) {
         val result = linkedMapOf<String, JSONArray>()
+        val pageSize = 500
         listOf("user_profiles", "shops", "workers", "months", "pieces", "days", "entries", "individual_entries", "individual_entry_items").forEach { table ->
-            val response = SupabaseHttp.request("GET", "/rest/v1/$table?select=*&user_id=eq.${session.userId}", session = session)
-            result[table] = response.optJSONArray("data") ?: JSONArray()
+            val allRows = JSONArray()
+            var offset = 0
+            while (true) {
+                val response = SupabaseHttp.request(
+                    "GET",
+                    "/rest/v1/$table?select=*&user_id=eq.${session.userId}&limit=$pageSize&offset=$offset",
+                    session = session,
+                    context = context
+                )
+                val page = response.optJSONArray("data") ?: JSONArray()
+                for (index in 0 until page.length()) allRows.put(page.getJSONObject(index))
+                offset += page.length()
+                if (page.length() < pageSize) break
+            }
+            result[table] = allRows
         }
         result
     }
@@ -282,7 +324,12 @@ private object SupabaseHttp {
         body: String? = null,
         session: SupabaseSession? = null,
         prefer: String? = null,
+        context: Context? = null,
+        retryUnauthorized: Boolean = true,
     ): JSONObject {
+        val requestSession = if (session != null && context != null) {
+            SupabaseSessionStore.load(context)?.takeIf { it.userId == session.userId } ?: session
+        } else session
         val connection = (URL(SupabaseConfig.URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 15_000
@@ -291,23 +338,30 @@ private object SupabaseHttp {
             setRequestProperty("apikey", SupabaseConfig.PUBLISHABLE_KEY)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            session?.let { setRequestProperty("Authorization", "Bearer ${it.accessToken}") }
+            requestSession?.let { setRequestProperty("Authorization", "Bearer ${it.accessToken}") }
             prefer?.let { setRequestProperty("Prefer", it) }
             if (body != null) doOutput = true
         }
+        var status = 0
+        var response = ""
         try {
             if (body != null) OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { it.write(body) }
-            val status = connection.responseCode
+            status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.let { BufferedReader(InputStreamReader(it, Charsets.UTF_8)).use { reader -> reader.readText() } }.orEmpty()
-            if (status !in 200..299) {
-                val message = try { JSONObject(response).optString("message").ifBlank { response } } catch (_: Exception) { response }
-                throw IllegalStateException("Supabase $status: $message")
-            }
-            return if (response.isBlank()) JSONObject() else if (response.trimStart().startsWith("[")) JSONObject().put("data", JSONArray(response)) else JSONObject(response)
+            response = stream?.let { BufferedReader(InputStreamReader(it, Charsets.UTF_8)).use { reader -> reader.readText() } }.orEmpty()
         } finally {
             connection.disconnect()
         }
+        if (status == 401 && context != null && requestSession != null && retryUnauthorized &&
+            !path.startsWith("/auth/v1/token?grant_type=refresh_token")) {
+            val refreshed = SupabaseAuth.refreshBlocking(context, requestSession)
+            return request(method, path, body, refreshed, prefer, context, retryUnauthorized = false)
+        }
+        if (status !in 200..299) {
+            val message = try { JSONObject(response).optString("message").ifBlank { response } } catch (_: Exception) { response }
+            throw IllegalStateException("Supabase $status: $message")
+        }
+        return if (response.isBlank()) JSONObject() else if (response.trimStart().startsWith("[")) JSONObject().put("data", JSONArray(response)) else JSONObject(response)
     }
 }
 

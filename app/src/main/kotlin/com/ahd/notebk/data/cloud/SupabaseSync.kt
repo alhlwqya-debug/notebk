@@ -169,7 +169,13 @@ internal object SupabaseSyncManager {
                 for (index in offset until end) batch.put(rows.getJSONObject(index))
                 SupabaseHttp.request(
                     method = "POST",
-                    path = if (table == "user_profiles") "/rest/v1/$table?on_conflict=user_id" else "/rest/v1/$table?on_conflict=user_id,record_key",
+                    path = when (table) {
+                        "user_profiles" -> "/rest/v1/$table?on_conflict=user_id"
+                        // entries are logically unique per user + day + piece; record_key can
+                        // differ when the same ledger row was created on another device.
+                        "entries" -> "/rest/v1/$table?on_conflict=user_id,day_legacy_id,piece_legacy_id"
+                        else -> "/rest/v1/$table?on_conflict=user_id,record_key"
+                    },
                     body = batch.toString(),
                     session = activeSession,
                     prefer = "resolution=merge-duplicates,return=minimal",

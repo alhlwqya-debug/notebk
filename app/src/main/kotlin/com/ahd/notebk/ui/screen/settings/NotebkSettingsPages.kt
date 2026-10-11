@@ -54,6 +54,7 @@ import com.ahd.notebk.ui.components.NotebkWordmark
 import com.ahd.notebk.ui.components.AppText
 import com.ahd.notebk.ui.components.AppMuted
 import com.ahd.notebk.notification.WorkReminderScheduler
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfilePage(
@@ -286,6 +287,9 @@ fun AppSettingsPage(
     var autoBackup by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("auto_backup", false)) }
     var backupWifiOnly by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("backup_wifi_only", true)) }
     var cloudSync by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("cloud_sync", false)) }
+    var cloudSyncStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("last_cloud_sync_message", "لم تتم المزامنة بعد")) }
+    var syncBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val syncScope = androidx.compose.runtime.rememberCoroutineScope()
     var lockBackground by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("lock_on_background", false)) }
     var hideAmounts by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("hide_amounts", false)) }
     var screenshotBlock by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("prevent_screenshot", false)) }
@@ -293,6 +297,41 @@ fun AppSettingsPage(
 
     fun toggle(id: String) { expanded = if (expanded.contains(id)) expanded - id else expanded + id }
     fun match(vararg words: String) = search.isBlank() || words.any { it.contains(search.trim(), ignoreCase = true) }
+
+    fun runCloudSync() {
+        if (syncBusy) return
+        val session = com.ahd.notebk.data.cloud.SupabaseSessionStore.load(context)
+        if (session == null) {
+            cloudSync = false
+            store.putBoolean("cloud_sync", false)
+            cloudSyncStatus = "يلزم تسجيل الدخول أولاً"
+            onAccountAuth()
+            return
+        }
+        syncBusy = true
+        cloudSyncStatus = "جارٍ الاتصال بـ Supabase ومزامنة البيانات…"
+        syncScope.launch {
+            try {
+                val result = com.ahd.notebk.data.cloud.SupabaseSyncManager.sync(context, session)
+                cloudSync = true
+                store.putBoolean("cloud_sync", true)
+                cloudSyncStatus = result.message
+                store.putString("last_cloud_sync_message", result.message)
+                store.putString("last_cloud_sync_at", System.currentTimeMillis().toString())
+                store.putString("last_cloud_sync_error", "")
+                android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_LONG).show()
+            } catch (error: Exception) {
+                cloudSync = false
+                store.putBoolean("cloud_sync", false)
+                cloudSyncStatus = "فشلت المزامنة: " + (error.message ?: "تحقق من الاتصال وإعدادات الحساب")
+                store.putString("last_cloud_sync_message", cloudSyncStatus)
+                store.putString("last_cloud_sync_error", cloudSyncStatus)
+                android.widget.Toast.makeText(context, cloudSyncStatus, android.widget.Toast.LENGTH_LONG).show()
+            } finally {
+                syncBusy = false
+            }
+        }
+    }
 
     NotebkPage("إعدادات التطبيق", "نظام إعدادات مركزي — ابحث عن أي إعداد من أكثر من 400 خيار مخطط له", onBack) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -358,7 +397,38 @@ fun AppSettingsPage(
 
             if (match("بيانات", "نسخ", "استيراد", "تصدير", "مزامنة")) item {
                 SettingsGroup("data", "💾 البيانات والنسخ الاحتياطي", "إدارة النسخ والاستيراد والتصدير والمزامنة", expanded, ::toggle) {
-                    SettingsSwitch("المزامنة السحابية", cloudSync, {cloudSync=it;store.putBoolean("cloud_sync",it)})
+                    SettingsSwitch(
+                        "المزامنة السحابية",
+                        cloudSync,
+                        { enabled ->
+                            if (enabled) {
+                                runCloudSync()
+                            } else {
+                                cloudSync = false
+                                store.putBoolean("cloud_sync", false)
+                                cloudSyncStatus = "المزامنة متوقفة على هذا الجهاز"
+                                store.putString("last_cloud_sync_message", cloudSyncStatus)
+                            }
+                        },
+                        if (syncBusy) "جارٍ تنفيذ المزامنة؛ لا تغلق التطبيق حتى تنتهي." else "تفعيلها يبدأ مزامنة فعلية، وإيقافها يمنع تفعيلها من الإعدادات."
+                    )
+                    Text(
+                        "الحالة: $cloudSyncStatus",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        fontSize = 11.sp,
+                        color = if (cloudSyncStatus.startsWith("فشلت")) Color(0xFFB3261E) else AppMuted
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { runCloudSync() },
+                            enabled = !syncBusy,
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if (syncBusy) "جارٍ المزامنة…" else "مزامنة الآن") }
+                    }
+                    val lastSyncAt = store.getString("last_cloud_sync_at", "")
+                    if (lastSyncAt.isNotBlank()) {
+                        Text("آخر مزامنة ناجحة: " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSyncAt.toLongOrNull() ?: 0L)), fontSize = 10.sp, color = AppMuted)
+                    }
                     SettingsChoice("دورية المزامنة", store.getString("sync_frequency","manual"), store.getString("sync_frequency","manual")) { store.putString("sync_frequency", if(store.getString("sync_frequency","manual")=="manual") "daily" else "manual") }
                     SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)

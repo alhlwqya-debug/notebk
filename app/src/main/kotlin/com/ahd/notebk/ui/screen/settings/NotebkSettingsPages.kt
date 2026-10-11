@@ -333,6 +333,39 @@ fun AppSettingsPage(
         }
     }
 
+    fun resetGeneralSettings() {
+        if (!store.resetGeneral()) {
+            android.widget.Toast.makeText(
+                context,
+                "تعذر حفظ الإعدادات الافتراضية. حاول مرة أخرى.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        // Refresh Compose state immediately; SharedPreferences alone does not recompose UI.
+        currency = "YER"
+        symbol = "ريال"
+        decimalPlaces = 0
+        dateFormat = "yyyy/MM/dd"
+        timeFormat = "24h"
+        reportLanguage = "ar"
+        fontScale = 1f
+        density = "normal"
+        animations = true
+        showSearch = true
+        showFab = true
+        showBottomNav = true
+        defaultPage = "home"
+        onDarkThemeChange(false)
+
+        android.widget.Toast.makeText(
+            context,
+            "تمت إعادة الإعدادات العامة فقط. لم يتم تغيير المزامنة أو النسخ الاحتياطي أو الأمان أو السجلات.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+    }
+
     NotebkPage("إعدادات التطبيق", "نظام إعدادات مركزي — ابحث عن أي إعداد من أكثر من 400 خيار مخطط له", onBack) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
@@ -362,7 +395,7 @@ fun AppSettingsPage(
                     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الحركة والتأثيرات", Modifier.weight(1f)); Switch(animations, { animations=it; store.putBoolean("animations_enabled", it) }) }
                     Text("حجم الخط: ${(fontScale*100).toInt()}%", fontSize=12.sp)
                     androidx.compose.material3.Slider(value=fontScale, onValueChange={fontScale=it;store.putFloat("font_scale",it)}, valueRange=0.9f..1.3f, steps=3)
-                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { store.resetGeneral(); currency="YER"; symbol="ريال"; decimalPlaces=0; dateFormat="yyyy/MM/dd"; timeFormat="24h"; reportLanguage="ar"; fontScale=1f; density="normal"; animations=true; showSearch=true; showFab=true; showBottomNav=true; cloudSync=false; lockBackground=false; hideAmounts=false; screenshotBlock=false; defaultPage="home"; onDarkThemeChange(false) })
+                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { resetGeneralSettings() })
                 }
             }
 
@@ -494,7 +527,7 @@ fun AppSettingsPage(
 
             item {
                 NotebkSectionCard("إدارة الإعدادات", "الحفظ تلقائي. يمكنك إعادة الإعدادات العامة إلى القيم الافتراضية.") {
-                    NotebkSecondaryAction("إعادة ضبط الإعدادات العامة", { store.resetGeneral() })
+                    NotebkSecondaryAction("إعادة ضبط الإعدادات العامة", { resetGeneralSettings() })
                     Text("لا يتم مسح قاعدة البيانات أو السجلات عند إعادة ضبط الإعدادات.", fontSize=11.sp, color=AppMuted)
                 }
             }

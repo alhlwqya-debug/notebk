@@ -119,7 +119,21 @@ internal object SupabaseSyncManager {
     data class SyncResult(val uploadedRows: Int, val message: String)
 
     suspend fun sync(context: Context, session: SupabaseSession): SyncResult = withContext(Dispatchers.IO) {
-        val snapshot = LocalSyncSnapshot.read(context, session.userId, SupabaseSessionStore.deviceId(context))
+        require(session.userId.isNotBlank()) { "يجب تسجيل الدخول قبل المزامنة." }
+        // A local ledger has no per-row owner column. Bind it to the first account used
+        // for cloud sync to prevent accidentally uploading one account's local data to another.
+        val identityPrefs = context.getSharedPreferences("sync_identity", Context.MODE_PRIVATE)
+        val boundUserId = identityPrefs.getString("sync_owner_user_id", null)
+        if (boundUserId != null && boundUserId != session.userId) {
+            throw IllegalStateException("بيانات هذا الجهاز مرتبطة بحساب آخر. أوقفنا المزامنة لمنع خلط بيانات الحسابات.")
+        }
+        if (boundUserId == null) {
+            check(identityPrefs.edit().putString("sync_owner_user_id", session.userId).commit()) {
+                "تعذر حفظ هوية حساب المزامنة على هذا الجهاز."
+            }
+        }
+        val deviceId = SupabaseSessionStore.deviceId(context)
+        val snapshot = LocalSyncSnapshot.read(context, session.userId, deviceId)
         val order = listOf(
             "user_profiles", "shops", "workers", "months", "pieces", "days",
             "entries", "individual_entries", "individual_entry_items"
@@ -138,7 +152,7 @@ internal object SupabaseSyncManager {
             uploaded += rows.length()
         }
         val remote = downloadRemote(session)
-        LocalSyncImporter.apply(context, remote, SupabaseSessionStore.deviceId(context))
+        LocalSyncImporter.apply(context, remote, deviceId)
         SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا")
     }
 

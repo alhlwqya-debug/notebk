@@ -2,7 +2,6 @@ package com.ahd.notebk.data.report
 import com.ahd.notebk.ui.components.Purple
 import com.ahd.notebk.domain.model.*
 import com.ahd.notebk.data.local.LedgerDatabase
-import com.ahd.notebk.data.local.NotebkSettingsStore
 
 import android.app.Activity
 import android.content.Context

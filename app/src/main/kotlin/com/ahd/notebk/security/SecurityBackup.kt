@@ -339,11 +339,14 @@ internal fun createInternalAutoBackup(context: Context): Boolean {
             }
         }
 
+        val retention = NotebkSettingsStore(context)
+            .getInt("backup_retention", MAX_INTERNAL_BACKUPS)
+            .coerceIn(1, 50)
         backupDir.listFiles { file ->
             file.isFile && file.name.startsWith(INTERNAL_BACKUP_PREFIX) && file.extension == "zip"
         }
             ?.sortedByDescending { it.lastModified() }
-            ?.drop(MAX_INTERNAL_BACKUPS)
+            ?.drop(retention)
             ?.forEach { it.delete() }
 
         true

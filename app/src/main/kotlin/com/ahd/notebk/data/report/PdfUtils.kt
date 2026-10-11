@@ -571,7 +571,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                             jobName,
                             adapter,
                             PrintAttributes.Builder()
-                                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                .setMediaSize(reportMediaSize(context))
                                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                                 .build()
                         )

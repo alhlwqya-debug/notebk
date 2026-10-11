@@ -586,7 +586,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                 }, 180L)
             }
         }
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL(null, configuredHtml, "text/html", "UTF-8", null)
     } catch (e: Exception) {
         Toast.makeText(
             context,

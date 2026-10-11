@@ -285,7 +285,6 @@ fun AppSettingsPage(
     var showBottomNav by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_bottom_nav", true)) }
     var animations by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("animations_enabled", true)) }
     var autoBackup by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("auto_backup", false)) }
-    var backupWifiOnly by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("backup_wifi_only", true)) }
     var cloudSync by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("cloud_sync", false)) }
     var cloudSyncStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("last_cloud_sync_message", "لم تتم المزامنة بعد")) }
     var syncBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -366,7 +365,7 @@ fun AppSettingsPage(
         ).show()
     }
 
-    NotebkPage("إعدادات التطبيق", "نظام إعدادات مركزي — ابحث عن أي إعداد من أكثر من 400 خيار مخطط له", onBack) {
+    NotebkPage("إعدادات التطبيق", "الإعدادات المتاحة للمظهر والتنبيهات والنسخ والحماية وسلوك التطبيق", onBack) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 OutlinedTextField(

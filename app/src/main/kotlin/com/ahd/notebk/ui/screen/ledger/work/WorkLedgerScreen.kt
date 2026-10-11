@@ -193,7 +193,6 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var lockedByBackground by remember { mutableStateOf(false) }
     val lifecycleOwner = context as? androidx.lifecycle.LifecycleOwner
     DisposableEffect(lifecycleOwner, appPinEnabled) {
-        val owner = lifecycleOwner ?: return@DisposableEffect onDispose { }
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP &&
                 centralSettings.getBoolean("lock_on_background", false) &&
@@ -202,8 +201,8 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 lockedByBackground = true
             }
         }
-        owner.lifecycle.addObserver(observer)
-        onDispose { owner.lifecycle.removeObserver(observer) }
+        lifecycleOwner?.lifecycle?.addObserver(observer)
+        onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
     }
     var registrationMode by remember(selectedShopId, shops) {
         mutableStateOf(

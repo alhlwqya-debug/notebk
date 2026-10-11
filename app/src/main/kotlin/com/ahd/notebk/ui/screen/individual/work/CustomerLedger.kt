@@ -108,9 +108,14 @@ internal fun IndividualLedger(
     val settingsStore = remember(context) { NotebkSettingsStore(context) }
     val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE) }
     var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    var showSearch by remember { mutableStateOf(settingsStore.getBoolean("show_search", true)) }
     DisposableEffect(settingsPrefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "hide_amounts") hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+            if (key == "show_search") {
+                showSearch = settingsStore.getBoolean("show_search", true)
+                if (!showSearch) searchOpen = false
+            }
         }
         settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -416,6 +421,7 @@ internal fun IndividualLedger(
         Spacer(Modifier.height(6.dp))
 
         // البحث الموحد في التسجيل الفردي: الاسم أو رقم الصفحة مع تطبيع عربي متسامح مع الهمزات والنقاط.
+        if (showSearch) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -446,6 +452,7 @@ internal fun IndividualLedger(
                     Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color.Gray, modifier = Modifier.size(16.dp))
                 }
             }
+        }
         }
 
         if (searchOpen && customerSearch.trim().length >= 2) {

@@ -149,9 +149,20 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     // ===== حالة واجهة المستخدم =====
     val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
-    val initialPage = remember { centralSettings.getString("default_page", "home") }
+    val initialPage = remember {
+        if (centralSettings.getBoolean("remember_page", true)) {
+            centralSettings.getString("last_page", centralSettings.getString("default_page", "home"))
+        } else {
+            centralSettings.getString("default_page", "home")
+        }
+    }
     var drawerOpen by remember { mutableStateOf(false) }
     var showDashboard by remember { mutableStateOf(initialPage == "home") }
+    LaunchedEffect(showDashboard) {
+        if (centralSettings.getBoolean("remember_page", true)) {
+            centralSettings.putString("last_page", if (showDashboard) "home" else "ledger")
+        }
+    }
     var dataRevision by remember { mutableStateOf(0) }
     var shopMenuOpen by remember { mutableStateOf(false) }
     var showShopDialog by remember { mutableStateOf(false) }
@@ -350,7 +361,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             WorkLedgerDashboardHost(
                 database = database, shops = shops, selectedShopId = selectedShopId,
                 userName = userName, refreshKey = dataRevision,
-                onMenu = { drawerOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true },
                 onOpenLedger = { showDashboard = false; openDailyWorkRequested = false; dataRevision++ },
                 onOpenDailyWork = { showDashboard = false; openDailyWorkRequested = true; dataRevision++ },
                 onAddShop = {

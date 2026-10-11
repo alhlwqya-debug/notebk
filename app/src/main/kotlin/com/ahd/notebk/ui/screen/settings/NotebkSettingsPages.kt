@@ -282,7 +282,6 @@ fun AppSettingsPage(
     var density by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("density", "normal")) }
     var showSearch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_search", true)) }
     var showFab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_fab", true)) }
-    var showBottomNav by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_bottom_nav", true)) }
     var animations by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("animations_enabled", true)) }
     var autoBackup by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("auto_backup", false)) }
     var cloudSync by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("cloud_sync", false)) }
@@ -354,7 +353,6 @@ fun AppSettingsPage(
         animations = true
         showSearch = true
         showFab = true
-        showBottomNav = true
         defaultPage = "home"
         onDarkThemeChange(false)
 
@@ -391,7 +389,6 @@ fun AppSettingsPage(
                     SettingsChoice("صيغة الوقت", timeFormat, timeFormat) { timeFormat = if (timeFormat == "24h") "12h" else "24h"; store.putString("time_format", timeFormat) }
                     SettingsChoice("كثافة العرض", density, density) { density = if (density == "normal") "comfortable" else "normal"; store.putString("density", density) }
                     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الوضع الداكن", Modifier.weight(1f)); Switch(darkTheme, onDarkThemeChange) }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الحركة والتأثيرات", Modifier.weight(1f)); Switch(animations, { animations=it; store.putBoolean("animations_enabled", it) }) }
                     Text("حجم الخط: ${(fontScale*100).toInt()}%", fontSize=12.sp)
                     androidx.compose.material3.Slider(value=fontScale, onValueChange={fontScale=it;store.putFloat("font_scale",it)}, valueRange=0.9f..1.3f, steps=3)
                     NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { resetGeneralSettings() })
@@ -421,14 +418,13 @@ fun AppSettingsPage(
             }
 
             if (match("تقارير", "طباعة", "PDF")) item {
-                SettingsGroup("reports", "🖨️ الطباعة والتقارير", "الإعدادات التي يعتمد عليها نظام التقارير عند توفر الخيار في مولد PDF", expanded, ::toggle) {
+                SettingsGroup("reports", "🖨️ الطباعة والتقارير", "حجم الورق والاتجاه والهيدر والتذييل والشعار وبيانات المحل في تقارير PDF", expanded, ::toggle) {
                     SettingsChoice("حجم الورق", store.getString("paper_size","A4"), store.getString("paper_size","A4")) { store.putString("paper_size", if(store.getString("paper_size","A4")=="A4") "A5" else "A4") }
                     SettingsChoice("اتجاه الورق", store.getString("paper_orientation","portrait"), store.getString("paper_orientation","portrait")) { store.putString("paper_orientation", if(store.getString("paper_orientation","portrait")=="portrait") "landscape" else "portrait") }
                     SettingsSwitch("إظهار الهيدر", store.getBoolean("report_header",true), {store.putBoolean("report_header",it)})
                     SettingsSwitch("إظهار التذييل", store.getBoolean("report_footer",true), {store.putBoolean("report_footer",it)})
                     SettingsSwitch("إظهار الشعار", store.getBoolean("report_logo",true), {store.putBoolean("report_logo",it)})
                     SettingsSwitch("إظهار بيانات المحل", store.getBoolean("report_shop_data",true), {store.putBoolean("report_shop_data",it)})
-                    SettingsSwitch("ترقيم الصفحات", store.getBoolean("report_page_numbers",true), {store.putBoolean("report_page_numbers",it)})
                     SettingsSwitch("إظهار الرسم البياني", store.getBoolean("report_chart",true), {store.putBoolean("report_chart",it)})
                     SettingsSwitch("إظهار الشهور الفارغة", store.getBoolean("report_empty_months",false), {store.putBoolean("report_empty_months",it)})
                     SettingsSwitch("ضغط التقرير", store.getBoolean("report_compress",true), {store.putBoolean("report_compress",it)})
@@ -507,7 +503,6 @@ fun AppSettingsPage(
                     SettingsChoice("الصفحة الافتراضية", defaultPage, defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
                     SettingsSwitch("إظهار شريط البحث", showSearch, {showSearch=it;store.putBoolean("show_search",it)})
                     SettingsSwitch("إظهار زر الإضافة السريع", showFab, {showFab=it;store.putBoolean("show_fab",it)})
-                    SettingsSwitch("إظهار Bottom Navigation", showBottomNav, {showBottomNav=it;store.putBoolean("show_bottom_nav",it)})
                     SettingsSwitch("إظهار Drawer", store.getBoolean("show_drawer",true), {store.putBoolean("show_drawer",it)})
                     SettingsSwitch("حفظ آخر صفحة", store.getBoolean("remember_page",true), {store.putBoolean("remember_page",it)})
                     Text("ترتيب الصفحات بالسحب سيظهر فقط بعد ربطه بمسارات التنقل الفعلية، لمنع فقدان صفحات موجودة.", fontSize=11.sp, color=AppMuted)

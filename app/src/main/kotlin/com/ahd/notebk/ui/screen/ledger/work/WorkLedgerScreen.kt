@@ -385,7 +385,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     newShopMode = RegistrationMode.NUMERIC
                     showShopDialog = true
                 },
-                onMenu = { drawerOpen = true }
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true }
             )
         } else if (currentBundle == null) {
             EmptyMonthState(

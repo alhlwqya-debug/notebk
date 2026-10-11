@@ -143,11 +143,13 @@ internal fun MainLedger(
     val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", Context.MODE_PRIVATE) }
     var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
     var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
+    var showFab by remember { mutableStateOf(settingsStore.getBoolean("show_fab", true)) }
     DisposableEffect(settingsStore) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             when (key) {
                 "hide_amounts" -> hideAmounts = settingsStore.getBoolean("hide_amounts", false)
                 "show_total_row" -> showTotalRow = settingsStore.getBoolean("show_total_row", true)
+                "show_fab" -> showFab = settingsStore.getBoolean("show_fab", true)
             }
         }
         settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -365,12 +367,12 @@ internal fun MainLedger(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    if (day.expense == 0) "" else day.expense.toString(),
+                                    if (hideAmounts || day.expense == 0) "" else day.expense.toString(),
                                     fontSize = 10.sp
                                 )
                             }
                             CellText(
-                                if (earned == 0) "" else dayTotal.toString(),
+                                if (hideAmounts || earned == 0) "" else dayTotal.toString(),
                                 wTotal,
                                 rowH,
                                 LightBlue,
@@ -397,14 +399,14 @@ internal fun MainLedger(
                     }
 
                     CellText(
-                        if (totalExpenses == 0) "" else totalExpenses.toString(),
+                        if (hideAmounts || totalExpenses == 0) "" else totalExpenses.toString(),
                         wExpense,
                         34.dp,
                         Color(0xFFFFE58F),
                         bold = true,
                         color = Color(0xFFC62828)
                     )
-                    CellText(net.toString(), wTotal, 34.dp, HeaderBlue, bold = true)
+                    CellText(if (hideAmounts) "••••" else net.toString(), wTotal, 34.dp, HeaderBlue, bold = true)
                 }
             }
         }
@@ -444,6 +446,7 @@ internal fun MainLedger(
             }
         }
         }
+        if (showFab) {
         FloatingActionButton(
             onClick = { showDailyWorkDialog = true },
             modifier = Modifier
@@ -458,6 +461,7 @@ internal fun MainLedger(
                 contentDescription = "تسجيل العمل اليومي",
                 modifier = Modifier.size(30.dp)
             )
+        }
         }
     }
 

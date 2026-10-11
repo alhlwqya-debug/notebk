@@ -480,7 +480,21 @@ fun AppSettingsPage(
 
             if (match("أمان", "خصوصية", "PIN", "قفل")) item {
                 SettingsGroup("security", "🔒 الأمان والخصوصية", "خيارات حماية الشاشة والبيانات", expanded, ::toggle) {
-                    SettingsSwitch("القفل عند العودة للخلفية", lockBackground, {lockBackground=it;store.putBoolean("lock_on_background",it)})
+                    SettingsSwitch(
+                        "القفل عند العودة من الخلفية",
+                        lockBackground,
+                        { enabled ->
+                            if (enabled && !com.ahd.notebk.security.hasAppPin(context)) {
+                                android.widget.Toast.makeText(context, "أنشئ رمز PIN أولًا من إعدادات الحماية.", android.widget.Toast.LENGTH_LONG).show()
+                                lockBackground = false
+                                store.putBoolean("lock_on_background", false)
+                            } else {
+                                lockBackground = enabled
+                                store.putBoolean("lock_on_background", enabled)
+                            }
+                        },
+                        "يتطلب رمز PIN فعّالًا؛ سيطلبه التطبيق عند العودة من الخلفية."
+                    )
                     SettingsSwitch("إخفاء المبالغ", hideAmounts, {hideAmounts=it;store.putBoolean("hide_amounts",it)})
                     SettingsSwitch("منع تصوير الشاشة", screenshotBlock, {screenshotBlock=it;store.putBoolean("prevent_screenshot",it)})
                     NotebkSecondaryAction("فتح إعدادات PIN والنسخ الاحتياطي", onSecurity)

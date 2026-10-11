@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
-import com.ahd.notebk.data.local.NotebkSettingsStore
 import com.ahd.notebk.data.local.LedgerDatabase
 import com.ahd.notebk.domain.model.MonthBundle
 import com.ahd.notebk.domain.model.RegistrationMode

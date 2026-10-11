@@ -401,9 +401,9 @@ fun AppSettingsPage(
                         "المزامنة السحابية",
                         cloudSync,
                         { enabled ->
-                            if (enabled) {
+                            if (!syncBusy && enabled) {
                                 runCloudSync()
-                            } else {
+                            } else if (!syncBusy && !enabled) {
                                 cloudSync = false
                                 store.putBoolean("cloud_sync", false)
                                 cloudSyncStatus = "المزامنة متوقفة على هذا الجهاز"

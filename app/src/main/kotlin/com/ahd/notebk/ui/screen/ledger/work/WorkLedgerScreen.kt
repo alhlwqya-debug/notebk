@@ -391,7 +391,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             EmptyMonthState(
                 shopName = currentShop?.name ?: "",
                 userName = userName,
-                onMenu = { drawerOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true },
                 onAddMonth = {
                     newYear = Calendar.getInstance().get(Calendar.YEAR).toString()
                     newMonthNumber = (Calendar.getInstance().get(Calendar.MONTH) + 1).toString()
@@ -406,7 +406,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 selectedShopId = selectedShopId, selectedMonthId = selectedMonthId,
                 registrationMode = registrationMode, userName = userName,
                 shopMenuOpen = shopMenuOpen, openDailyWorkRequested = openDailyWorkRequested,
-                onMenu = { drawerOpen = true }, onShopMenu = { shopMenuOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true }, onShopMenu = { shopMenuOpen = true },
                 onSelectShop = { id ->
                     selectedShopId = id
                     registrationMode = database.getShops().firstOrNull { it.id == id }?.registrationMode ?: RegistrationMode.NUMERIC

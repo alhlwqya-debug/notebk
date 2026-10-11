@@ -510,7 +510,24 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onSelectedShopId = { selectedShopId = it }, onBundleChange = { bundle = it }, onRegistrationModeChange = { registrationMode = it },
         onUserNameChange = { userName = it }, onUserPhoneChange = { userPhone = it }, onUserEmailChange = { userEmail = it },
         onUserShopChange = { userShop = it }, onUserImagePathChange = { userImagePath = it }, imagePickerLauncher = imagePickerLauncher,
-        onReminderChange = { reminderEnabled = it }, onDarkThemeChange = { darkTheme = it },
+        onReminderChange = { enabled ->
+            reminderEnabled = enabled
+            prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
+            centralSettings.putBoolean("daily_reminder_enabled", enabled)
+            if (enabled) {
+                runCatching { WorkReminderScheduler.schedule(context) }
+                    .onFailure { Toast.makeText(context, "تعذر جدولة التذكير: ${it.message ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show() }
+            } else {
+                runCatching { WorkReminderScheduler.cancel(context) }
+                    .onFailure { Toast.makeText(context, "تعذر إيقاف التذكير: ${it.message ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show() }
+            }
+            Toast.makeText(context, if (enabled) "تم تفعيل التذكير اليومي" else "تم إيقاف التذكير اليومي", Toast.LENGTH_SHORT).show()
+        },
+        onDarkThemeChange = { enabled ->
+            darkTheme = enabled
+            prefs.edit().putBoolean("dark_theme", enabled).apply()
+            centralSettings.putString("theme_mode", if (enabled) "dark" else "light")
+        },
         onSecurity = { showAppSettings = false; showSecurityDialog = true },
         onSystemSettings = { showAppSettings = false; showSystemSettings = true },
         onAccountAuth = { showAppSettings = false; onOpenAuth() }, onHelp = { showAppSettings = false; showHelp = true },

@@ -429,7 +429,7 @@ fun AppSettingsPage(
                     if (lastSyncAt.isNotBlank()) {
                         Text("آخر مزامنة ناجحة: " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSyncAt.toLongOrNull() ?: 0L)), fontSize = 10.sp, color = AppMuted)
                     }
-                    SettingsChoice("دورية المزامنة", store.getString("sync_frequency","manual"), store.getString("sync_frequency","manual")) { store.putString("sync_frequency", if(store.getString("sync_frequency","manual")=="manual") "daily" else "manual") }
+                    Text("المزامنة الحالية عند الطلب: عند التفعيل أو عند الضغط على «مزامنة الآن». المزامنة الدورية في الخلفية غير مفعّلة بعد، لذلك لا نعرض خيارًا يوحي بأنها تعمل تلقائيًا.", fontSize = 11.sp, color = AppMuted)
                     SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)
                     Text("التصدير والاستيراد الفعليان يستخدمان نظام النسخ الموجود في التطبيق، ولا يتم حذف قاعدة البيانات تلقائيًا.", fontSize=11.sp, color=AppMuted)

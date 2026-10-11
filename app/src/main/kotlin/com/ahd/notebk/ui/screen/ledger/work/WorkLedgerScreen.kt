@@ -298,6 +298,11 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     // ===== فتح الملف الشخصي إذا كان الاسم فارغاً =====
     LaunchedEffect(Unit) {
+        // Keep the legacy reminder preference and the central settings store synchronized.
+        centralSettings.putBoolean("daily_reminder_enabled", reminderEnabled)
+        if (reminderEnabled) runCatching { WorkReminderScheduler.schedule(context) }
+        else runCatching { WorkReminderScheduler.cancel(context) }
+
         // ترحيل إعداد النوع القديم مرة واحدة إلى كل محل موجود، ثم يصبح النوع مستقلاً لكل محل.
         if (!prefs.getBoolean("shop_modes_migrated_v4", false)) {
             val oldMode = runCatching {

@@ -406,8 +406,18 @@ fun AppSettingsPage(
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })
-                    SettingsSwitch("نسخ احتياطي تلقائي", autoBackup, { autoBackup=it;store.putBoolean("auto_backup",it) })
-                    SettingsSwitch("Wi‑Fi فقط", backupWifiOnly, { backupWifiOnly=it;store.putBoolean("backup_wifi_only",it) })
+                    SettingsSwitch(
+                        "نسخ احتياطي تلقائي مع التذكير اليومي",
+                        autoBackup,
+                        { autoBackup = it; store.putBoolean("auto_backup", it) },
+                        "ينشئ نسخة محلية خاصة عند موعد التذكير اليومي. يتطلب تفعيل التذكير."
+                    )
+                    Text(
+                        "تقييد النسخ السحابي بشبكة Wi‑Fi غير متاح حاليًا؛ المزامنة السحابية يدوية وليست في الخلفية.",
+                        fontSize = 11.sp,
+                        color = AppMuted,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
             }
 

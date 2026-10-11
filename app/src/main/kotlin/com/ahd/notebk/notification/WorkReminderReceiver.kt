@@ -17,9 +17,17 @@ import java.util.Calendar
 class WorkReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val appContext = context.applicationContext
-        createInternalAutoBackup(appContext)
-        val database = LedgerDatabase(appContext)
+        val settings = NotebkSettingsStore(appContext)
 
+        // A cancelled or stale alarm must not reactivate reminders.
+        if (!settings.getBoolean("daily_reminder_enabled", false)) return
+
+        // Automatic backups are opt-in and run only with the daily reminder schedule.
+        if (settings.getBoolean("auto_backup", false)) {
+            createInternalAutoBackup(appContext)
+        }
+
+        val database = LedgerDatabase(appContext)
         try {
             if (!database.hasWorkRecordedToday()) {
                 showNotification(appContext)

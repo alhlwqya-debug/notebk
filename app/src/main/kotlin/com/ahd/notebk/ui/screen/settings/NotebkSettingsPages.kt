@@ -511,13 +511,13 @@ fun AppSettingsPage(
 
             if (match("التسجيل", "حسابات", "قطع", "أيام")) item {
                 SettingsGroup("registration", "📋 نظام التسجيلات", "خيارات السلوك الافتراضي التي لا تغيّر سجلات المحلات القديمة", expanded, ::toggle) {
-                    SettingsSwitch("الحفظ التلقائي", store.getBoolean("autosave",true), {store.putBoolean("autosave",it)})
-                    SettingsSwitch("تأكيد قبل الحذف", store.getBoolean("confirm_delete",true), {store.putBoolean("confirm_delete",it)})
-                    SettingsSwitch("الانتقال لليوم التالي بعد الحفظ", store.getBoolean("next_day_after_save",false), {store.putBoolean("next_day_after_save",it)})
                     SettingsSwitch("إظهار صف الإجمالي", store.getBoolean("show_total_row",true), {store.putBoolean("show_total_row",it)})
-                    SettingsChoice("عدد الصفوف في الجدول", store.getInt("table_rows",20).toString(), store.getInt("table_rows",20).toString()) { store.putInt("table_rows", if(store.getInt("table_rows",20)>=50) 10 else store.getInt("table_rows",20)+10) }
-                    SettingsSwitch("تمييز الصفوف غير المكتملة", store.getBoolean("highlight_incomplete",true), {store.putBoolean("highlight_incomplete",it)})
-                    Text("نوع التسجيل (عددي/فردي) يبقى إعدادًا مستقلًا لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=AppMuted)
+                    Text(
+                        "يُحفظ إدخال الكميات والمصروفات مباشرة عند التعديل. وتظهر رسالة تأكيد قبل حذف شهر أو محل لحماية سجلاتك.",
+                        fontSize = 11.sp,
+                        color = AppMuted
+                    )
+                    Text("نوع التسجيل (عددي/فردي) إعداد مستقل لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=AppMuted)
                 }
             }
 

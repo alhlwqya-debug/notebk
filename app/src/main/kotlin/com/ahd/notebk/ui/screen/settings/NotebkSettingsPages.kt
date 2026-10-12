@@ -54,6 +54,7 @@ import com.ahd.notebk.ui.components.NotebkWordmark
 import com.ahd.notebk.ui.components.AppText
 import com.ahd.notebk.ui.components.AppMuted
 import com.ahd.notebk.notification.WorkReminderScheduler
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfilePage(
@@ -271,30 +272,95 @@ fun AppSettingsPage(
     val store = androidx.compose.runtime.remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
     var search by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf("general", "notifications")) }
-    var currency by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_code", "YER")) }
     var symbol by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_symbol", "ريال")) }
-    var decimalPlaces by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getInt("decimal_places", 0)) }
-    var dateFormat by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("date_format", "yyyy/MM/dd")) }
-    var timeFormat by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("time_format", "24h")) }
-    var reportLanguage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_language", "ar")) }
     var fontScale by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getFloat("font_scale", 1f)) }
-    var density by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("density", "normal")) }
     var showSearch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_search", true)) }
     var showFab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_fab", true)) }
-    var showBottomNav by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_bottom_nav", true)) }
-    var animations by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("animations_enabled", true)) }
     var autoBackup by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("auto_backup", false)) }
-    var backupWifiOnly by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("backup_wifi_only", true)) }
     var cloudSync by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("cloud_sync", false)) }
+    var cloudSyncStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("last_cloud_sync_message", "لم تتم المزامنة بعد")) }
+    var syncBusy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val syncScope = androidx.compose.runtime.rememberCoroutineScope()
     var lockBackground by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("lock_on_background", false)) }
     var hideAmounts by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("hide_amounts", false)) }
     var screenshotBlock by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("prevent_screenshot", false)) }
     var defaultPage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("default_page", "home")) }
+    var reminderTime by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("reminder_time", "20:00")) }
+    var paperSize by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("paper_size", "A4")) }
+    var paperOrientation by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("paper_orientation", "portrait")) }
+    var reportTitle by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_title", "التقرير الشهري")) }
+    var reportFooterText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_footer_text", "")) }
+    var backupRetention by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getInt("backup_retention", 10).coerceIn(1, 50)) }
+    var showDrawer by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_drawer", true)) }
+    var rememberPage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("remember_page", true)) }
+    var showTotalRow by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_total_row", true)) }
 
     fun toggle(id: String) { expanded = if (expanded.contains(id)) expanded - id else expanded + id }
     fun match(vararg words: String) = search.isBlank() || words.any { it.contains(search.trim(), ignoreCase = true) }
 
-    NotebkPage("إعدادات التطبيق", "نظام إعدادات مركزي — ابحث عن أي إعداد من أكثر من 400 خيار مخطط له", onBack) {
+    fun runCloudSync() {
+        if (syncBusy) return
+        val session = com.ahd.notebk.data.cloud.SupabaseSessionStore.load(context)
+        if (session == null) {
+            cloudSync = false
+            store.putBoolean("cloud_sync", false)
+            cloudSyncStatus = "يلزم تسجيل الدخول أولاً"
+            onAccountAuth()
+            return
+        }
+        syncBusy = true
+        cloudSyncStatus = "جارٍ الاتصال بـ Supabase ومزامنة البيانات…"
+        syncScope.launch {
+            try {
+                val result = com.ahd.notebk.data.cloud.SupabaseSyncManager.sync(context, session)
+                cloudSync = true
+                store.putBoolean("cloud_sync", true)
+                cloudSyncStatus = result.message
+                store.putString("last_cloud_sync_message", result.message)
+                store.putString("last_cloud_sync_at", System.currentTimeMillis().toString())
+                store.putString("last_cloud_sync_error", "")
+                android.widget.Toast.makeText(context, result.message, android.widget.Toast.LENGTH_LONG).show()
+            } catch (error: Exception) {
+                cloudSync = false
+                store.putBoolean("cloud_sync", false)
+                cloudSyncStatus = "فشلت المزامنة: " + (error.message ?: "تحقق من الاتصال وإعدادات الحساب")
+                store.putString("last_cloud_sync_message", cloudSyncStatus)
+                store.putString("last_cloud_sync_error", cloudSyncStatus)
+                android.widget.Toast.makeText(context, cloudSyncStatus, android.widget.Toast.LENGTH_LONG).show()
+            } finally {
+                syncBusy = false
+            }
+        }
+    }
+
+    fun resetGeneralSettings() {
+        if (!store.resetGeneral()) {
+            android.widget.Toast.makeText(
+                context,
+                "تعذر حفظ الإعدادات الافتراضية. حاول مرة أخرى.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        // Refresh Compose state immediately; SharedPreferences alone does not recompose UI.
+        symbol = "ريال"
+        fontScale = 1f
+        showSearch = true
+        showFab = true
+        defaultPage = "home"
+        showDrawer = true
+        rememberPage = true
+        onDarkThemeChange(false)
+
+        android.widget.Toast.makeText(
+            context,
+            "تمت إعادة الإعدادات العامة فقط. لم يتم تغيير المزامنة أو النسخ الاحتياطي أو الأمان أو السجلات.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+    }
+
+    NotebkPage("إعدادات التطبيق", "الإعدادات المتاحة للمظهر والتنبيهات والنسخ والحماية وسلوك التطبيق", onBack) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 OutlinedTextField(
@@ -309,58 +375,117 @@ fun AppSettingsPage(
 
             if (match("عام", "اللغة", "عملة", "التاريخ", "المظهر")) item {
                 SettingsGroup("general", "🌍 الإعدادات العامة", "اللغة والمنطقة والعملة والتاريخ والمظهر", expanded, ::toggle) {
-                    SettingsChoice("اللغة", "العربية", store.getString("language", "ar")) { store.putString("language", "ar") }
-                    SettingsChoice("الاتجاه", "RTL", store.getString("direction", "rtl")) { store.putString("direction", "rtl") }
-                    SettingsChoice("لغة التقارير", "العربية", reportLanguage) { reportLanguage = "ar"; store.putString("report_language", "ar") }
-                    SettingsChoice("العملة", "ريال يمني (YER)", currency) { currency = "YER"; symbol = "ريال"; store.putString("currency_code", "YER"); store.putString("currency_symbol", "ريال") }
+                    Text("لغة التطبيق: العربية — الاتجاه: من اليمين إلى اليسار (RTL). التبديل إلى لغات أو اتجاهات أخرى غير مدعوم حاليًا.", fontSize = 11.sp, color = AppMuted)
+                    Text("لغة التقارير: العربية. العملة الحالية: الريال اليمني (YER)، ويمكن تعديل الرمز أدناه.", fontSize = 11.sp, color = AppMuted)
                     OutlinedTextField(symbol, { symbol = it; store.putString("currency_symbol", it) }, label={Text("رمز العملة")}, singleLine=true, modifier=Modifier.fillMaxWidth())
-                    SettingsChoice("موضع رمز العملة", "بعد المبلغ", store.getString("currency_position", "after")) { store.putString("currency_position", "after") }
-                    SettingsChoice("الخانات العشرية", decimalPlaces.toString(), decimalPlaces.toString()) { decimalPlaces = if (decimalPlaces >= 2) 0 else decimalPlaces + 1; store.putInt("decimal_places", decimalPlaces) }
-                    SettingsChoice("صيغة التاريخ", dateFormat, dateFormat) { dateFormat = if (dateFormat == "yyyy/MM/dd") "dd/MM/yyyy" else "yyyy/MM/dd"; store.putString("date_format", dateFormat) }
-                    SettingsChoice("صيغة الوقت", timeFormat, timeFormat) { timeFormat = if (timeFormat == "24h") "12h" else "24h"; store.putString("time_format", timeFormat) }
-                    SettingsChoice("كثافة العرض", density, density) { density = if (density == "normal") "comfortable" else "normal"; store.putString("density", density) }
+                    Text("تنسيق موضع العملة والتاريخ والوقت والخانات العشرية وكثافة العرض غير مربوط بجميع الشاشات حاليًا، لذلك أُخفيت أدوات تغييره حتى لا تعطي انطباعًا زائفًا.", fontSize = 11.sp, color = AppMuted)
                     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الوضع الداكن", Modifier.weight(1f)); Switch(darkTheme, onDarkThemeChange) }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الحركة والتأثيرات", Modifier.weight(1f)); Switch(animations, { animations=it; store.putBoolean("animations_enabled", it) }) }
                     Text("حجم الخط: ${(fontScale*100).toInt()}%", fontSize=12.sp)
                     androidx.compose.material3.Slider(value=fontScale, onValueChange={fontScale=it;store.putFloat("font_scale",it)}, valueRange=0.9f..1.3f, steps=3)
-                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { store.resetGeneral(); currency="YER"; symbol="ريال"; decimalPlaces=0; dateFormat="yyyy/MM/dd"; timeFormat="24h"; reportLanguage="ar"; fontScale=1f; density="normal"; animations=true; showSearch=true; showFab=true; showBottomNav=true; cloudSync=false; lockBackground=false; hideAmounts=false; screenshotBlock=false; defaultPage="home"; onDarkThemeChange(false) })
+                    NotebkSecondaryAction("إعادة تعيين الإعدادات العامة", { resetGeneralSettings() })
                 }
             }
 
             if (match("إشعارات", "تذكير", "نسخ احتياطي")) item {
                 SettingsGroup("notifications", "🔔 الإشعارات والتذكيرات", "كل ما يتعلق بالتنبيهات الدورية", expanded, ::toggle) {
                     SettingsSwitch("تذكير تسجيل العمل", reminderEnabled, onReminderChange, "يُستخدم نظام التذكير الحالي في التطبيق")
-                    SettingsChoice("وقت التذكير", store.getString("reminder_time", "20:00"), store.getString("reminder_time", "20:00")) { val next = if (store.getString("reminder_time","20:00")=="20:00") "18:00" else "20:00"; store.putString("reminder_time", next); if (reminderEnabled) WorkReminderScheduler.schedule(context) }
+                    NotebkSecondaryAction(
+                        "اختيار وقت التذكير اليومي: $reminderTime",
+                        onClick = {
+                        val parts = reminderTime.split(":")
+                        val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 20
+                        val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, selectedHour, selectedMinute ->
+                                reminderTime = "%02d:%02d".format(java.util.Locale.US, selectedHour, selectedMinute)
+                                store.putString("reminder_time", reminderTime)
+                                if (reminderEnabled) {
+                                    runCatching { WorkReminderScheduler.schedule(context) }
+                                        .onFailure { error ->
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "تعذر تحديث وقت التذكير: ${error.message ?: "خطأ غير معروف"}",
+                                                android.widget.Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                }
+                            },
+                            hour,
+                            minute,
+                            true
+                        ).show()
+                        }
+                    )
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })
-                    SettingsSwitch("نسخ احتياطي تلقائي", autoBackup, { autoBackup=it;store.putBoolean("auto_backup",it) })
-                    SettingsSwitch("Wi‑Fi فقط", backupWifiOnly, { backupWifiOnly=it;store.putBoolean("backup_wifi_only",it) })
+                    SettingsSwitch(
+                        "نسخ احتياطي تلقائي مع التذكير اليومي",
+                        autoBackup,
+                        { autoBackup = it; store.putBoolean("auto_backup", it) },
+                        "ينشئ نسخة محلية خاصة عند موعد التذكير اليومي. يتطلب تفعيل التذكير."
+                    )
+                    Text(
+                        "تقييد النسخ السحابي بشبكة Wi‑Fi غير متاح حاليًا؛ المزامنة السحابية يدوية وليست في الخلفية.",
+                        fontSize = 11.sp,
+                        color = AppMuted,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
             }
 
             if (match("تقارير", "طباعة", "PDF")) item {
-                SettingsGroup("reports", "🖨️ الطباعة والتقارير", "الإعدادات التي يعتمد عليها نظام التقارير عند توفر الخيار في مولد PDF", expanded, ::toggle) {
-                    SettingsChoice("حجم الورق", store.getString("paper_size","A4"), store.getString("paper_size","A4")) { store.putString("paper_size", if(store.getString("paper_size","A4")=="A4") "A5" else "A4") }
-                    SettingsChoice("اتجاه الورق", store.getString("paper_orientation","portrait"), store.getString("paper_orientation","portrait")) { store.putString("paper_orientation", if(store.getString("paper_orientation","portrait")=="portrait") "landscape" else "portrait") }
+                SettingsGroup("reports", "🖨️ الطباعة والتقارير", "حجم الورق والاتجاه والهيدر والتذييل والشعار وبيانات المحل في تقارير PDF", expanded, ::toggle) {
+                    SettingsChoice("حجم الورق", paperSize, paperSize) { paperSize = if (paperSize == "A4") "A5" else "A4"; store.putString("paper_size", paperSize) }
+                    SettingsChoice("اتجاه الورق", if (paperOrientation == "portrait") "عمودي" else "أفقي", paperOrientation) { paperOrientation = if (paperOrientation == "portrait") "landscape" else "portrait"; store.putString("paper_orientation", paperOrientation) }
                     SettingsSwitch("إظهار الهيدر", store.getBoolean("report_header",true), {store.putBoolean("report_header",it)})
                     SettingsSwitch("إظهار التذييل", store.getBoolean("report_footer",true), {store.putBoolean("report_footer",it)})
                     SettingsSwitch("إظهار الشعار", store.getBoolean("report_logo",true), {store.putBoolean("report_logo",it)})
                     SettingsSwitch("إظهار بيانات المحل", store.getBoolean("report_shop_data",true), {store.putBoolean("report_shop_data",it)})
-                    SettingsSwitch("ترقيم الصفحات", store.getBoolean("report_page_numbers",true), {store.putBoolean("report_page_numbers",it)})
-                    SettingsSwitch("إظهار الرسم البياني", store.getBoolean("report_chart",true), {store.putBoolean("report_chart",it)})
-                    SettingsSwitch("إظهار الشهور الفارغة", store.getBoolean("report_empty_months",false), {store.putBoolean("report_empty_months",it)})
-                    SettingsSwitch("ضغط التقرير", store.getBoolean("report_compress",true), {store.putBoolean("report_compress",it)})
-                    OutlinedTextField(store.getString("report_title","التقرير الشهري"), {store.putString("report_title",it)}, label={Text("عنوان التقرير")}, singleLine=true, modifier=Modifier.fillMaxWidth())
-                    OutlinedTextField(store.getString("report_footer_text",""), {store.putString("report_footer_text",it)}, label={Text("نص التذييل")}, modifier=Modifier.fillMaxWidth())
+                    Text("خيارات الرسم البياني والشهور الفارغة وضغط PDF غير متاحة في مولّد التقارير الحالي؛ أُخفيت بدلًا من عرض مفاتيح لا تغيّر النتيجة.", fontSize = 11.sp, color = AppMuted)
+                    OutlinedTextField(reportTitle, { reportTitle = it; store.putString("report_title", it) }, label={Text("عنوان التقرير")}, singleLine=true, modifier=Modifier.fillMaxWidth())
+                    OutlinedTextField(reportFooterText, { reportFooterText = it; store.putString("report_footer_text", it) }, label={Text("نص التذييل")}, modifier=Modifier.fillMaxWidth())
                 }
             }
 
             if (match("بيانات", "نسخ", "استيراد", "تصدير", "مزامنة")) item {
                 SettingsGroup("data", "💾 البيانات والنسخ الاحتياطي", "إدارة النسخ والاستيراد والتصدير والمزامنة", expanded, ::toggle) {
-                    SettingsSwitch("المزامنة السحابية", cloudSync, {cloudSync=it;store.putBoolean("cloud_sync",it)})
-                    SettingsChoice("دورية المزامنة", store.getString("sync_frequency","manual"), store.getString("sync_frequency","manual")) { store.putString("sync_frequency", if(store.getString("sync_frequency","manual")=="manual") "daily" else "manual") }
-                    SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
+                    SettingsSwitch(
+                        "المزامنة السحابية",
+                        cloudSync,
+                        { enabled ->
+                            if (!syncBusy && enabled) {
+                                runCloudSync()
+                            } else if (!syncBusy && !enabled) {
+                                cloudSync = false
+                                store.putBoolean("cloud_sync", false)
+                                cloudSyncStatus = "المزامنة متوقفة على هذا الجهاز"
+                                store.putString("last_cloud_sync_message", cloudSyncStatus)
+                            }
+                        },
+                        if (syncBusy) "جارٍ تنفيذ المزامنة؛ لا تغلق التطبيق حتى تنتهي." else "تفعيلها يبدأ مزامنة فعلية، وإيقافها يمنع تفعيلها من الإعدادات.",
+                        controlled = true
+                    )
+                    Text(
+                        "الحالة: $cloudSyncStatus",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        fontSize = 11.sp,
+                        color = if (cloudSyncStatus.startsWith("فشلت")) androidx.compose.material3.MaterialTheme.colorScheme.error else AppMuted
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { runCloudSync() },
+                            enabled = !syncBusy,
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if (syncBusy) "جارٍ المزامنة…" else "مزامنة الآن") }
+                    }
+                    val lastSyncAt = store.getString("last_cloud_sync_at", "")
+                    if (lastSyncAt.isNotBlank()) {
+                        Text("آخر مزامنة ناجحة: " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSyncAt.toLongOrNull() ?: 0L)), fontSize = 10.sp, color = AppMuted)
+                    }
+                    Text("المزامنة الحالية عند الطلب: عند التفعيل أو عند الضغط على «مزامنة الآن». المزامنة الدورية في الخلفية غير مفعّلة بعد، لذلك لا نعرض خيارًا يوحي بأنها تعمل تلقائيًا.", fontSize = 11.sp, color = AppMuted)
+                    SettingsChoice("عدد النسخ المحتفظ بها", backupRetention.toString(), backupRetention.toString()) { backupRetention = if (backupRetention >= 30) 5 else backupRetention + 5; store.putInt("backup_retention", backupRetention) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)
                     Text("التصدير والاستيراد الفعليان يستخدمان نظام النسخ الموجود في التطبيق، ولا يتم حذف قاعدة البيانات تلقائيًا.", fontSize=11.sp, color=AppMuted)
                 }
@@ -368,7 +493,22 @@ fun AppSettingsPage(
 
             if (match("أمان", "خصوصية", "PIN", "قفل")) item {
                 SettingsGroup("security", "🔒 الأمان والخصوصية", "خيارات حماية الشاشة والبيانات", expanded, ::toggle) {
-                    SettingsSwitch("القفل عند العودة للخلفية", lockBackground, {lockBackground=it;store.putBoolean("lock_on_background",it)})
+                    SettingsSwitch(
+                        "القفل عند العودة من الخلفية",
+                        lockBackground,
+                        { enabled ->
+                            if (enabled && !com.ahd.notebk.security.hasAppPin(context)) {
+                                android.widget.Toast.makeText(context, "أنشئ رمز PIN أولًا من إعدادات الحماية.", android.widget.Toast.LENGTH_LONG).show()
+                                lockBackground = false
+                                store.putBoolean("lock_on_background", false)
+                            } else {
+                                lockBackground = enabled
+                                store.putBoolean("lock_on_background", enabled)
+                            }
+                        },
+                        "يتطلب رمز PIN فعّالًا؛ سيطلبه التطبيق عند العودة من الخلفية.",
+                        controlled = true
+                    )
                     SettingsSwitch("إخفاء المبالغ", hideAmounts, {hideAmounts=it;store.putBoolean("hide_amounts",it)})
                     SettingsSwitch("منع تصوير الشاشة", screenshotBlock, {screenshotBlock=it;store.putBoolean("prevent_screenshot",it)})
                     NotebkSecondaryAction("فتح إعدادات PIN والنسخ الاحتياطي", onSecurity)
@@ -378,25 +518,24 @@ fun AppSettingsPage(
 
             if (match("صفحات", "رئيسية", "FAB", "Drawer", "تنقل")) item {
                 SettingsGroup("pages", "📄 تنظيم الصفحات والواجهة", "تحكم في الشاشة الابتدائية وعناصر التنقل", expanded, ::toggle) {
-                    SettingsChoice("الصفحة الافتراضية", defaultPage, defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
+                    SettingsChoice("الصفحة الافتراضية", if (defaultPage == "home") "الرئيسية" else "التسجيل اليومي", defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
                     SettingsSwitch("إظهار شريط البحث", showSearch, {showSearch=it;store.putBoolean("show_search",it)})
                     SettingsSwitch("إظهار زر الإضافة السريع", showFab, {showFab=it;store.putBoolean("show_fab",it)})
-                    SettingsSwitch("إظهار Bottom Navigation", showBottomNav, {showBottomNav=it;store.putBoolean("show_bottom_nav",it)})
-                    SettingsSwitch("إظهار Drawer", store.getBoolean("show_drawer",true), {store.putBoolean("show_drawer",it)})
-                    SettingsSwitch("حفظ آخر صفحة", store.getBoolean("remember_page",true), {store.putBoolean("remember_page",it)})
+                    SettingsSwitch("إظهار Drawer", showDrawer, { showDrawer = it; store.putBoolean("show_drawer", it) })
+                    SettingsSwitch("حفظ آخر صفحة", rememberPage, { rememberPage = it; store.putBoolean("remember_page", it) })
                     Text("ترتيب الصفحات بالسحب سيظهر فقط بعد ربطه بمسارات التنقل الفعلية، لمنع فقدان صفحات موجودة.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
             if (match("التسجيل", "حسابات", "قطع", "أيام")) item {
                 SettingsGroup("registration", "📋 نظام التسجيلات", "خيارات السلوك الافتراضي التي لا تغيّر سجلات المحلات القديمة", expanded, ::toggle) {
-                    SettingsSwitch("الحفظ التلقائي", store.getBoolean("autosave",true), {store.putBoolean("autosave",it)})
-                    SettingsSwitch("تأكيد قبل الحذف", store.getBoolean("confirm_delete",true), {store.putBoolean("confirm_delete",it)})
-                    SettingsSwitch("الانتقال لليوم التالي بعد الحفظ", store.getBoolean("next_day_after_save",false), {store.putBoolean("next_day_after_save",it)})
-                    SettingsSwitch("إظهار صف الإجمالي", store.getBoolean("show_total_row",true), {store.putBoolean("show_total_row",it)})
-                    SettingsChoice("عدد الصفوف في الجدول", store.getInt("table_rows",20).toString(), store.getInt("table_rows",20).toString()) { store.putInt("table_rows", if(store.getInt("table_rows",20)>=50) 10 else store.getInt("table_rows",20)+10) }
-                    SettingsSwitch("تمييز الصفوف غير المكتملة", store.getBoolean("highlight_incomplete",true), {store.putBoolean("highlight_incomplete",it)})
-                    Text("نوع التسجيل (عددي/فردي) يبقى إعدادًا مستقلًا لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=AppMuted)
+                    SettingsSwitch("إظهار صف الإجمالي", showTotalRow, { showTotalRow = it; store.putBoolean("show_total_row", it) })
+                    Text(
+                        "يُحفظ إدخال الكميات والمصروفات مباشرة عند التعديل. وتظهر رسالة تأكيد قبل حذف شهر أو محل لحماية سجلاتك.",
+                        fontSize = 11.sp,
+                        color = AppMuted
+                    )
+                    Text("نوع التسجيل (عددي/فردي) إعداد مستقل لكل محل من شاشة إعدادات المحل.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
@@ -424,7 +563,7 @@ fun AppSettingsPage(
 
             item {
                 NotebkSectionCard("إدارة الإعدادات", "الحفظ تلقائي. يمكنك إعادة الإعدادات العامة إلى القيم الافتراضية.") {
-                    NotebkSecondaryAction("إعادة ضبط الإعدادات العامة", { store.resetGeneral() })
+                    NotebkSecondaryAction("إعادة ضبط الإعدادات العامة", { resetGeneralSettings() })
                     Text("لا يتم مسح قاعدة البيانات أو السجلات عند إعادة ضبط الإعدادات.", fontSize=11.sp, color=AppMuted)
                 }
             }
@@ -445,10 +584,28 @@ private fun SettingsGroup(id:String, title:String, description:String, expanded:
 }
 
 @Composable
-private fun SettingsSwitch(title:String, checked:Boolean, onChange:(Boolean)->Unit, description:String?=null) {
+private fun SettingsSwitch(
+    title: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    description: String? = null,
+    controlled: Boolean = false
+) {
+    var displayedChecked by androidx.compose.runtime.remember(title, checked) {
+        androidx.compose.runtime.mutableStateOf(checked)
+    }
     Row(Modifier.fillMaxWidth().padding(vertical=4.dp), verticalAlignment=Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium); if(description!=null) Text(description,fontSize=10.sp,color=AppMuted) }
-        Switch(checked=checked,onCheckedChange=onChange)
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium)
+            if (description != null) Text(description, fontSize=10.sp, color=AppMuted)
+        }
+        Switch(
+            checked = if (controlled) checked else displayedChecked,
+            onCheckedChange = { enabled ->
+                if (!controlled) displayedChecked = enabled
+                onChange(enabled)
+            }
+        )
     }
 }
 

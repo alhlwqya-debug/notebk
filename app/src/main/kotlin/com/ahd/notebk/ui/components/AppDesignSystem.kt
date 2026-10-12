@@ -10,6 +10,9 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,22 +26,32 @@ import androidx.compose.ui.unit.sp
 import com.ahd.notebk.R
 
 /** Shared notebk visual language. Feature/data logic stays outside this file. */
-// Canonical palette used by every screen, including the work/ledger pages.
-val AppBackground = Color(0xFFFFFFFF)
-val AppSurface = Color(0xFFFFFFFF)
-val AppSurfaceAlt = Color(0xFFF8F6FC)
-val AppPrimarySoft = Color(0xFFF0E7FF)
-val AppBorder = Color(0xFFD8C8EF)
-val AppText = Color(0xFF211B2B)
-val AppMuted = Color(0xFF756C80)
+// Snapshot-backed palette keeps custom Compose components readable in dark mode too.
+var AppBackground by mutableStateOf(Color(0xFFFFFFFF))
+    private set
+var AppSurface by mutableStateOf(Color(0xFFFFFFFF))
+    private set
+var AppSurfaceAlt by mutableStateOf(Color(0xFFF8F6FC))
+    private set
+var AppPrimarySoft by mutableStateOf(Color(0xFFF0E7FF))
+    private set
+var AppBorder by mutableStateOf(Color(0xFFD8C8EF))
+    private set
+var AppText by mutableStateOf(Color(0xFF211B2B))
+    private set
+var AppMuted by mutableStateOf(Color(0xFF756C80))
+    private set
 val Purple = Color(0xFF7C3AED)
 val Green = Color(0xFF22B573)
 val Blue = Color(0xFF3B82D0)
 val Red = Color(0xFFE2556B)
 val Orange = Color(0xFFE7A51C)
-val CardWorkBg = Color(0xFFEAF8F1)
-val CardExpBg = Color(0xFFFFEEF1)
-val CardNetBg = Color(0xFFEDF5FF)
+var CardWorkBg by mutableStateOf(Color(0xFFEAF8F1))
+    private set
+var CardExpBg by mutableStateOf(Color(0xFFFFEEF1))
+    private set
+var CardNetBg by mutableStateOf(Color(0xFFEDF5FF))
+    private set
 val AppButtonShape = RoundedCornerShape(14.dp)
 val AppRadiusSmall = 12.dp
 val AppRadiusMedium = 16.dp
@@ -46,12 +59,26 @@ val AppRadiusLarge = 20.dp
 val AppContentPadding = 16.dp
 val AppItemSpacing = 10.dp
 val AppControlHeight = 48.dp
-val PageBg = AppBackground
+val PageBg: Color get() = AppBackground
 val Yellow = Color(0xFFFDE48B)
 val LightBlue = Color(0xFFC9D4EA)
 val HeaderBlue = Color(0xFFD8E1F3)
 val NotebkBrandPurple = Purple
-val AppGradient = Brush.linearGradient(listOf(Color.White, Color(0xFFFBF9FE)))
+val AppGradient: Brush get() = Brush.linearGradient(listOf(AppBackground, AppSurfaceAlt))
+
+/** Update the shared component palette whenever the app theme changes. */
+fun setNotebkPalette(dark: Boolean) {
+    AppBackground = if (dark) Color(0xFF121018) else Color(0xFFFFFFFF)
+    AppSurface = if (dark) Color(0xFF1D1926) else Color(0xFFFFFFFF)
+    AppSurfaceAlt = if (dark) Color(0xFF262132) else Color(0xFFF8F6FC)
+    AppPrimarySoft = if (dark) Color(0xFF33224A) else Color(0xFFF0E7FF)
+    AppBorder = if (dark) Color(0xFF493B58) else Color(0xFFD8C8EF)
+    AppText = if (dark) Color(0xFFF3EDF9) else Color(0xFF211B2B)
+    AppMuted = if (dark) Color(0xFFB7AFC3) else Color(0xFF756C80)
+    CardWorkBg = if (dark) Color(0xFF173328) else Color(0xFFEAF8F1)
+    CardExpBg = if (dark) Color(0xFF3A2229) else Color(0xFFFFEEF1)
+    CardNetBg = if (dark) Color(0xFF1E2C40) else Color(0xFFEDF5FF)
+}
 
 @Composable
 fun NotebkScreenBackground(content: @Composable BoxScope.() -> Unit) {

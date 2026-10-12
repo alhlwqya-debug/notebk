@@ -172,6 +172,115 @@ class SupabaseAuthRepository(private val context: Context) {
         preferences.edit().clear().apply()
     }
 
+    /** Sends Supabase's password-reset email without exposing or storing a password. */
+    suspend fun requestPasswordReset(email: String): AuthResult = withContext(Dispatchers.IO) {
+        val normalizedEmail = email.trim().lowercase(Locale.ROOT)
+        if (!Patterns.EMAIL_ADDRESS.matcher(normalizedEmail).matches()) {
+            return@withContext AuthResult.Failure(context.getString(R.string.error_email_format))
+        }
+        try {
+            val response = postJson("/auth/v1/recover", JSONObject().put("email", normalizedEmail))
+            if (response.code in 200..299) AuthResult.ConfirmationEmailSent(normalizedEmail)
+            else AuthResult.Failure(authError(response.body, response.code, false))
+        } catch (_: IOException) {
+            AuthResult.Failure(context.getString(R.string.error_network))
+        } catch (_: Exception) {
+            AuthResult.Failure(context.getString(R.string.error_unknown))
+        }
+    }
+
+    /** Updates the password for the currently authenticated Supabase user. */
+    suspend fun changePassword(newPassword: String): AuthResult = withContext(Dispatchers.IO) {
+        val session = savedSession()
+            ?: return@withContext AuthResult.Failure("سجّل الدخول أولاً لتغيير كلمة المرور.")
+        if (newPassword.length < 6) {
+            return@withContext AuthResult.Failure(context.getString(R.string.error_password_short))
+        }
+        try {
+            val response = authenticatedRequest(
+                method = "PUT",
+                endpoint = "/auth/v1/user",
+                accessToken = session.accessToken,
+                body = JSONObject().put("password", newPassword)
+            )
+            if (response.code in 200..299) AuthResult.SignedIn(session)
+            else AuthResult.Failure(authError(response.body, response.code, false))
+        } catch (_: IOException) {
+            AuthResult.Failure(context.getString(R.string.error_network))
+        } catch (_: Exception) {
+            AuthResult.Failure(context.getString(R.string.error_unknown))
+        }
+    }
+
+    /** Invalidates the remote session when possible and always clears local credentials. */
+    suspend fun signOut(): AuthResult = withContext(Dispatchers.IO) {
+        val session = savedSession()
+        try {
+            if (session != null && session.accessToken.isNotBlank()) {
+                authenticatedRequest("POST", "/auth/v1/logout", session.accessToken, JSONObject())
+            }
+            clearSession()
+            AuthResult.SignedIn(session ?: AuthSession("", "", "", ""))
+        } catch (_: Exception) {
+            // Local sign-out must still work when offline; never retain local tokens.
+            clearSession()
+            AuthResult.Failure("تم تسجيل الخروج من هذا الجهاز، لكن تعذر تأكيد إنهاء الجلسة السحابية.")
+        }
+    }
+
+    /**
+     * Account deletion must be performed by a trusted server-side Supabase Edge Function.
+     * The service-role key must never be embedded in the Android application.
+     */
+    suspend fun deleteAccount(): AuthResult = withContext(Dispatchers.IO) {
+        val session = savedSession()
+            ?: return@withContext AuthResult.Failure("لا يوجد حساب مسجل الدخول.")
+        try {
+            val response = authenticatedRequest(
+                method = "POST",
+                endpoint = "/functions/v1/delete-account",
+                accessToken = session.accessToken,
+                body = JSONObject()
+            )
+            if (response.code in 200..299) {
+                clearSession()
+                AuthResult.SignedIn(session)
+            } else {
+                AuthResult.Failure(
+                    if (response.code == 404) "حذف الحساب غير مفعّل على الخادم بعد. يلزم نشر دالة Supabase آمنة للحذف."
+                    else authError(response.body, response.code, false)
+                )
+            }
+        } catch (_: IOException) {
+            AuthResult.Failure(context.getString(R.string.error_network))
+        } catch (_: Exception) {
+            AuthResult.Failure(context.getString(R.string.error_unknown))
+        }
+    }
+
+    private fun authenticatedRequest(
+        method: String,
+        endpoint: String,
+        accessToken: String,
+        body: JSONObject
+    ): HttpResponse {
+        val connection = (URL("${SupabaseConfig.URL}$endpoint").openConnection() as HttpURLConnection)
+        connection.requestMethod = method
+        connection.connectTimeout = 15_000
+        connection.readTimeout = 15_000
+        connection.doOutput = true
+        connection.setRequestProperty("apikey", SupabaseConfig.PUBLISHABLE_KEY)
+        connection.setRequestProperty("Authorization", "Bearer $accessToken")
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.setRequestProperty("Accept", "application/json")
+        connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val responseBody = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+        connection.disconnect()
+        return HttpResponse(code, responseBody)
+    }
+
     private fun validate(email: String, password: String): String? {
         return when {
             !Patterns.EMAIL_ADDRESS.matcher(email).matches() ->

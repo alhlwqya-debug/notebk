@@ -102,6 +102,20 @@ internal object SupabaseAuth {
             refreshed
         }
 
+    /** Refreshes and persists a session using the latest stored refresh token. */
+    @Synchronized
+    fun refreshBlocking(context: Context, session: SupabaseSession): SupabaseSession {
+        val current = SupabaseSessionStore.load(context)?.takeIf { it.userId == session.userId } ?: session
+        val body = JSONObject().put("refresh_token", current.refreshToken)
+        val json = SupabaseHttp.request("POST", "/auth/v1/token?grant_type=refresh_token", body.toString())
+        val refreshed = sessionFrom(json)
+        check(refreshed.userId == current.userId) {
+            "تغيّر حساب الجلسة أثناء التجديد؛ أوقفنا العملية لحماية بياناتك."
+        }
+        SupabaseSessionStore.save(context, refreshed)
+        return refreshed
+    }
+
     private fun sessionFrom(json: JSONObject): SupabaseSession {
         val user = json.optJSONObject("user") ?: throw IllegalStateException("لم يعثر Supabase على بيانات المستخدم")
         val access = json.optString("access_token")
@@ -119,34 +133,84 @@ internal object SupabaseSyncManager {
     data class SyncResult(val uploadedRows: Int, val message: String)
 
     suspend fun sync(context: Context, session: SupabaseSession): SyncResult = withContext(Dispatchers.IO) {
-        val snapshot = LocalSyncSnapshot.read(context, session.userId, SupabaseSessionStore.deviceId(context))
+        require(session.userId.isNotBlank()) { "يجب تسجيل الدخول قبل المزامنة." }
+        // A local ledger has no per-row owner column. Bind it to the first account used
+        // for cloud sync to prevent accidentally uploading one account's local data to another.
+        val identityPrefs = context.getSharedPreferences("sync_identity", Context.MODE_PRIVATE)
+        val boundUserId = identityPrefs.getString("sync_owner_user_id", null)
+        if (boundUserId != null && boundUserId != session.userId) {
+            throw IllegalStateException("بيانات هذا الجهاز مرتبطة بحساب آخر. أوقفنا المزامنة لمنع خلط بيانات الحسابات.")
+        }
+        if (boundUserId == null) {
+            check(identityPrefs.edit().putString("sync_owner_user_id", session.userId).commit()) {
+                "تعذر حفظ هوية حساب المزامنة على هذا الجهاز."
+            }
+        }
+        var activeSession = SupabaseSessionStore.load(context)
+            ?.takeIf { it.userId == session.userId } ?: session
+        if (activeSession.expiresAt <= System.currentTimeMillis() + 60_000L) {
+            activeSession = SupabaseAuth.refreshBlocking(context, activeSession)
+        }
+        val deviceId = SupabaseSessionStore.deviceId(context)
+        val snapshot = LocalSyncSnapshot.read(context, activeSession.userId, deviceId)
         val order = listOf(
             "user_profiles", "shops", "workers", "months", "pieces", "days",
             "entries", "individual_entries", "individual_entry_items"
         )
+        val batchSize = 200
         var uploaded = 0
         for (table in order) {
             val rows = snapshot[table] ?: JSONArray()
             if (rows.length() == 0) continue
-            SupabaseHttp.request(
-                method = "POST",
-                path = if (table == "user_profiles") "/rest/v1/$table?on_conflict=user_id" else "/rest/v1/$table?on_conflict=user_id,record_key",
-                body = rows.toString(),
-                session = session,
-                prefer = "resolution=merge-duplicates,return=minimal",
-            )
-            uploaded += rows.length()
+            var offset = 0
+            while (offset < rows.length()) {
+                val batch = JSONArray()
+                val end = minOf(offset + batchSize, rows.length())
+                for (index in offset until end) batch.put(rows.getJSONObject(index))
+                SupabaseHttp.request(
+                    method = "POST",
+                    path = when (table) {
+                        "user_profiles" -> "/rest/v1/$table?on_conflict=user_id"
+                        // entries are logically unique per user + day + piece; record_key can
+                        // differ when the same ledger row was created on another device.
+                        "entries" -> "/rest/v1/$table?on_conflict=user_id,day_legacy_id,piece_legacy_id"
+                        // An individual row can contain only one quantity per entry + piece.
+                        "individual_entry_items" -> "/rest/v1/$table?on_conflict=user_id,entry_legacy_id,piece_legacy_id"
+                        else -> "/rest/v1/$table?on_conflict=user_id,record_key"
+                    },
+                    body = batch.toString(),
+                    session = activeSession,
+                    prefer = "resolution=merge-duplicates,return=minimal",
+                    context = context
+                )
+                uploaded += batch.length()
+                offset = end
+            }
         }
-        val remote = downloadRemote(session)
-        LocalSyncImporter.apply(context, remote, SupabaseSessionStore.deviceId(context))
-        SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا")
+        val remote = downloadRemote(context, activeSession)
+        LocalSyncImporter.apply(context, remote, deviceId)
+        SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا على دفعات")
     }
 
-    private suspend fun downloadRemote(session: SupabaseSession): Map<String, JSONArray> = withContext(Dispatchers.IO) {
+    private suspend fun downloadRemote(context: Context, session: SupabaseSession): Map<String, JSONArray> = withContext(Dispatchers.IO) {
         val result = linkedMapOf<String, JSONArray>()
+        val pageSize = 500
         listOf("user_profiles", "shops", "workers", "months", "pieces", "days", "entries", "individual_entries", "individual_entry_items").forEach { table ->
-            val response = SupabaseHttp.request("GET", "/rest/v1/$table?select=*&user_id=eq.${session.userId}", session = session)
-            result[table] = response.optJSONArray("data") ?: JSONArray()
+            val allRows = JSONArray()
+            var offset = 0
+            while (true) {
+                val response = SupabaseHttp.request(
+                    "GET",
+                    "/rest/v1/$table?select=*&user_id=eq.${session.userId}&limit=$pageSize&offset=$offset",
+                    session = session,
+                    context = context
+                )
+                val page = response.optJSONArray("data") ?: JSONArray()
+                for (index in 0 until page.length()) allRows.put(page.getJSONObject(index))
+                offset += page.length()
+                if (page.length() < pageSize) break
+            }
+            result[table] = allRows
         }
         result
     }
@@ -154,8 +218,13 @@ internal object SupabaseSyncManager {
 
 private object LocalSyncImporter {
     fun apply(context: Context, remote: Map<String, JSONArray>, deviceId: String) {
-        val db = LedgerDatabase(context).writableDatabase
-        db.execSQL("CREATE TABLE IF NOT EXISTS sync_records (record_key TEXT PRIMARY KEY, table_name TEXT NOT NULL, local_id INTEGER NOT NULL)")
+        // Keep a helper reference so the database handle is always released.
+        val helper = LedgerDatabase(context)
+        try {
+            val db = helper.writableDatabase
+            db.beginTransaction()
+            try {
+                db.execSQL("CREATE TABLE IF NOT EXISTS sync_records (record_key TEXT PRIMARY KEY, table_name TEXT NOT NULL, local_id INTEGER NOT NULL)")
         val ids = mutableMapOf<String, Long>()
         fun resolve(table: String, recordKey: String, legacyId: Long): Long? {
             ids[recordKey]?.let { return it }
@@ -238,6 +307,14 @@ private object LocalSyncImporter {
                 .putString("user_image", profile.optString("avatar_path", ""))
                 .apply()
         }
+                db.setTransactionSuccessful()
+            } finally {
+                // Roll back all related rows if any import fails.
+                if (db.inTransaction()) db.endTransaction()
+            }
+        } finally {
+            helper.close()
+        }
     }
 
     private fun remember(db: SQLiteDatabase, recordKey: String, table: String, localId: Long) {
@@ -255,7 +332,12 @@ private object SupabaseHttp {
         body: String? = null,
         session: SupabaseSession? = null,
         prefer: String? = null,
+        context: Context? = null,
+        retryUnauthorized: Boolean = true,
     ): JSONObject {
+        val requestSession = if (session != null && context != null) {
+            SupabaseSessionStore.load(context)?.takeIf { it.userId == session.userId } ?: session
+        } else session
         val connection = (URL(SupabaseConfig.URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 15_000
@@ -264,29 +346,38 @@ private object SupabaseHttp {
             setRequestProperty("apikey", SupabaseConfig.PUBLISHABLE_KEY)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            session?.let { setRequestProperty("Authorization", "Bearer ${it.accessToken}") }
+            requestSession?.let { setRequestProperty("Authorization", "Bearer ${it.accessToken}") }
             prefer?.let { setRequestProperty("Prefer", it) }
             if (body != null) doOutput = true
         }
+        var status = 0
+        var response = ""
         try {
             if (body != null) OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { it.write(body) }
-            val status = connection.responseCode
+            status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.let { BufferedReader(InputStreamReader(it, Charsets.UTF_8)).use { reader -> reader.readText() } }.orEmpty()
-            if (status !in 200..299) {
-                val message = try { JSONObject(response).optString("message").ifBlank { response } } catch (_: Exception) { response }
-                throw IllegalStateException("Supabase $status: $message")
-            }
-            return if (response.isBlank()) JSONObject() else if (response.trimStart().startsWith("[")) JSONObject().put("data", JSONArray(response)) else JSONObject(response)
+            response = stream?.let { BufferedReader(InputStreamReader(it, Charsets.UTF_8)).use { reader -> reader.readText() } }.orEmpty()
         } finally {
             connection.disconnect()
         }
+        if (status == 401 && context != null && requestSession != null && retryUnauthorized &&
+            !path.startsWith("/auth/v1/token?grant_type=refresh_token")) {
+            val refreshed = SupabaseAuth.refreshBlocking(context, requestSession)
+            return request(method, path, body, refreshed, prefer, context, retryUnauthorized = false)
+        }
+        if (status !in 200..299) {
+            val message = try { JSONObject(response).optString("message").ifBlank { response } } catch (_: Exception) { response }
+            throw IllegalStateException("Supabase $status: $message")
+        }
+        return if (response.isBlank()) JSONObject() else if (response.trimStart().startsWith("[")) JSONObject().put("data", JSONArray(response)) else JSONObject(response)
     }
 }
 
 private object LocalSyncSnapshot {
     fun read(context: Context, userId: String, deviceId: String): Map<String, JSONArray> {
-        val db = LedgerDatabase(context).readableDatabase
+        val helper = LedgerDatabase(context)
+        val db = helper.readableDatabase
+        try {
         val shopKeys = mutableMapOf<Long, String>()
         val workerKeys = mutableMapOf<Long, String>()
         val monthKeys = mutableMapOf<Long, String>()
@@ -345,5 +436,8 @@ private object LocalSyncSnapshot {
             "pieces" to pieces, "days" to days, "entries" to entries, "individual_entries" to individual,
             "individual_entry_items" to items
         )
+        } finally {
+            helper.close()
+        }
     }
 }

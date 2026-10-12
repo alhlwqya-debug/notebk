@@ -33,6 +33,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -99,6 +100,10 @@ fun AuthScreen(
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var success by remember { mutableStateOf(false) }
+    var showAccountTools by remember { mutableStateOf(false) }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmNewPassword by remember { mutableStateOf("") }
+    var confirmDeleteAccount by remember { mutableStateOf(false) }
 
     fun finishGuest() {
         repository.clearSession()
@@ -183,12 +188,86 @@ fun AuthScreen(
                                 Text(activeSession?.label ?: "البيانات محفوظة على هذا الجهاز", fontSize = 11.sp, color = AppMuted)
                             }
                             if (activeSession != null) {
-                                IconButton(onClick = { repository.clearSession(); activeSession = null; guestMode = false; prefs.edit().putBoolean("guest_mode", false).apply(); message = "تم تسجيل الخروج. يمكنك الدخول كضيف أو بحساب آخر." }) {
+                                IconButton(onClick = {
+                                    busy = true
+                                    scope.launch {
+                                        repository.signOut()
+                                        busy = false
+                                        activeSession = null
+                                        guestMode = false
+                                        prefs.edit().putBoolean("guest_mode", false).remove("user_email").apply()
+                                        message = "تم تسجيل الخروج من هذا الجهاز. بياناتك المحلية لم تُحذف."
+                                        success = true
+                                    }
+                                }) {
                                     Icon(Icons.Default.Logout, "تسجيل الخروج", tint = NotebkBrandPurple)
                                 }
                             }
                         }
                     }
+                }
+
+                if (activeSession != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = AppSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, AppBorder)
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("إدارة الحساب", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = AppText)
+                            Text("البريد المسجل: ${activeSession?.label.orEmpty()}", color = AppMuted, fontSize = 12.sp)
+                            OutlinedButton(onClick = { showAccountTools = !showAccountTools }, modifier = Modifier.fillMaxWidth()) {
+                                Text(if (showAccountTools) "إخفاء إعدادات الأمان" else "تغيير كلمة المرور")
+                            }
+                            if (showAccountTools) {
+                                OutlinedTextField(newPassword, { newPassword = it }, label = { Text("كلمة المرور الجديدة") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(confirmNewPassword, { confirmNewPassword = it }, label = { Text("تأكيد كلمة المرور الجديدة") }, visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
+                                Button(
+                                    onClick = {
+                                        if (newPassword != confirmNewPassword) {
+                                            message = "كلمتا المرور الجديدتان غير متطابقتين."
+                                            success = false
+                                        } else {
+                                            busy = true
+                                            scope.launch {
+                                                val result = repository.changePassword(newPassword)
+                                                busy = false
+                                                when (result) {
+                                                    is AuthResult.SignedIn -> { newPassword = ""; confirmNewPassword = ""; message = "تم تغيير كلمة المرور بنجاح."; success = true }
+                                                    is AuthResult.Failure -> { message = result.message; success = false }
+                                                    else -> { message = "تعذر تغيير كلمة المرور."; success = false }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !busy && newPassword.length >= 6 && confirmNewPassword.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("حفظ كلمة المرور الجديدة") }
+                                OutlinedButton(onClick = { confirmDeleteAccount = true }, enabled = !busy, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                                    Text("حذف حسابي نهائيًا")
+                                }
+                                Text("حذف الحساب نهائي ولا يمكن التراجع عنه. يتطلب حذف الحساب السحابي تفعيل دالة حذف آمنة على الخادم.", color = AppMuted, fontSize = 11.sp, lineHeight = 16.sp)
+                            }
+                        }
+                    }
+                } else if (!guestMode) {
+                    TextButton(
+                        onClick = {
+                            busy = true
+                            scope.launch {
+                                val result = repository.requestPasswordReset(email)
+                                busy = false
+                                when (result) {
+                                    is AuthResult.ConfirmationEmailSent -> { message = "إذا كان البريد مسجلًا، فستصلك رسالة لإعادة تعيين كلمة المرور."; success = true }
+                                    is AuthResult.Failure -> { message = result.message; success = false }
+                                    else -> { message = "تعذر طلب إعادة تعيين كلمة المرور."; success = false }
+                                }
+                            }
+                        },
+                        enabled = !busy && email.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("نسيت كلمة المرور؟ إرسال رابط الاستعادة") }
                 }
 
                 Card(
@@ -274,6 +353,36 @@ fun AuthScreen(
                 Text(NotebkBrand.CREDIT, fontSize = 10.sp, color = AppMuted, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
+    }
+
+    if (confirmDeleteAccount) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteAccount = false },
+            title = { Text("تأكيد حذف الحساب") },
+            text = { Text("هل أنت متأكد من حذف حسابك السحابي نهائيًا؟ لن تُحذف السجلات المحلية من هذا الجهاز تلقائيًا.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDeleteAccount = false
+                    busy = true
+                    scope.launch {
+                        val result = repository.deleteAccount()
+                        busy = false
+                        when (result) {
+                            is AuthResult.SignedIn -> {
+                                activeSession = null
+                                guestMode = false
+                                prefs.edit().putBoolean("guest_mode", false).remove("user_email").apply()
+                                message = "تم حذف الحساب السحابي."
+                                success = true
+                            }
+                            is AuthResult.Failure -> { message = result.message; success = false }
+                            else -> { message = "تعذر حذف الحساب."; success = false }
+                        }
+                    }
+                }) { Text("تأكيد الحذف", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDeleteAccount = false }) { Text("إلغاء") } }
+        )
     }
 }
 

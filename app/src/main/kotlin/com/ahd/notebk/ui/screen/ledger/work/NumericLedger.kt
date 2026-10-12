@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.ledger.work
 import com.ahd.notebk.ui.components.*
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import com.ahd.notebk.domain.model.*
 
 
@@ -62,6 +63,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -137,6 +139,22 @@ internal fun MainLedger(
 ) {
     val context = LocalContext.current
     val horizontal = rememberScrollState()
+    val settingsStore = remember(context) { NotebkSettingsStore(context) }
+    val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", Context.MODE_PRIVATE) }
+    var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
+    var showFab by remember { mutableStateOf(settingsStore.getBoolean("show_fab", true)) }
+    DisposableEffect(settingsStore) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            when (key) {
+                "hide_amounts" -> hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+                "show_total_row" -> showTotalRow = settingsStore.getBoolean("show_total_row", true)
+                "show_fab" -> showFab = settingsStore.getBoolean("show_fab", true)
+            }
+        }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     val totalEarned = database.calculateMonthEarned(bundle)
     val totalExpenses = database.calculateMonthExpenses(bundle)
     val net = database.calculateMonthNet(bundle)
@@ -210,9 +228,9 @@ internal fun MainLedger(
             Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            SummaryCard("الإنتاج", totalEarned.toString(), CardWorkBg, Green, Modifier.weight(1f))
-            SummaryCard("المصروف", totalExpenses.toString(), CardExpBg, Red, Modifier.weight(1f))
-            SummaryCard("الصافي", net.toString(), CardNetBg, Blue, Modifier.weight(1f))
+            SummaryCard("الإنتاج", if (hideAmounts) "••••" else totalEarned.toString(), CardWorkBg, Green, Modifier.weight(1f))
+            SummaryCard("المصروف", if (hideAmounts) "••••" else totalExpenses.toString(), CardExpBg, Red, Modifier.weight(1f))
+            SummaryCard("الصافي", if (hideAmounts) "••••" else net.toString(), CardNetBg, Blue, Modifier.weight(1f))
             SummaryCard("القطع", totalPieces.toString(), Color(0xFFFFF3E0), Orange, Modifier.weight(1f))
         }
 
@@ -349,12 +367,12 @@ internal fun MainLedger(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    if (day.expense == 0) "" else day.expense.toString(),
+                                    if (hideAmounts) "••••" else if (day.expense == 0) "" else day.expense.toString(),
                                     fontSize = 10.sp
                                 )
                             }
                             CellText(
-                                if (earned == 0) "" else dayTotal.toString(),
+                                if (hideAmounts) "••••" else if (earned == 0) "" else dayTotal.toString(),
                                 wTotal,
                                 rowH,
                                 LightBlue,
@@ -364,7 +382,7 @@ internal fun MainLedger(
                     }
                 }
 
-                Row {
+                if (showTotalRow) Row {
                     CellText("الإجمالي", wDay + wDate, 34.dp, Color(0xFFFFE58F), bold = true, size = 10, color = AppText)
 
                     // ✅ عرض مجموع كل قطعة على حدة وليس الإجمالي الكلي
@@ -381,14 +399,14 @@ internal fun MainLedger(
                     }
 
                     CellText(
-                        if (totalExpenses == 0) "" else totalExpenses.toString(),
+                        if (hideAmounts) "••••" else if (totalExpenses == 0) "" else totalExpenses.toString(),
                         wExpense,
                         34.dp,
                         Color(0xFFFFE58F),
                         bold = true,
                         color = Color(0xFFC62828)
                     )
-                    CellText(net.toString(), wTotal, 34.dp, HeaderBlue, bold = true)
+                    CellText(if (hideAmounts) "••••" else net.toString(), wTotal, 34.dp, HeaderBlue, bold = true)
                 }
             }
         }
@@ -428,6 +446,7 @@ internal fun MainLedger(
             }
         }
         }
+        if (showFab) {
         FloatingActionButton(
             onClick = { showDailyWorkDialog = true },
             modifier = Modifier
@@ -442,6 +461,7 @@ internal fun MainLedger(
                 contentDescription = "تسجيل العمل اليومي",
                 modifier = Modifier.size(30.dp)
             )
+        }
         }
     }
 

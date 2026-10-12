@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -279,7 +280,7 @@ internal fun SecuritySettingsDialog(
 
 private const val INTERNAL_BACKUP_DIR = "internal_backups"
 private const val INTERNAL_BACKUP_PREFIX = "notebk_auto_"
-private const val MAX_INTERNAL_BACKUPS = 7
+private const val MAX_INTERNAL_BACKUPS = 10
 
 /**
  * Creates a private automatic backup before destructive operations and from
@@ -339,11 +340,14 @@ internal fun createInternalAutoBackup(context: Context): Boolean {
             }
         }
 
+        val retention = NotebkSettingsStore(context)
+            .getInt("backup_retention", MAX_INTERNAL_BACKUPS)
+            .coerceIn(1, 50)
         backupDir.listFiles { file ->
             file.isFile && file.name.startsWith(INTERNAL_BACKUP_PREFIX) && file.extension == "zip"
         }
             ?.sortedByDescending { it.lastModified() }
-            ?.drop(MAX_INTERNAL_BACKUPS)
+            ?.drop(retention)
             ?.forEach { it.delete() }
 
         true

@@ -492,7 +492,10 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             onShopSettingsTargetChange = { shopSettingsTargetId = it },
             onNewShop = { newShopName = ""; newShopRegistrationNumber = ""; newShopMode = RegistrationMode.NUMERIC; showShopDialog = true },
             onProfile = { showUserProfile = true }, onRefreshRevision = { dataRevision++ },
-            onOpenAuth = onOpenAuth, onSecurity = { showSecurityDialog = true },
+            onOpenAuth = onOpenAuth,
+            onAccountSecurity = { showAccountSecurityDialog = true },
+            onCloudSync = { showAppSettings = true },
+            onSecurity = { showSecurityDialog = true },
             onRegistrationSettings = { showRegistrationSettings = selectedShopId != null }
         )
 

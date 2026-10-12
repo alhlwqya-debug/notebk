@@ -271,7 +271,7 @@ fun AppSettingsPage(
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = androidx.compose.runtime.remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
     var search by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf("general", "notifications")) }
+    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf("general", "notifications", "data")) }
     var symbol by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_symbol", "ريال")) }
     var fontScale by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getFloat("font_scale", 1f)) }
     var showSearch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_search", true)) }

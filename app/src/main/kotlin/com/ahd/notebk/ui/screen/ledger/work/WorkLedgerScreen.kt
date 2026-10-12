@@ -158,11 +158,6 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     }
     var drawerOpen by remember { mutableStateOf(false) }
     var showDashboard by remember { mutableStateOf(initialPage == "home") }
-    LaunchedEffect(showDashboard) {
-        if (centralSettings.getBoolean("remember_page", true)) {
-            centralSettings.putString("last_page", if (showDashboard) "home" else "ledger")
-        }
-    }
     var dataRevision by remember { mutableStateOf(0) }
     var shopMenuOpen by remember { mutableStateOf(false) }
     var showShopDialog by remember { mutableStateOf(false) }
@@ -189,6 +184,18 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showFeatureHub by remember { mutableStateOf(false) }
     var shopSettingsTargetId by remember { mutableStateOf<Long?>(null) }
     var openDailyWorkRequested by remember { mutableStateOf(initialPage == "daily") }
+    // Persist the actual destination, including the daily-entry screen, instead of
+    // overwriting it as a generic ledger page during the first composition.
+    LaunchedEffect(showDashboard, openDailyWorkRequested) {
+        if (centralSettings.getBoolean("remember_page", true)) {
+            val page = when {
+                showDashboard -> "home"
+                openDailyWorkRequested -> "daily"
+                else -> "ledger"
+            }
+            centralSettings.putString("last_page", page)
+        }
+    }
     var reminderEnabled by remember { mutableStateOf(prefs.getBoolean("daily_reminder_enabled", false)) }
     var darkTheme by remember { mutableStateOf(prefs.getBoolean("dark_theme", false)) }
     var showClearDialog by remember { mutableStateOf(false) }

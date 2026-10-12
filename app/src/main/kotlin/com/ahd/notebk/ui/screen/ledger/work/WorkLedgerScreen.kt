@@ -131,6 +131,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     val prefs = remember {
         context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE)
     }
+    val profilePrefs = remember { com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context) }
 
     // ===== حالة البيانات =====
     var shops by remember { mutableStateOf(database.getShops()) }
@@ -141,11 +142,11 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var pieces by remember { mutableStateOf(selectedShopId?.let(database::getPieces) ?: emptyList()) }
 
     // ===== حالة الملف الشخصي =====
-    var userName by remember { mutableStateOf(prefs.getString("user_name", "") ?: "") }
-    var userPhone by remember { mutableStateOf(prefs.getString("user_phone", "") ?: "") }
-    var userEmail by remember { mutableStateOf(prefs.getString("user_email", "") ?: "") }
-    var userShop by remember { mutableStateOf(prefs.getString("user_shop", "") ?: "") }
-    var userImagePath by remember { mutableStateOf(prefs.getString("user_image", "") ?: "") }
+    var userName by remember { mutableStateOf(profilePrefs.getString("user_name", "") ?: "") }
+    var userPhone by remember { mutableStateOf(profilePrefs.getString("user_phone", "") ?: "") }
+    var userEmail by remember { mutableStateOf(profilePrefs.getString("user_email", "") ?: "") }
+    var userShop by remember { mutableStateOf(profilePrefs.getString("user_shop", "") ?: "") }
+    var userImagePath by remember { mutableStateOf(profilePrefs.getString("user_image", "") ?: "") }
 
     // ===== حالة واجهة المستخدم =====
     val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
@@ -253,7 +254,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             try {
                 val imageFile = saveImageToInternalStorage(context, uri)
                 userImagePath = imageFile.absolutePath
-                prefs.edit().putString("user_image", imageFile.absolutePath).apply()
+                profilePrefs.edit().putString("user_image", imageFile.absolutePath).apply()
                 Toast.makeText(context, "تم حفظ الصورة", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(context, "تعذر حفظ الصورة", Toast.LENGTH_SHORT).show()

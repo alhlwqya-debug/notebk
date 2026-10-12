@@ -47,6 +47,31 @@ Deno.serve(async (request: Request) => {
   const adminClient = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Delete only rows owned by the verified user, child tables first.
+  // These tables use the same user_id ownership key as the Android sync layer.
+  const ownedTables = [
+    "individual_entry_items",
+    "individual_entries",
+    "entries",
+    "days",
+    "pieces",
+    "months",
+    "workers",
+    "shops",
+    "user_profiles",
+  ];
+  for (const table of ownedTables) {
+    const { error } = await adminClient.from(table).delete().eq("user_id", user.id);
+    if (error && error.code !== "42P01") {
+      // Abort before deleting the auth identity if a known table cannot be cleaned.
+      return new Response(JSON.stringify({ error: "account_data_delete_failed", table }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
   if (deleteError) {
     return new Response(JSON.stringify({ error: "delete_failed" }), {

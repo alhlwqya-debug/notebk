@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -65,7 +64,6 @@ import com.ahd.notebk.ui.components.AppMuted
 import com.ahd.notebk.ui.components.AppPrimarySoft
 import com.ahd.notebk.ui.components.AppSurface
 import com.ahd.notebk.ui.components.AppSurfaceAlt
-import com.ahd.notebk.ui.components.AppText
 import com.ahd.notebk.ui.components.BrandLogo
 import com.ahd.notebk.ui.components.NotebkBrand
 import com.ahd.notebk.ui.components.NotebkBrandPurple
@@ -265,8 +263,7 @@ fun AuthScreen(
             }
         }
     }
-
-
+}
 
 @Composable
 private fun RowScope.ModeButton(title: String, selected: Boolean, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {

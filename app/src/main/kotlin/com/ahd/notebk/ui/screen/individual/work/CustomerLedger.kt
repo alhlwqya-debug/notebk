@@ -687,7 +687,7 @@ internal fun IndividualLedger(
                                 )
                             }
                             CellText(
-                                if (hideAmounts || entryTotal == 0) "" else entryTotal.toString(),
+                                if (hideAmounts) "••••" else if (entryTotal == 0) "" else entryTotal.toString(),
                                 IndividualTotalWidth,
                                 rowH,
                                 LightBlue,

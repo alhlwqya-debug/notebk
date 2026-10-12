@@ -363,6 +363,8 @@ fun AppSettingsPage(
         showSearch = true
         showFab = true
         defaultPage = "home"
+        showDrawer = true
+        rememberPage = true
         onDarkThemeChange(false)
 
         android.widget.Toast.makeText(
@@ -387,10 +389,8 @@ fun AppSettingsPage(
 
             if (match("عام", "اللغة", "عملة", "التاريخ", "المظهر")) item {
                 SettingsGroup("general", "🌍 الإعدادات العامة", "اللغة والمنطقة والعملة والتاريخ والمظهر", expanded, ::toggle) {
-                    SettingsChoice("اللغة", "العربية", store.getString("language", "ar")) { store.putString("language", "ar") }
-                    SettingsChoice("الاتجاه", "RTL", store.getString("direction", "rtl")) { store.putString("direction", "rtl") }
-                    SettingsChoice("لغة التقارير", "العربية", reportLanguage) { reportLanguage = "ar"; store.putString("report_language", "ar") }
-                    SettingsChoice("العملة", "ريال يمني (YER)", currency) { currency = "YER"; symbol = "ريال"; store.putString("currency_code", "YER"); store.putString("currency_symbol", "ريال") }
+                    Text("لغة التطبيق: العربية — الاتجاه: من اليمين إلى اليسار (RTL). التبديل إلى لغات أو اتجاهات أخرى غير مدعوم حاليًا.", fontSize = 11.sp, color = AppMuted)
+                    Text("لغة التقارير: العربية. العملة الحالية: الريال اليمني (YER)، ويمكن تعديل الرمز أدناه.", fontSize = 11.sp, color = AppMuted)
                     OutlinedTextField(symbol, { symbol = it; store.putString("currency_symbol", it) }, label={Text("رمز العملة")}, singleLine=true, modifier=Modifier.fillMaxWidth())
                     SettingsChoice("موضع رمز العملة", "بعد المبلغ", store.getString("currency_position", "after")) { store.putString("currency_position", "after") }
                     SettingsChoice("الخانات العشرية", decimalPlaces.toString(), decimalPlaces.toString()) { decimalPlaces = if (decimalPlaces >= 2) 0 else decimalPlaces + 1; store.putInt("decimal_places", decimalPlaces) }

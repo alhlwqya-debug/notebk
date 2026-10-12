@@ -67,7 +67,8 @@ fun ControlCenterScreen(
     onSecurity: () -> Unit,
     onAccountAuth: () -> Unit,
     onCloudSync: () -> Unit,
-    onAppSettings: () -> Unit
+    onAppSettings: () -> Unit,
+    onAbout: () -> Unit
 ) {
     val primary = com.ahd.notebk.ui.components.NotebkBrandPurple
 
@@ -171,7 +172,7 @@ fun ControlCenterScreen(
                 title = "معلومات notebk",
                 description = "${NotebkBrand.APP_NAME} • ${NotebkBrand.DEVELOPER_NAME}",
                 icon = Icons.Default.Backup,
-                onClick = onBack
+                onClick = onAbout
             )
         }
     }

@@ -259,6 +259,7 @@ fun RegistrationSettingsPage(currentMode:RegistrationMode,onSave:(RegistrationMo
 @Composable
 fun AppSettingsPage(
     reminderEnabled: Boolean,
+    initialSearch: String = "",
     darkTheme: Boolean,
     onReminderChange: (Boolean) -> Unit,
     onDarkThemeChange: (Boolean) -> Unit,
@@ -270,7 +271,7 @@ fun AppSettingsPage(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = androidx.compose.runtime.remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
-    var search by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var search by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initialSearch) }
     var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf("general", "notifications", "data")) }
     var symbol by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_symbol", "ريال")) }
     var fontScale by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getFloat("font_scale", 1f)) }
@@ -539,7 +540,7 @@ fun AppSettingsPage(
                 }
             }
 
-            if (match("الحساب", "مزامنة", "تسجيل الدخول")) item {
+            if (match("الحساب", "تسجيل الدخول")) item {
                 SettingsGroup("account", "👤 الحساب والمزامنة", "حالة الحساب واتصال المزامنة", expanded, ::toggle) {
                     NotebkSecondaryAction("تسجيل الدخول / إنشاء حساب", onAccountAuth)
                     Text("يمكن استخدام التطبيق بدون حساب ثم ربط الحساب لاحقًا دون حذف السجلات المحلية.", fontSize=11.sp, color=AppMuted)

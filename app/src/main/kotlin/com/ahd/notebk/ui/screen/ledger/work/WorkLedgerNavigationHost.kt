@@ -149,8 +149,9 @@ fun WorkLedgerDrawerHost(
                 onStatistics = { onControlCenterChange(false); onStatisticsPageChange(true) },
                 onSecurity = { onSecurity() },
                 onAccountAuth = { onAccountSecurity() },
-                onCloudSync = { onAppSettingsChange(true) },
-                onAppSettings = { onAppSettingsChange(true) }
+                onCloudSync = { onCloudSync() },
+                onAppSettings = { onAppSettingsChange(true) },
+                onAbout = { onAboutChange(true) }
             )
         }
     }

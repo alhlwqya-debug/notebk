@@ -180,6 +180,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showRegistrationSettings by remember { mutableStateOf(false) }
     var showShopSettings by remember { mutableStateOf(false) }
     var showAppSettings by remember { mutableStateOf(false) }
+    var cloudSyncOnly by remember { mutableStateOf(false) }
     var showSystemSettings by remember { mutableStateOf(false) }
     var showControlCenter by remember { mutableStateOf(false) }
     var showFeatureHub by remember { mutableStateOf(false) }
@@ -382,7 +383,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     if (selectedShopId != null) showShopSettings = true
                 },
                 onUserProfile = { showUserProfile = true },
-                onAppSettings = { showFeatureHub = true },
+                onAppSettings = { showControlCenter = true },
                 onHelp = { showHelp = true },
                 onStatistics = { showStatistics = true }
             )
@@ -494,7 +495,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             onProfile = { showUserProfile = true }, onRefreshRevision = { dataRevision++ },
             onOpenAuth = onOpenAuth,
             onAccountSecurity = { showAccountSecurityDialog = true },
-            onCloudSync = { showAppSettings = true },
+            onCloudSync = { cloudSyncOnly = true; showAppSettings = true },
             onSecurity = { showSecurityDialog = true },
             onRegistrationSettings = { showRegistrationSettings = selectedShopId != null }
         )
@@ -530,6 +531,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         showClearDialog = showClearDialog, showDeleteMonthDialog = showDeleteMonthDialog, showDeleteShopDialog = showDeleteShopDialog,
         showRenameMonthDialog = showRenameMonthDialog, showCopyMonthDialog = showCopyMonthDialog, showStartDatePicker = showStartDatePicker,
         showPdfRangeDialog = showPdfRangeDialog, showShopSettings = showShopSettings, showAppSettings = showAppSettings,
+        cloudSyncOnly = cloudSyncOnly, onCloudSyncOnlyChange = { cloudSyncOnly = it },
         showSystemSettings = showSystemSettings, shopSettingsTargetId = shopSettingsTargetId, activeExpenseDay = activeExpenseDay,
         newShopName = newShopName, newShopRegistrationNumber = newShopRegistrationNumber, newShopMode = newShopMode,
         newYear = newYear, newMonthNumber = newMonthNumber, newStartDate = newStartDate, newPieceName = newPieceName,
@@ -542,7 +544,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onShowDeleteShopDialog = { showDeleteShopDialog = it }, onShowRenameMonthDialog = { showRenameMonthDialog = it },
         onShowCopyMonthDialog = { showCopyMonthDialog = it }, onShowStartDatePicker = { showStartDatePicker = it },
         onShowPdfRangeDialog = { showPdfRangeDialog = it }, onShowShopSettings = { showShopSettings = it },
-        onShowAppSettings = { showAppSettings = it }, onShowSystemSettings = { showSystemSettings = it },
+        onShowAppSettings = { showAppSettings = it }, onCloudSyncOnlyChange = { cloudSyncOnly = it }, onShowSystemSettings = { showSystemSettings = it },
         onActiveExpenseDay = { activeExpenseDay = it }, onNewShopName = { newShopName = it },
         onNewShopRegistrationNumber = { newShopRegistrationNumber = it }, onNewShopMode = { newShopMode = it },
         onNewYear = { newYear = it }, onNewMonthNumber = { newMonthNumber = it }, onNewStartDate = { newStartDate = it },

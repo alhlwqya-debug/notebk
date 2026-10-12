@@ -455,7 +455,8 @@ fun AppSettingsPage(
                                 store.putString("last_cloud_sync_message", cloudSyncStatus)
                             }
                         },
-                        if (syncBusy) "جارٍ تنفيذ المزامنة؛ لا تغلق التطبيق حتى تنتهي." else "تفعيلها يبدأ مزامنة فعلية، وإيقافها يمنع تفعيلها من الإعدادات."
+                        if (syncBusy) "جارٍ تنفيذ المزامنة؛ لا تغلق التطبيق حتى تنتهي." else "تفعيلها يبدأ مزامنة فعلية، وإيقافها يمنع تفعيلها من الإعدادات.",
+                        controlled = true
                     )
                     Text(
                         "الحالة: $cloudSyncStatus",
@@ -496,7 +497,8 @@ fun AppSettingsPage(
                                 store.putBoolean("lock_on_background", enabled)
                             }
                         },
-                        "يتطلب رمز PIN فعّالًا؛ سيطلبه التطبيق عند العودة من الخلفية."
+                        "يتطلب رمز PIN فعّالًا؛ سيطلبه التطبيق عند العودة من الخلفية.",
+                        controlled = true
                     )
                     SettingsSwitch("إخفاء المبالغ", hideAmounts, {hideAmounts=it;store.putBoolean("hide_amounts",it)})
                     SettingsSwitch("منع تصوير الشاشة", screenshotBlock, {screenshotBlock=it;store.putBoolean("prevent_screenshot",it)})
@@ -573,16 +575,25 @@ private fun SettingsGroup(id:String, title:String, description:String, expanded:
 }
 
 @Composable
-private fun SettingsSwitch(title:String, checked:Boolean, onChange:(Boolean)->Unit, description:String?=null) {
+private fun SettingsSwitch(
+    title: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    description: String? = null,
+    controlled: Boolean = false
+) {
     var displayedChecked by androidx.compose.runtime.remember(title, checked) {
         androidx.compose.runtime.mutableStateOf(checked)
     }
     Row(Modifier.fillMaxWidth().padding(vertical=4.dp), verticalAlignment=Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium); if(description!=null) Text(description,fontSize=10.sp,color=AppMuted) }
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium)
+            if (description != null) Text(description, fontSize=10.sp, color=AppMuted)
+        }
         Switch(
-            checked = displayedChecked,
+            checked = if (controlled) checked else displayedChecked,
             onCheckedChange = { enabled ->
-                displayedChecked = enabled
+                if (!controlled) displayedChecked = enabled
                 onChange(enabled)
             }
         )

@@ -389,7 +389,31 @@ fun AppSettingsPage(
             if (match("إشعارات", "تذكير", "نسخ احتياطي")) item {
                 SettingsGroup("notifications", "🔔 الإشعارات والتذكيرات", "كل ما يتعلق بالتنبيهات الدورية", expanded, ::toggle) {
                     SettingsSwitch("تذكير تسجيل العمل", reminderEnabled, onReminderChange, "يُستخدم نظام التذكير الحالي في التطبيق")
-                    SettingsChoice("وقت التذكير", reminderTime, reminderTime) { reminderTime = if (reminderTime == "20:00") "18:00" else "20:00"; store.putString("reminder_time", reminderTime); if (reminderEnabled) WorkReminderScheduler.schedule(context) }
+                    NotebkSecondaryAction("اختيار وقت التذكير اليومي: $reminderTime") {
+                        val parts = reminderTime.split(":")
+                        val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 20
+                        val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, selectedHour, selectedMinute ->
+                                reminderTime = "%02d:%02d".format(java.util.Locale.US, selectedHour, selectedMinute)
+                                store.putString("reminder_time", reminderTime)
+                                if (reminderEnabled) {
+                                    runCatching { WorkReminderScheduler.schedule(context) }
+                                        .onFailure { error ->
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "تعذر تحديث وقت التذكير: ${error.message ?: "خطأ غير معروف"}",
+                                                android.widget.Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                }
+                            },
+                            hour,
+                            minute,
+                            true
+                        ).show()
+                    }
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })
@@ -491,7 +515,7 @@ fun AppSettingsPage(
 
             if (match("صفحات", "رئيسية", "FAB", "Drawer", "تنقل")) item {
                 SettingsGroup("pages", "📄 تنظيم الصفحات والواجهة", "تحكم في الشاشة الابتدائية وعناصر التنقل", expanded, ::toggle) {
-                    SettingsChoice("الصفحة الافتراضية", defaultPage, defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
+                    SettingsChoice("الصفحة الافتراضية", if (defaultPage == "home") "الرئيسية" else "التسجيل اليومي", defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
                     SettingsSwitch("إظهار شريط البحث", showSearch, {showSearch=it;store.putBoolean("show_search",it)})
                     SettingsSwitch("إظهار زر الإضافة السريع", showFab, {showFab=it;store.putBoolean("show_fab",it)})
                     SettingsSwitch("إظهار Drawer", showDrawer, { showDrawer = it; store.putBoolean("show_drawer", it) })

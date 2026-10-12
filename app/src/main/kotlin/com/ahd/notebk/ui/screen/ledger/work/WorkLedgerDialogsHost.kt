@@ -147,6 +147,7 @@ fun WorkLedgerDialogsHost(
     showPdfRangeDialog: Boolean,
     showShopSettings: Boolean,
     showAppSettings: Boolean,
+    cloudSyncOnly: Boolean = false,
     showSystemSettings: Boolean,
     shopSettingsTargetId: Long?,
     activeExpenseDay: DayRecord?,
@@ -179,6 +180,7 @@ fun WorkLedgerDialogsHost(
     onShowPdfRangeDialog: (Boolean) -> Unit,
     onShowShopSettings: (Boolean) -> Unit,
     onShowAppSettings: (Boolean) -> Unit,
+    onCloudSyncOnlyChange: (Boolean) -> Unit = {},
     onShowSystemSettings: (Boolean) -> Unit,
     onActiveExpenseDay: (DayRecord?) -> Unit,
     onNewShopName: (String) -> Unit,
@@ -778,6 +780,7 @@ fun WorkLedgerDialogsHost(
     if (showAppSettings) {
         AppSettingsPage(
             reminderEnabled = reminderEnabled,
+            initialSearch = if (cloudSyncOnly) "مزامنة" else "",
             darkTheme = darkTheme,
             onReminderChange = { enabled ->
                 prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
@@ -788,11 +791,11 @@ fun WorkLedgerDialogsHost(
                 onDarkThemeChange(enabled)
                 prefs.edit().putBoolean("dark_theme", enabled).putBoolean("theme_mode_dark", enabled).apply()
             },
-            onSecurity = { onShowAppSettings(false); onSecurity() },
-            onSystemSettings = { onShowAppSettings(false); onShowSystemSettings(true) },
-            onAccountAuth = { onShowAppSettings(false); onAccountAuth() },
-            onHelp = { onShowAppSettings(false); onHelp() },
-            onBack = { onShowAppSettings(false) }
+            onSecurity = { onShowAppSettings(false); onCloudSyncOnlyChange(false); onSecurity() },
+            onSystemSettings = { onShowAppSettings(false); onCloudSyncOnlyChange(false); onShowSystemSettings(true) },
+            onAccountAuth = { onShowAppSettings(false); onCloudSyncOnlyChange(false); onAccountAuth() },
+            onHelp = { onShowAppSettings(false); onCloudSyncOnlyChange(false); onHelp() },
+            onBack = { onShowAppSettings(false); onCloudSyncOnlyChange(false) }
         )
     }
 

@@ -367,12 +367,12 @@ internal fun MainLedger(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    if (hideAmounts || day.expense == 0) "" else day.expense.toString(),
+                                    if (hideAmounts) "••••" else if (day.expense == 0) "" else day.expense.toString(),
                                     fontSize = 10.sp
                                 )
                             }
                             CellText(
-                                if (hideAmounts || earned == 0) "" else dayTotal.toString(),
+                                if (hideAmounts) "••••" else if (earned == 0) "" else dayTotal.toString(),
                                 wTotal,
                                 rowH,
                                 LightBlue,
@@ -399,7 +399,7 @@ internal fun MainLedger(
                     }
 
                     CellText(
-                        if (hideAmounts || totalExpenses == 0) "" else totalExpenses.toString(),
+                        if (hideAmounts) "••••" else if (totalExpenses == 0) "" else totalExpenses.toString(),
                         wExpense,
                         34.dp,
                         Color(0xFFFFE58F),

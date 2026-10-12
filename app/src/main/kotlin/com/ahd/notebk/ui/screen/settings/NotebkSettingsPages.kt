@@ -389,7 +389,9 @@ fun AppSettingsPage(
             if (match("إشعارات", "تذكير", "نسخ احتياطي")) item {
                 SettingsGroup("notifications", "🔔 الإشعارات والتذكيرات", "كل ما يتعلق بالتنبيهات الدورية", expanded, ::toggle) {
                     SettingsSwitch("تذكير تسجيل العمل", reminderEnabled, onReminderChange, "يُستخدم نظام التذكير الحالي في التطبيق")
-                    NotebkSecondaryAction("اختيار وقت التذكير اليومي: $reminderTime") {
+                    NotebkSecondaryAction(
+                        "اختيار وقت التذكير اليومي: $reminderTime",
+                        onClick = {
                         val parts = reminderTime.split(":")
                         val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 20
                         val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
@@ -413,7 +415,8 @@ fun AppSettingsPage(
                             minute,
                             true
                         ).show()
-                    }
+                        }
+                    )
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })

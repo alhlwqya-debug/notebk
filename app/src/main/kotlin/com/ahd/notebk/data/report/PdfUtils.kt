@@ -29,21 +29,22 @@ internal fun applyReportPreferences(context: Context, sourceHtml: String): Strin
     val settings = NotebkSettingsStore(context)
     var html = sourceHtml
     val css = buildString {
-        if (!settings.getBoolean("report_header", true)) append(".top{display:none!important;}\n")
+        if (!settings.getBoolean("report_header", true)) append(".top,.header{display:none!important;}\n")
         if (!settings.getBoolean("report_footer", true)) append(".footer{display:none!important;}\n")
-        if (!settings.getBoolean("report_logo", true)) append(".top img{display:none!important;}\n")
+        if (!settings.getBoolean("report_logo", true)) append(".top img,.header img{display:none!important;}\n")
         if (!settings.getBoolean("report_shop_data", true)) append(".profile{display:none!important;}\n")
         val orientation = settings.getString("paper_orientation", "portrait")
         val size = settings.getString("paper_size", "A4")
         append("@page{size:$size $orientation;}\n")
     }
     html = html.replace("</style>", "$css</style>")
-    val customTitle = settings.getString("report_title", "").trim()
+    val customTitle = settings.getString("report_title", "التقرير الشهري").trim()
     if (customTitle.isNotEmpty()) {
         val safeTitle = escapeHtml(customTitle)
-        val titleMatch = Regex("""<div class=['"]top-title['"]>.*?</div>""").find(html)
+        val titleMatch = Regex("""<div class=['"](top-title|title)['"]>.*?</div>""").find(html)
         if (titleMatch != null) {
-            html = html.replaceRange(titleMatch.range, "<div class='top-title'>$safeTitle</div>")
+            val titleClass = titleMatch.groupValues[1]
+            html = html.replaceRange(titleMatch.range, "<div class='$titleClass'>$safeTitle</div>")
         }
     }
     val customFooter = settings.getString("report_footer_text", "").trim()

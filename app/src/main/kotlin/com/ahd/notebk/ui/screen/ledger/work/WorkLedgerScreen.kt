@@ -207,6 +207,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showPdfRangeDialog by remember { mutableStateOf(false) }
     var showSecurityDialog by remember { mutableStateOf(false) }
+    var showAccountSecurityDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
     var appPinEnabled by remember { mutableStateOf(hasAppPin(context)) }
     var lockedByBackground by remember { mutableStateOf(false) }
@@ -568,7 +569,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         },
         onSecurity = { showAppSettings = false; showSecurityDialog = true },
         onSystemSettings = { showAppSettings = false; showSystemSettings = true },
-        onAccountAuth = { showAppSettings = false; onOpenAuth() }, onHelp = { showAppSettings = false; showHelp = true },
+        onAccountAuth = { showAppSettings = false; showAccountSecurityDialog = true }, onHelp = { showAppSettings = false; showHelp = true },
         onBackAppSettings = { showAppSettings = false }, onBackShopSettings = { showShopSettings = false },
         refreshAll = { refreshAll() }, reloadBundle = { reloadBundle() }, reloadMonths = { reloadMonths() }, reloadShops = { reloadShops() },
         dataRevision = dataRevision, onDataRevisionChange = { dataRevision++ },
@@ -586,6 +587,20 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 reloadShops()
                 showRegistrationSettings = false
                 Toast.makeText(context, "تم حفظ طريقة تسجيل العمل", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showAccountSecurityDialog) {
+        com.ahd.notebk.ui.screen.settings.AccountSecurityDialog(
+            onDismiss = { showAccountSecurityDialog = false },
+            onOpenAuth = {
+                showAccountSecurityDialog = false
+                onOpenAuth()
+            },
+            onSignedOut = {
+                showAccountSecurityDialog = false
+                onOpenAuth()
             }
         )
     }

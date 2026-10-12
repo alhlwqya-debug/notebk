@@ -137,12 +137,14 @@ internal object SupabaseSyncManager {
         // A local ledger has no per-row owner column. Bind it to the first account used
         // for cloud sync to prevent accidentally uploading one account's local data to another.
         val identityPrefs = context.getSharedPreferences("sync_identity", Context.MODE_PRIVATE)
-        val boundUserId = identityPrefs.getString("sync_owner_user_id", null)
+        // Each account has its own local database; keep sync ownership metadata per account.
+        val ownerKey = "sync_owner_user_id_${session.userId}"
+        val boundUserId = identityPrefs.getString(ownerKey, null)
         if (boundUserId != null && boundUserId != session.userId) {
-            throw IllegalStateException("بيانات هذا الجهاز مرتبطة بحساب آخر. أوقفنا المزامنة لمنع خلط بيانات الحسابات.")
+            throw IllegalStateException("تعذر التحقق من ملكية بيانات المزامنة لهذا الحساب.")
         }
         if (boundUserId == null) {
-            check(identityPrefs.edit().putString("sync_owner_user_id", session.userId).commit()) {
+            check(identityPrefs.edit().putString(ownerKey, session.userId).commit()) {
                 "تعذر حفظ هوية حساب المزامنة على هذا الجهاز."
             }
         }
@@ -400,11 +402,12 @@ private object LocalSyncSnapshot {
         }
         val profiles = JSONArray().put(JSONObject().apply {
             put("user_id", userId)
-            put("display_name", context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).getString("user_name", "").orEmpty())
-            put("phone", context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).getString("user_phone", "").orEmpty())
-            put("email", context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).getString("user_email", "").orEmpty())
-            put("shop_name", context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).getString("user_shop", "").orEmpty())
-            put("avatar_path", context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).getString("user_image", "").orEmpty())
+            val profilePrefs = com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context, userId)
+            put("display_name", profilePrefs.getString("user_name", "").orEmpty())
+            put("phone", profilePrefs.getString("user_phone", "").orEmpty())
+            put("email", profilePrefs.getString("user_email", "").orEmpty())
+            put("shop_name", profilePrefs.getString("user_shop", "").orEmpty())
+            put("avatar_path", profilePrefs.getString("user_image", "").orEmpty())
         })
         val shops = rows("SELECT id,name,default_worker_id,registration_mode,registration_number FROM shops") { o, c ->
             val id = c.getLong(0); shopKeys[id] = key("shops", id); o.put("user_id", userId).put("legacy_id", id).put("record_key", key("shops", id)).put("source_device_id", deviceId).put("name", c.getString(1)).put("default_worker_legacy_id", if (c.isNull(2)) JSONObject.NULL else c.getLong(2)).put("registration_mode", c.getString(3)).put("registration_number", c.getString(4))

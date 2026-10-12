@@ -280,7 +280,7 @@ internal fun SecuritySettingsDialog(
 
 private const val INTERNAL_BACKUP_DIR = "internal_backups"
 private const val INTERNAL_BACKUP_PREFIX = "notebk_auto_"
-private const val MAX_INTERNAL_BACKUPS = 7
+private const val MAX_INTERNAL_BACKUPS = 10
 
 /**
  * Creates a private automatic backup before destructive operations and from

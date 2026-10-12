@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.individual.work
 import com.ahd.notebk.ui.components.*
 import com.ahd.notebk.data.local.LedgerDatabase
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import com.ahd.notebk.domain.model.*
 
 
@@ -51,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +105,23 @@ internal fun IndividualLedger(
 ) {
     val context = LocalContext.current
     val horizontal = rememberScrollState()
+    val settingsStore = remember(context) { NotebkSettingsStore(context) }
+    val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE) }
+    var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
+    var showSearch by remember { mutableStateOf(settingsStore.getBoolean("show_search", true)) }
+    DisposableEffect(settingsPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "hide_amounts") hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+            if (key == "show_total_row") showTotalRow = settingsStore.getBoolean("show_total_row", true)
+            if (key == "show_search") {
+                showSearch = settingsStore.getBoolean("show_search", true)
+                if (!showSearch) searchOpen = false
+            }
+        }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     val years = remember(months) { months.map { it.year }.distinct().sortedDescending() }
     var selectedYear by remember(months, selectedMonthId) {
         mutableStateOf(
@@ -404,6 +423,7 @@ internal fun IndividualLedger(
         Spacer(Modifier.height(6.dp))
 
         // البحث الموحد في التسجيل الفردي: الاسم أو رقم الصفحة مع تطبيع عربي متسامح مع الهمزات والنقاط.
+        if (showSearch) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -434,6 +454,7 @@ internal fun IndividualLedger(
                     Icon(Icons.Default.Close, contentDescription = "مسح", tint = Color.Gray, modifier = Modifier.size(16.dp))
                 }
             }
+        }
         }
 
         if (searchOpen && customerSearch.trim().length >= 2) {
@@ -564,9 +585,9 @@ internal fun IndividualLedger(
         Spacer(Modifier.height(5.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            SummaryCard("الإنتاج", earned.toString(), CardWorkBg, Green, Modifier.weight(1f))
-            SummaryCard("المصروف", expense.toString(), CardExpBg, Red, Modifier.weight(1f))
-            SummaryCard("الصافي", net.toString(), CardNetBg, Blue, Modifier.weight(1f))
+            SummaryCard("الإنتاج", if (hideAmounts) "••••" else earned.toString(), CardWorkBg, Green, Modifier.weight(1f))
+            SummaryCard("المصروف", if (hideAmounts) "••••" else expense.toString(), CardExpBg, Red, Modifier.weight(1f))
+            SummaryCard("الصافي", if (hideAmounts) "••••" else net.toString(), CardNetBg, Blue, Modifier.weight(1f))
             SummaryCard("الزبائن", totalCustomers.toString(), Color(0xFFFFF3E0), Orange, Modifier.weight(1f))
         }
 
@@ -666,7 +687,7 @@ internal fun IndividualLedger(
                                 )
                             }
                             CellText(
-                                if (entryTotal == 0) "" else entryTotal.toString(),
+                                if (hideAmounts) "••••" else if (entryTotal == 0) "" else entryTotal.toString(),
                                 IndividualTotalWidth,
                                 rowH,
                                 LightBlue,
@@ -735,17 +756,19 @@ internal fun IndividualLedger(
                                 }
                         )
                     }
-                    CellText(net.toString(), IndividualActionWidth, 38.dp, HeaderBlue, bold = true, size = 8)
+                    CellText(if (hideAmounts) "••••" else net.toString(), IndividualActionWidth, 38.dp, HeaderBlue, bold = true, size = 8)
                 }
 
-                Row {
-                    CellText("إجمالي اليوم", CustomerWidth + PageWidth, 38.dp, Color(0xFFFFE58F), bold = true, size = 10)
-                    pieces.forEach { piece ->
-                        val count = entries.fold(0) { total, entry -> total + (entry.quantities[piece.id] ?: 0) }
-                        CellText(if (count == 0) "" else count.toString(), IndividualPieceWidth, 38.dp, Color(0xFFFFE58F), bold = true)
+                if (showTotalRow) {
+                    Row {
+                        CellText("إجمالي اليوم", CustomerWidth + PageWidth, 38.dp, Color(0xFFFFE58F), bold = true, size = 10)
+                        pieces.forEach { piece ->
+                            val count = entries.fold(0) { total, entry -> total + (entry.quantities[piece.id] ?: 0) }
+                            CellText(if (count == 0) "" else count.toString(), IndividualPieceWidth, 38.dp, Color(0xFFFFE58F), bold = true)
+                        }
+                        CellText(if (hideAmounts) "••••" else earned.toString(), IndividualTotalWidth, 38.dp, HeaderBlue, bold = true)
+                        CellText("", IndividualActionWidth, 38.dp, Color(0xFFFFE58F))
                     }
-                    CellText(earned.toString(), IndividualTotalWidth, 38.dp, HeaderBlue, bold = true)
-                    CellText("", IndividualActionWidth, 38.dp, Color(0xFFFFE58F))
                 }
             }
         }

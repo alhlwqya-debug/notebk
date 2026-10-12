@@ -149,7 +149,13 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     // ===== حالة واجهة المستخدم =====
     val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
-    val initialPage = remember { centralSettings.getString("default_page", "home") }
+    val initialPage = remember {
+        if (centralSettings.getBoolean("remember_page", true)) {
+            centralSettings.getString("last_page", centralSettings.getString("default_page", "home"))
+        } else {
+            centralSettings.getString("default_page", "home")
+        }
+    }
     var drawerOpen by remember { mutableStateOf(false) }
     var showDashboard by remember { mutableStateOf(initialPage == "home") }
     var dataRevision by remember { mutableStateOf(0) }
@@ -178,6 +184,18 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showFeatureHub by remember { mutableStateOf(false) }
     var shopSettingsTargetId by remember { mutableStateOf<Long?>(null) }
     var openDailyWorkRequested by remember { mutableStateOf(initialPage == "daily") }
+    // Persist the actual destination, including the daily-entry screen, instead of
+    // overwriting it as a generic ledger page during the first composition.
+    LaunchedEffect(showDashboard, openDailyWorkRequested) {
+        if (centralSettings.getBoolean("remember_page", true)) {
+            val page = when {
+                showDashboard -> "home"
+                openDailyWorkRequested -> "daily"
+                else -> "ledger"
+            }
+            centralSettings.putString("last_page", page)
+        }
+    }
     var reminderEnabled by remember { mutableStateOf(prefs.getBoolean("daily_reminder_enabled", false)) }
     var darkTheme by remember { mutableStateOf(prefs.getBoolean("dark_theme", false)) }
     var showClearDialog by remember { mutableStateOf(false) }
@@ -190,6 +208,20 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showSecurityDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
     var appPinEnabled by remember { mutableStateOf(hasAppPin(context)) }
+    var lockedByBackground by remember { mutableStateOf(false) }
+    val lifecycleOwner = context as? androidx.lifecycle.LifecycleOwner
+    DisposableEffect(lifecycleOwner, appPinEnabled) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP &&
+                centralSettings.getBoolean("lock_on_background", false) &&
+                hasAppPin(context)
+            ) {
+                lockedByBackground = true
+            }
+        }
+        lifecycleOwner?.lifecycle?.addObserver(observer)
+        onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
+    }
     var registrationMode by remember(selectedShopId, shops) {
         mutableStateOf(
             shops.firstOrNull { it.id == selectedShopId }?.registrationMode
@@ -298,6 +330,11 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     // ===== فتح الملف الشخصي إذا كان الاسم فارغاً =====
     LaunchedEffect(Unit) {
+        // Keep the legacy reminder preference and the central settings store synchronized.
+        centralSettings.putBoolean("daily_reminder_enabled", reminderEnabled)
+        if (reminderEnabled) runCatching { WorkReminderScheduler.schedule(context) }
+        else runCatching { WorkReminderScheduler.cancel(context) }
+
         // ترحيل إعداد النوع القديم مرة واحدة إلى كل محل موجود، ثم يصبح النوع مستقلاً لكل محل.
         if (!prefs.getBoolean("shop_modes_migrated_v4", false)) {
             val oldMode = runCatching {
@@ -331,7 +368,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             WorkLedgerDashboardHost(
                 database = database, shops = shops, selectedShopId = selectedShopId,
                 userName = userName, refreshKey = dataRevision,
-                onMenu = { drawerOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true },
                 onOpenLedger = { showDashboard = false; openDailyWorkRequested = false; dataRevision++ },
                 onOpenDailyWork = { showDashboard = false; openDailyWorkRequested = true; dataRevision++ },
                 onAddShop = {
@@ -355,13 +392,13 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     newShopMode = RegistrationMode.NUMERIC
                     showShopDialog = true
                 },
-                onMenu = { drawerOpen = true }
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true }
             )
         } else if (currentBundle == null) {
             EmptyMonthState(
                 shopName = currentShop?.name ?: "",
                 userName = userName,
-                onMenu = { drawerOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true },
                 onAddMonth = {
                     newYear = Calendar.getInstance().get(Calendar.YEAR).toString()
                     newMonthNumber = (Calendar.getInstance().get(Calendar.MONTH) + 1).toString()
@@ -376,7 +413,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 selectedShopId = selectedShopId, selectedMonthId = selectedMonthId,
                 registrationMode = registrationMode, userName = userName,
                 shopMenuOpen = shopMenuOpen, openDailyWorkRequested = openDailyWorkRequested,
-                onMenu = { drawerOpen = true }, onShopMenu = { shopMenuOpen = true },
+                onMenu = { if (centralSettings.getBoolean("show_drawer", true)) drawerOpen = true else showFeatureHub = true }, onShopMenu = { shopMenuOpen = true },
                 onSelectShop = { id ->
                     selectedShopId = id
                     registrationMode = database.getShops().firstOrNull { it.id == id }?.registrationMode ?: RegistrationMode.NUMERIC
@@ -607,6 +644,15 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             userName = userName,
             onDismiss = { showStatistics = false }
         )
+    }
+
+    if (lockedByBackground && hasAppPin(context)) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = androidx.compose.material3.MaterialTheme.colorScheme.background
+        ) {
+            AppLockScreen(context) { lockedByBackground = false }
+        }
     }
 }
 }

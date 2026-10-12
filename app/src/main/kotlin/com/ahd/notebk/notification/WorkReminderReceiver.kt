@@ -24,7 +24,10 @@ class WorkReminderReceiver : BroadcastReceiver() {
 
         // Automatic backups are opt-in and run only with the daily reminder schedule.
         if (settings.getBoolean("auto_backup", false)) {
-            createInternalAutoBackup(appContext)
+            val backupCreated = createInternalAutoBackup(appContext)
+            if (backupCreated && settings.getBoolean("backup_notification", true)) {
+                showBackupNotification(appContext)
+            }
         }
 
         val database = LedgerDatabase(appContext)
@@ -37,6 +40,46 @@ class WorkReminderReceiver : BroadcastReceiver() {
         }
 
         WorkReminderScheduler.schedule(appContext)
+    }
+
+    private fun showBackupNotification(context: Context) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = WorkReminderScheduler.CHANNEL_ID
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "تذكير تسجيل العمل",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            manager.createNotificationChannel(channel)
+        }
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            WorkReminderScheduler.OPEN_APP_REQUEST_CODE + 1,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val settings = NotebkSettingsStore(context)
+        val builder = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_save)
+            .setContentTitle("اكتمل النسخ الاحتياطي")
+            .setContentText("تم إنشاء نسخة احتياطية محلية من دفتر الخياط.")
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        if (settings.getBoolean("notification_sound", true)) builder.setDefaults(NotificationCompat.DEFAULT_SOUND)
+        if (settings.getBoolean("notification_vibrate", true)) builder.setVibrate(longArrayOf(0, 180, 100, 180))
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            androidx.core.app.ActivityCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            manager.notify(2004, builder.build())
+        }
     }
 
     private fun showNotification(context: Context) {

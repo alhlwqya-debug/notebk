@@ -49,6 +49,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.DisposableEffect
 import com.ahd.notebk.data.local.LedgerDatabase
 import com.ahd.notebk.domain.model.MonthBundle
 import com.ahd.notebk.domain.model.RegistrationMode
@@ -111,6 +113,24 @@ fun HomeDashboard(
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
+
+    // Settings are observed rather than read once, so returning from Settings applies them immediately.
+    val context = LocalContext.current
+    val settingsPrefs = remember(context) {
+        context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE)
+    }
+    var hideAmounts by remember { mutableStateOf(settingsPrefs.getBoolean("hide_amounts", false)) }
+    var showSearch by remember { mutableStateOf(settingsPrefs.getBoolean("show_search", true)) }
+    DisposableEffect(settingsPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            when (key) {
+                "hide_amounts" -> hideAmounts = prefs.getBoolean("hide_amounts", false)
+                "show_search" -> showSearch = prefs.getBoolean("show_search", true)
+            }
+        }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun reload() {
         val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } } ?: shops
@@ -223,13 +243,13 @@ fun HomeDashboard(
                 ) {
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-                            DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp)
-                            DashboardStat("المصروفات", totals.expense, CardExpBg, Red, Modifier.weight(1f), Icons.Default.TrendingDown)
+                            DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp, hideAmounts)
+                            DashboardStat("المصروفات", totals.expense, CardExpBg, Red, Modifier.weight(1f), Icons.Default.TrendingDown, hideAmounts)
                         }
                         Spacer(Modifier.height(7.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-                            DashboardStat("الصافي", totals.net, CardNetBg, Blue, Modifier.weight(1f), Icons.Default.Wallet)
-                            DashboardStat("القطع", totals.pieces, Color(0xFFFFF4DD), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth)
+                            DashboardStat("الصافي", totals.net, CardNetBg, Blue, Modifier.weight(1f), Icons.Default.Wallet, hideAmounts)
+                            DashboardStat("القطع", totals.pieces, Color(0xFFFFF4DD), Orange, Modifier.weight(1f), Icons.Default.CalendarMonth, false)
                         }
                     }
                     item {
@@ -315,20 +335,22 @@ fun HomeDashboard(
                             Spacer(Modifier.height(8.dp))
                             Text("${totals.months} شهر • ${totals.days} يوم مسجل", color = AppMuted, fontSize = 11.sp)
                             Spacer(Modifier.height(10.dp))
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = { query = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                label = { Text("بحث في السجل") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                                FilterButton("الكل", filter == ActivityFilter.ALL, { filter = ActivityFilter.ALL }, Modifier.weight(1f))
-                                FilterButton("الإيرادات", filter == ActivityFilter.INCOME, { filter = ActivityFilter.INCOME }, Modifier.weight(1f))
-                                FilterButton("المصروفات", filter == ActivityFilter.EXPENSE, { filter = ActivityFilter.EXPENSE }, Modifier.weight(1f))
+                            if (showSearch) {
+                                OutlinedTextField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                    label = { Text("بحث في السجل") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                    FilterButton("الكل", filter == ActivityFilter.ALL, { filter = ActivityFilter.ALL }, Modifier.weight(1f))
+                                    FilterButton("الإيرادات", filter == ActivityFilter.INCOME, { filter = ActivityFilter.INCOME }, Modifier.weight(1f))
+                                    FilterButton("المصروفات", filter == ActivityFilter.EXPENSE, { filter = ActivityFilter.EXPENSE }, Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -342,7 +364,7 @@ fun HomeDashboard(
                             }
                         }
                     } else {
-                        items(filteredActivities, key = { "${it.date}-${it.monthName}-${it.earned}-${it.expense}" }) { activity -> ActivityRow(activity) }
+                        items(filteredActivities, key = { "${it.date}-${it.monthName}-${it.earned}-${it.expense}" }) { activity -> ActivityRow(activity, hideAmounts) }
                     }
                 }
             }
@@ -351,7 +373,7 @@ fun HomeDashboard(
 }
 
 @Composable
-private fun DashboardStat(title: String, value: Int, background: Color, accent: Color, modifier: Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun DashboardStat(title: String, value: Int, background: Color, accent: Color, modifier: Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector, hideValue: Boolean) {
     Column(modifier.background(background, RoundedCornerShape(17.dp)).padding(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(19.dp))
@@ -359,7 +381,7 @@ private fun DashboardStat(title: String, value: Int, background: Color, accent: 
             Text(title, color = AppMuted, fontSize = 11.sp)
         }
         Spacer(Modifier.height(5.dp))
-        Text(value.toString(), color = accent, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+        Text(if (hideValue) "••••" else value.toString(), color = accent, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
     }
 }
 
@@ -378,7 +400,7 @@ private fun FilterButton(text: String, selected: Boolean, onClick: () -> Unit, m
 }
 
 @Composable
-private fun ActivityRow(activity: DashboardActivity) {
+private fun ActivityRow(activity: DashboardActivity, hideAmounts: Boolean) {
     Row(
         Modifier.fillMaxWidth().background(AppSurface, RoundedCornerShape(15.dp)).border(1.dp, AppBorder, RoundedCornerShape(15.dp)).padding(11.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -393,8 +415,8 @@ private fun ActivityRow(activity: DashboardActivity) {
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            if (activity.earned > 0) Text("+${activity.earned}", color = Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            if (activity.expense > 0) Text("-${activity.expense}", color = Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            if (activity.earned > 0) Text(if (hideAmounts) "••••" else "+${activity.earned}", color = Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            if (activity.expense > 0) Text(if (hideAmounts) "••••" else "-${activity.expense}", color = Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

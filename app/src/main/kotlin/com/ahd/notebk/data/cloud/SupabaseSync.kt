@@ -375,7 +375,9 @@ private object SupabaseHttp {
 
 private object LocalSyncSnapshot {
     fun read(context: Context, userId: String, deviceId: String): Map<String, JSONArray> {
-        val db = LedgerDatabase(context).readableDatabase
+        val helper = LedgerDatabase(context)
+        val db = helper.readableDatabase
+        try {
         val shopKeys = mutableMapOf<Long, String>()
         val workerKeys = mutableMapOf<Long, String>()
         val monthKeys = mutableMapOf<Long, String>()
@@ -434,5 +436,8 @@ private object LocalSyncSnapshot {
             "pieces" to pieces, "days" to days, "entries" to entries, "individual_entries" to individual,
             "individual_entry_items" to items
         )
+        } finally {
+            helper.close()
+        }
     }
 }

@@ -4,6 +4,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import com.ahd.notebk.ui.components.setNotebkPalette
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
@@ -48,6 +50,7 @@ private val NotebkDarkColors = darkColorScheme(
 
 @Composable
 fun NotebkTheme(darkTheme: Boolean = false, content: @Composable () -> Unit) {
+    SideEffect { setNotebkPalette(darkTheme) }
     MaterialTheme(
         colorScheme = if (darkTheme) NotebkDarkColors else NotebkLightColors,
         typography = NotebkTypography,

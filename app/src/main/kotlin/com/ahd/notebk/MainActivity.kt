@@ -17,6 +17,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.ahd.notebk.ui.screen.ledger.work.WorkLedgerScreen
 import com.ahd.notebk.ui.screen.auth.AuthScreen
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
             val centralSettings = remember { NotebkSettingsStore(applicationContext) }
             val centralPrefs = getSharedPreferences("notebk_settings", Context.MODE_PRIVATE)
             var darkTheme by remember { mutableStateOf(settingsPrefs.getBoolean("dark_theme", centralSettings.getString("theme_mode", "light") == "dark")) }
+            var fontScale by remember { mutableStateOf(centralSettings.getFloat("font_scale", 1f).coerceIn(0.8f, 1.4f)) }
             var secureScreen by remember { mutableStateOf(centralSettings.getBoolean("prevent_screenshot", false)) }
             DisposableEffect(settingsPrefs, centralPrefs) {
                 val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -51,6 +54,7 @@ class MainActivity : ComponentActivity() {
                 val centralListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                     if (key == "prevent_screenshot") secureScreen = centralSettings.getBoolean("prevent_screenshot", false)
                     if (key == "theme_mode") darkTheme = centralSettings.getString("theme_mode", "light") == "dark"
+                    if (key == "font_scale") fontScale = centralSettings.getFloat("font_scale", 1f).coerceIn(0.8f, 1.4f)
                 }
                 centralPrefs.registerOnSharedPreferenceChangeListener(centralListener)
                 onDispose {
@@ -63,7 +67,14 @@ class MainActivity : ComponentActivity() {
                 else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
             NotebkTheme(darkTheme = darkTheme) {
-                Surface(Modifier.fillMaxSize()) {
+                val systemDensity = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(
+                        density = systemDensity.density,
+                        fontScale = systemDensity.fontScale * fontScale
+                    )
+                ) {
+                    Surface(Modifier.fillMaxSize()) {
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                         var showSplash by remember { mutableStateOf(true) }
                         var showAuth by remember { mutableStateOf(false) }
@@ -86,6 +97,7 @@ class MainActivity : ComponentActivity() {
                         } else {
                             WorkLedgerScreen(onOpenAuth = { authFromSettings = true; showAuth = true })
                         }
+                    }
                     }
                 }
             }

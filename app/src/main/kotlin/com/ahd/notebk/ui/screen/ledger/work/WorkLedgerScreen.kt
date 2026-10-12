@@ -487,12 +487,23 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             onPiecesPageChange = { showPiecesPage = it }, onReportsPageChange = { showReportsPage = it },
             onStatisticsPageChange = { showStatisticsPage = it }, onAboutChange = { showAbout = it },
             onHelpChange = { showHelp = it }, onShopSettingsChange = { showShopSettings = it },
-            onAppSettingsChange = { showAppSettings = it }, onDeleteShopDialogChange = { showDeleteShopDialog = it },
+            onAppSettingsChange = { enabled ->
+                if (enabled) {
+                    showAppSettings = false
+                    showControlCenter = true
+                } else {
+                    showAppSettings = false
+                    showControlCenter = false
+                }
+            }, onDeleteShopDialogChange = { showDeleteShopDialog = it },
             onFeatureHubChange = { showFeatureHub = it }, onControlCenterChange = { showControlCenter = it },
             onShopSettingsTargetChange = { shopSettingsTargetId = it },
             onNewShop = { newShopName = ""; newShopRegistrationNumber = ""; newShopMode = RegistrationMode.NUMERIC; showShopDialog = true },
             onProfile = { showUserProfile = true }, onRefreshRevision = { dataRevision++ },
-            onOpenAuth = onOpenAuth, onSecurity = { showSecurityDialog = true },
+            onOpenAuth = onOpenAuth,
+            onAccountSecurity = { showAccountSecurityDialog = true },
+            onCloudSync = { showAppSettings = true },
+            onSecurity = { showSecurityDialog = true },
             onRegistrationSettings = { showRegistrationSettings = selectedShopId != null }
         )
 

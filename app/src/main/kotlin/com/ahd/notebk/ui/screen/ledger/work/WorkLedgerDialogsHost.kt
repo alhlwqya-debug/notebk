@@ -245,7 +245,7 @@ fun WorkLedgerDialogsHost(
                         Toast.makeText(context, "أدخل رقم الهاتف أو البريد الإلكتروني", Toast.LENGTH_LONG).show()
                     }
                     else -> {
-                        prefs.edit()
+                        com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context).edit()
                             .putString("user_name", userName.trim())
                             .putString("user_phone", userPhone.trim())
                             .putString("user_email", userEmail.trim())

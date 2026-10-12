@@ -58,6 +58,8 @@ fun WorkLedgerDrawerHost(
     onProfile: () -> Unit,
     onRefreshRevision: () -> Unit,
     onOpenAuth: () -> Unit,
+    onAccountSecurity: () -> Unit,
+    onCloudSync: () -> Unit,
     onSecurity: () -> Unit,
     onRegistrationSettings: () -> Unit
 ) {
@@ -132,20 +134,23 @@ fun WorkLedgerDrawerHost(
                 shopName = shops.firstOrNull { it.id == selectedShopId }?.name.orEmpty(),
                 reminderEnabled = reminderEnabled,
                 onBack = { onControlCenterChange(false) },
-                onProfile = { onControlCenterChange(false); onProfile() },
+                // Keep the control center underneath settings pages so Back returns here.
+                onProfile = { onProfile() },
                 onShopSettings = {
-                    onControlCenterChange(false); onShopSettingsTargetChange(selectedShopId); onShopSettingsChange(selectedShopId != null)
+                    onShopSettingsTargetChange(selectedShopId)
+                    onShopSettingsChange(selectedShopId != null)
                 },
-                onRegistrationSettings = { onControlCenterChange(false); onRegistrationSettings() },
+                onRegistrationSettings = { onRegistrationSettings() },
                 onDailyWork = { onControlCenterChange(false); onDashboardChange(false); onDailyWorkRequestChange(true) },
                 onLedger = { onControlCenterChange(false); onDashboardChange(false); onDailyWorkRequestChange(false); onRefreshRevision() },
                 onMonths = { onControlCenterChange(false); onMonthsPageChange(true) },
                 onPieces = { onControlCenterChange(false); onPiecesPageChange(true) },
                 onReports = { onControlCenterChange(false); onReportsPageChange(true) },
                 onStatistics = { onControlCenterChange(false); onStatisticsPageChange(true) },
-                onSecurity = { onControlCenterChange(false); onSecurity() },
-                onAccountAuth = { onControlCenterChange(false); onOpenAuth() },
-                onAppSettings = { onControlCenterChange(false); onAppSettingsChange(true) }
+                onSecurity = { onSecurity() },
+                onAccountAuth = { onAccountSecurity() },
+                onCloudSync = { onAppSettingsChange(true) },
+                onAppSettings = { onAppSettingsChange(true) }
             )
         }
     }

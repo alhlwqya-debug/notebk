@@ -66,6 +66,7 @@ fun ControlCenterScreen(
     onStatistics: () -> Unit,
     onSecurity: () -> Unit,
     onAccountAuth: () -> Unit,
+    onCloudSync: () -> Unit,
     onAppSettings: () -> Unit
 ) {
     val primary = com.ahd.notebk.ui.components.NotebkBrandPurple
@@ -86,7 +87,7 @@ fun ControlCenterScreen(
         ControlItem("الملف الشخصي", "بيانات المستخدم والصورة وبيانات التقارير", Icons.Default.Person, onProfile),
         ControlItem("إعدادات المحل", "هوية المحل ورقم التسجيل وطريقة الحساب", Icons.Default.Storefront, onShopSettings),
         ControlItem("طريقة تسجيل العمل", "عددي أو فردي حسب طبيعة المحل", Icons.Default.Tune, onRegistrationSettings),
-        ControlItem("الحساب والمزامنة", "تسجيل الدخول أو إنشاء حساب أو متابعة كضيف", Icons.Default.AccountCircle, onAccountAuth)
+        ControlItem("الحساب والأمان", "معلومات الحساب وتغيير كلمة المرور وتسجيل الخروج", Icons.Default.AccountCircle, onAccountAuth)
     )
 
     LazyColumn(
@@ -147,6 +148,14 @@ fun ControlCenterScreen(
                 description = "التنبيهات والتفضيلات العامة ومكونات التطبيق",
                 icon = Icons.Default.Settings,
                 onClick = onAppSettings
+            )
+        }
+        item {
+            AppSettingItem(
+                title = "المزامنة السحابية",
+                description = "تفعيل المزامنة ومتابعة حالتها وإجراء مزامنة الآن",
+                icon = Icons.Default.Backup,
+                onClick = onCloudSync
             )
         }
         item {

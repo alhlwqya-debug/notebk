@@ -297,7 +297,7 @@ fun AppSettingsPage(
     var paperOrientation by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("paper_orientation", "portrait")) }
     var reportTitle by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_title", "التقرير الشهري")) }
     var reportFooterText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_footer_text", "")) }
-    var backupRetention by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(store.getInt("backup_retention", 10).coerceIn(1, 50)) }
+    var backupRetention by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getInt("backup_retention", 10).coerceIn(1, 50)) }
     var showDrawer by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_drawer", true)) }
     var rememberPage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("remember_page", true)) }
     var showTotalRow by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_total_row", true)) }
@@ -434,9 +434,7 @@ fun AppSettingsPage(
                     SettingsSwitch("إظهار التذييل", store.getBoolean("report_footer",true), {store.putBoolean("report_footer",it)})
                     SettingsSwitch("إظهار الشعار", store.getBoolean("report_logo",true), {store.putBoolean("report_logo",it)})
                     SettingsSwitch("إظهار بيانات المحل", store.getBoolean("report_shop_data",true), {store.putBoolean("report_shop_data",it)})
-                    SettingsSwitch("إظهار الرسم البياني", store.getBoolean("report_chart",true), {store.putBoolean("report_chart",it)})
-                    SettingsSwitch("إظهار الشهور الفارغة", store.getBoolean("report_empty_months",false), {store.putBoolean("report_empty_months",it)})
-                    SettingsSwitch("ضغط التقرير", store.getBoolean("report_compress",true), {store.putBoolean("report_compress",it)})
+                    Text("خيارات الرسم البياني والشهور الفارغة وضغط PDF غير متاحة في مولّد التقارير الحالي؛ أُخفيت بدلًا من عرض مفاتيح لا تغيّر النتيجة.", fontSize = 11.sp, color = AppMuted)
                     OutlinedTextField(reportTitle, { reportTitle = it; store.putString("report_title", it) }, label={Text("عنوان التقرير")}, singleLine=true, modifier=Modifier.fillMaxWidth())
                     OutlinedTextField(reportFooterText, { reportFooterText = it; store.putString("report_footer_text", it) }, label={Text("نص التذييل")}, modifier=Modifier.fillMaxWidth())
                 }

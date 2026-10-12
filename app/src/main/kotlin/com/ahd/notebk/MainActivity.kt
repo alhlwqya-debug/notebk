@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
                         } else if (showAuth) {
                             AuthScreen(
                                 allowBack = authFromSettings,
-                                onBack = { showAuth = false; authFromSettings = false },
+                                onBack = { activeAccountKey = com.ahd.notebk.data.local.AccountDataScope.accountKey(context); showAuth = false; authFromSettings = false },
                                 onContinue = {
                                     activeAccountKey = com.ahd.notebk.data.local.AccountDataScope.accountKey(context)
                                     showAuth = false

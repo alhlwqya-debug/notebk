@@ -190,7 +190,7 @@ internal object SupabaseSyncManager {
             }
         }
         val remote = downloadRemote(context, activeSession)
-        LocalSyncImporter.apply(context, remote, deviceId)
+        LocalSyncImporter.apply(context, remote, deviceId, activeSession.userId)
         SyncResult(uploaded, "تمت مزامنة $uploaded سجلًا على دفعات")
     }
 
@@ -219,7 +219,7 @@ internal object SupabaseSyncManager {
 }
 
 private object LocalSyncImporter {
-    fun apply(context: Context, remote: Map<String, JSONArray>, deviceId: String) {
+    fun apply(context: Context, remote: Map<String, JSONArray>, deviceId: String, userId: String) {
         // Keep a helper reference so the database handle is always released.
         val helper = LedgerDatabase(context)
         try {
@@ -301,7 +301,7 @@ private object LocalSyncImporter {
             ensure("individual_entry_items", text(o, "record_key"), id, ContentValues().apply { put("entry_id", entryId); put("piece_id", pieceId); put("quantity", o.optInt("quantity")); put("unit_price", o.optInt("unit_price")) })
         }
         remote["user_profiles"]?.optJSONObject(0)?.let { profile ->
-            context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE).edit()
+            com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context, userId).edit()
                 .putString("user_name", profile.optString("display_name", ""))
                 .putString("user_phone", profile.optString("phone", ""))
                 .putString("user_email", profile.optString("email", ""))

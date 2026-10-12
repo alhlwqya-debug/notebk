@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -82,6 +83,9 @@ class MainActivity : ComponentActivity() {
                         val context = androidx.compose.ui.platform.LocalContext.current
                         val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
                         val accountPrefs = remember { context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE) }
+                        var activeAccountKey by remember {
+                            mutableStateOf(com.ahd.notebk.data.local.AccountDataScope.accountKey(context))
+                        }
                         if (showSplash) {
                             SplashScreen {
                                 showAuth = authRepository.savedSession() == null && !accountPrefs.getBoolean("guest_mode", false)
@@ -92,10 +96,16 @@ class MainActivity : ComponentActivity() {
                             AuthScreen(
                                 allowBack = authFromSettings,
                                 onBack = { showAuth = false; authFromSettings = false },
-                                onContinue = { showAuth = false; authFromSettings = false }
+                                onContinue = {
+                                    activeAccountKey = com.ahd.notebk.data.local.AccountDataScope.accountKey(context)
+                                    showAuth = false
+                                    authFromSettings = false
+                                }
                             )
                         } else {
-                            WorkLedgerScreen(onOpenAuth = { authFromSettings = true; showAuth = true })
+                            key(activeAccountKey) {
+                                WorkLedgerScreen(onOpenAuth = { authFromSettings = true; showAuth = true })
+                            }
                         }
                     }
                     }

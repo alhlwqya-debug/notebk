@@ -65,7 +65,7 @@ fun ProfilePage(
 ) {
     val hasContact = userPhone.isNotBlank() || userEmail.isNotBlank()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val profileStore = androidx.compose.runtime.remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
+    val profileStore = androidx.compose.runtime.remember { com.ahd.notebk.data.local.AccountProfileStore(context) }
     var jobTitle by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_job_title")) }
     var bio by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_bio")) }
     var phoneAlt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_phone_alt")) }

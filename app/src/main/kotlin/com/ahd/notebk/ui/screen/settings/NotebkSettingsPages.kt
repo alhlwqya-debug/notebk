@@ -272,17 +272,10 @@ fun AppSettingsPage(
     val store = androidx.compose.runtime.remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
     var search by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(setOf("general", "notifications")) }
-    var currency by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_code", "YER")) }
     var symbol by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("currency_symbol", "ريال")) }
-    var decimalPlaces by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getInt("decimal_places", 0)) }
-    var dateFormat by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("date_format", "yyyy/MM/dd")) }
-    var timeFormat by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("time_format", "24h")) }
-    var reportLanguage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_language", "ar")) }
     var fontScale by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getFloat("font_scale", 1f)) }
-    var density by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("density", "normal")) }
     var showSearch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_search", true)) }
     var showFab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_fab", true)) }
-    var animations by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("animations_enabled", true)) }
     var autoBackup by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("auto_backup", false)) }
     var cloudSync by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("cloud_sync", false)) }
     var cloudSyncStatus by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("last_cloud_sync_message", "لم تتم المزامنة بعد")) }
@@ -351,15 +344,8 @@ fun AppSettingsPage(
         }
 
         // Refresh Compose state immediately; SharedPreferences alone does not recompose UI.
-        currency = "YER"
         symbol = "ريال"
-        decimalPlaces = 0
-        dateFormat = "yyyy/MM/dd"
-        timeFormat = "24h"
-        reportLanguage = "ar"
         fontScale = 1f
-        density = "normal"
-        animations = true
         showSearch = true
         showFab = true
         defaultPage = "home"

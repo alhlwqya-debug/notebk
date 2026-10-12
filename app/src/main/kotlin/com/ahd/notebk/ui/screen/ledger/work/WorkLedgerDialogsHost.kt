@@ -257,7 +257,7 @@ fun WorkLedgerDialogsHost(
                     }
                 }
             },
-            onAccountAuth = { onOpenAuth() },
+            onAccountAuth = { onAccountAuth() },
             onBack = { onShowUserProfile(false) }
         )
     }
@@ -790,7 +790,7 @@ fun WorkLedgerDialogsHost(
             },
             onSecurity = { onShowAppSettings(false); onSecurity() },
             onSystemSettings = { onShowAppSettings(false); onShowSystemSettings(true) },
-            onAccountAuth = { onShowAppSettings(false); onOpenAuth() },
+            onAccountAuth = { onShowAppSettings(false); onAccountAuth() },
             onHelp = { onShowAppSettings(false); onHelp() },
             onBack = { onShowAppSettings(false) }
         )

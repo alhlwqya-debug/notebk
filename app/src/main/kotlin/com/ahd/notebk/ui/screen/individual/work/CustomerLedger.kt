@@ -110,6 +110,7 @@ internal fun IndividualLedger(
     var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
     var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
     var showSearch by remember { mutableStateOf(settingsStore.getBoolean("show_search", true)) }
+    var searchOpen by remember { mutableStateOf(false) }
     DisposableEffect(settingsPrefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "hide_amounts") hideAmounts = settingsStore.getBoolean("hide_amounts", false)
@@ -143,7 +144,6 @@ internal fun IndividualLedger(
     var expenseEditing by remember { mutableStateOf(false) }
     var customerSearch by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf(emptyList<IndividualSearchResult>()) }
-    var searchOpen by remember { mutableStateOf(false) }
     var pendingSearchDate by remember { mutableStateOf<String?>(null) }
     var pendingSearchMonthId by remember { mutableStateOf<Long?>(null) }
 

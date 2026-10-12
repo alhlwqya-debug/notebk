@@ -120,11 +120,11 @@ fun AuthScreen(
     fun finishSession(result: AuthResult.SignedIn) {
         activeSession = result.session
         guestMode = false
-        prefs.edit()
-            .putBoolean("guest_mode", false)
+        com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context).edit()
             .putString("user_email", result.session.label)
             .putString("user_name", name.trim().ifBlank { result.session.label.substringBefore('@') })
             .apply()
+        prefs.edit().putBoolean("guest_mode", false).apply()
         onContinue()
     }
 

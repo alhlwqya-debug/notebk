@@ -292,6 +292,15 @@ fun AppSettingsPage(
     var hideAmounts by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("hide_amounts", false)) }
     var screenshotBlock by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("prevent_screenshot", false)) }
     var defaultPage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("default_page", "home")) }
+    var reminderTime by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("reminder_time", "20:00")) }
+    var paperSize by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("paper_size", "A4")) }
+    var paperOrientation by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("paper_orientation", "portrait")) }
+    var reportTitle by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_title", "التقرير الشهري")) }
+    var reportFooterText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getString("report_footer_text", "")) }
+    var backupRetention by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(store.getInt("backup_retention", 10).coerceIn(1, 50)) }
+    var showDrawer by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_drawer", true)) }
+    var rememberPage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("remember_page", true)) }
+    var showTotalRow by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(store.getBoolean("show_total_row", true)) }
 
     fun toggle(id: String) { expanded = if (expanded.contains(id)) expanded - id else expanded + id }
     fun match(vararg words: String) = search.isBlank() || words.any { it.contains(search.trim(), ignoreCase = true) }
@@ -398,7 +407,7 @@ fun AppSettingsPage(
             if (match("إشعارات", "تذكير", "نسخ احتياطي")) item {
                 SettingsGroup("notifications", "🔔 الإشعارات والتذكيرات", "كل ما يتعلق بالتنبيهات الدورية", expanded, ::toggle) {
                     SettingsSwitch("تذكير تسجيل العمل", reminderEnabled, onReminderChange, "يُستخدم نظام التذكير الحالي في التطبيق")
-                    SettingsChoice("وقت التذكير", store.getString("reminder_time", "20:00"), store.getString("reminder_time", "20:00")) { val next = if (store.getString("reminder_time","20:00")=="20:00") "18:00" else "20:00"; store.putString("reminder_time", next); if (reminderEnabled) WorkReminderScheduler.schedule(context) }
+                    SettingsChoice("وقت التذكير", reminderTime, reminderTime) { reminderTime = if (reminderTime == "20:00") "18:00" else "20:00"; store.putString("reminder_time", reminderTime); if (reminderEnabled) WorkReminderScheduler.schedule(context) }
                     SettingsSwitch("صوت الإشعار", store.getBoolean("notification_sound", true), { store.putBoolean("notification_sound", it) })
                     SettingsSwitch("اهتزاز", store.getBoolean("notification_vibrate", true), { store.putBoolean("notification_vibrate", it) })
                     SettingsSwitch("إشعار عند النسخ الاحتياطي", store.getBoolean("backup_notification", true), { store.putBoolean("backup_notification", it) })
@@ -419,8 +428,8 @@ fun AppSettingsPage(
 
             if (match("تقارير", "طباعة", "PDF")) item {
                 SettingsGroup("reports", "🖨️ الطباعة والتقارير", "حجم الورق والاتجاه والهيدر والتذييل والشعار وبيانات المحل في تقارير PDF", expanded, ::toggle) {
-                    SettingsChoice("حجم الورق", store.getString("paper_size","A4"), store.getString("paper_size","A4")) { store.putString("paper_size", if(store.getString("paper_size","A4")=="A4") "A5" else "A4") }
-                    SettingsChoice("اتجاه الورق", store.getString("paper_orientation","portrait"), store.getString("paper_orientation","portrait")) { store.putString("paper_orientation", if(store.getString("paper_orientation","portrait")=="portrait") "landscape" else "portrait") }
+                    SettingsChoice("حجم الورق", paperSize, paperSize) { paperSize = if (paperSize == "A4") "A5" else "A4"; store.putString("paper_size", paperSize) }
+                    SettingsChoice("اتجاه الورق", if (paperOrientation == "portrait") "عمودي" else "أفقي", paperOrientation) { paperOrientation = if (paperOrientation == "portrait") "landscape" else "portrait"; store.putString("paper_orientation", paperOrientation) }
                     SettingsSwitch("إظهار الهيدر", store.getBoolean("report_header",true), {store.putBoolean("report_header",it)})
                     SettingsSwitch("إظهار التذييل", store.getBoolean("report_footer",true), {store.putBoolean("report_footer",it)})
                     SettingsSwitch("إظهار الشعار", store.getBoolean("report_logo",true), {store.putBoolean("report_logo",it)})
@@ -428,8 +437,8 @@ fun AppSettingsPage(
                     SettingsSwitch("إظهار الرسم البياني", store.getBoolean("report_chart",true), {store.putBoolean("report_chart",it)})
                     SettingsSwitch("إظهار الشهور الفارغة", store.getBoolean("report_empty_months",false), {store.putBoolean("report_empty_months",it)})
                     SettingsSwitch("ضغط التقرير", store.getBoolean("report_compress",true), {store.putBoolean("report_compress",it)})
-                    OutlinedTextField(store.getString("report_title","التقرير الشهري"), {store.putString("report_title",it)}, label={Text("عنوان التقرير")}, singleLine=true, modifier=Modifier.fillMaxWidth())
-                    OutlinedTextField(store.getString("report_footer_text",""), {store.putString("report_footer_text",it)}, label={Text("نص التذييل")}, modifier=Modifier.fillMaxWidth())
+                    OutlinedTextField(reportTitle, { reportTitle = it; store.putString("report_title", it) }, label={Text("عنوان التقرير")}, singleLine=true, modifier=Modifier.fillMaxWidth())
+                    OutlinedTextField(reportFooterText, { reportFooterText = it; store.putString("report_footer_text", it) }, label={Text("نص التذييل")}, modifier=Modifier.fillMaxWidth())
                 }
             }
 
@@ -468,7 +477,7 @@ fun AppSettingsPage(
                         Text("آخر مزامنة ناجحة: " + java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSyncAt.toLongOrNull() ?: 0L)), fontSize = 10.sp, color = AppMuted)
                     }
                     Text("المزامنة الحالية عند الطلب: عند التفعيل أو عند الضغط على «مزامنة الآن». المزامنة الدورية في الخلفية غير مفعّلة بعد، لذلك لا نعرض خيارًا يوحي بأنها تعمل تلقائيًا.", fontSize = 11.sp, color = AppMuted)
-                    SettingsChoice("عدد النسخ المحتفظ بها", store.getInt("backup_retention",10).toString(), store.getInt("backup_retention",10).toString()) { store.putInt("backup_retention", if(store.getInt("backup_retention",10)>=30) 5 else store.getInt("backup_retention",10)+5) }
+                    SettingsChoice("عدد النسخ المحتفظ بها", backupRetention.toString(), backupRetention.toString()) { backupRetention = if (backupRetention >= 30) 5 else backupRetention + 5; store.putInt("backup_retention", backupRetention) }
                     NotebkSecondaryAction("إدارة النسخ الاحتياطي والحماية", onSecurity)
                     Text("التصدير والاستيراد الفعليان يستخدمان نظام النسخ الموجود في التطبيق، ولا يتم حذف قاعدة البيانات تلقائيًا.", fontSize=11.sp, color=AppMuted)
                 }
@@ -503,15 +512,15 @@ fun AppSettingsPage(
                     SettingsChoice("الصفحة الافتراضية", defaultPage, defaultPage) { defaultPage = if(defaultPage=="home") "daily" else "home"; store.putString("default_page",defaultPage) }
                     SettingsSwitch("إظهار شريط البحث", showSearch, {showSearch=it;store.putBoolean("show_search",it)})
                     SettingsSwitch("إظهار زر الإضافة السريع", showFab, {showFab=it;store.putBoolean("show_fab",it)})
-                    SettingsSwitch("إظهار Drawer", store.getBoolean("show_drawer",true), {store.putBoolean("show_drawer",it)})
-                    SettingsSwitch("حفظ آخر صفحة", store.getBoolean("remember_page",true), {store.putBoolean("remember_page",it)})
+                    SettingsSwitch("إظهار Drawer", showDrawer, { showDrawer = it; store.putBoolean("show_drawer", it) })
+                    SettingsSwitch("حفظ آخر صفحة", rememberPage, { rememberPage = it; store.putBoolean("remember_page", it) })
                     Text("ترتيب الصفحات بالسحب سيظهر فقط بعد ربطه بمسارات التنقل الفعلية، لمنع فقدان صفحات موجودة.", fontSize=11.sp, color=AppMuted)
                 }
             }
 
             if (match("التسجيل", "حسابات", "قطع", "أيام")) item {
                 SettingsGroup("registration", "📋 نظام التسجيلات", "خيارات السلوك الافتراضي التي لا تغيّر سجلات المحلات القديمة", expanded, ::toggle) {
-                    SettingsSwitch("إظهار صف الإجمالي", store.getBoolean("show_total_row",true), {store.putBoolean("show_total_row",it)})
+                    SettingsSwitch("إظهار صف الإجمالي", showTotalRow, { showTotalRow = it; store.putBoolean("show_total_row", it) })
                     Text(
                         "يُحفظ إدخال الكميات والمصروفات مباشرة عند التعديل. وتظهر رسالة تأكيد قبل حذف شهر أو محل لحماية سجلاتك.",
                         fontSize = 11.sp,
@@ -567,9 +576,18 @@ private fun SettingsGroup(id:String, title:String, description:String, expanded:
 
 @Composable
 private fun SettingsSwitch(title:String, checked:Boolean, onChange:(Boolean)->Unit, description:String?=null) {
+    var displayedChecked by androidx.compose.runtime.remember(title, checked) {
+        androidx.compose.runtime.mutableStateOf(checked)
+    }
     Row(Modifier.fillMaxWidth().padding(vertical=4.dp), verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { Text(title, fontSize=13.sp, fontWeight=FontWeight.Medium); if(description!=null) Text(description,fontSize=10.sp,color=AppMuted) }
-        Switch(checked=checked,onCheckedChange=onChange)
+        Switch(
+            checked = displayedChecked,
+            onCheckedChange = { enabled ->
+                displayedChecked = enabled
+                onChange(enabled)
+            }
+        )
     }
 }
 

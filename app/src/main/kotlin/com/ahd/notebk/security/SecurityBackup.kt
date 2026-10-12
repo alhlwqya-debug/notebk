@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import com.ahd.notebk.data.local.NotebkSettingsStore
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream

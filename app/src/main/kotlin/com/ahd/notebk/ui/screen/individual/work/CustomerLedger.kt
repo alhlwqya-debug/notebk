@@ -108,10 +108,12 @@ internal fun IndividualLedger(
     val settingsStore = remember(context) { NotebkSettingsStore(context) }
     val settingsPrefs = remember(context) { context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE) }
     var hideAmounts by remember { mutableStateOf(settingsStore.getBoolean("hide_amounts", false)) }
+    var showTotalRow by remember { mutableStateOf(settingsStore.getBoolean("show_total_row", true)) }
     var showSearch by remember { mutableStateOf(settingsStore.getBoolean("show_search", true)) }
     DisposableEffect(settingsPrefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "hide_amounts") hideAmounts = settingsStore.getBoolean("hide_amounts", false)
+            if (key == "show_total_row") showTotalRow = settingsStore.getBoolean("show_total_row", true)
             if (key == "show_search") {
                 showSearch = settingsStore.getBoolean("show_search", true)
                 if (!showSearch) searchOpen = false
@@ -754,17 +756,19 @@ internal fun IndividualLedger(
                                 }
                         )
                     }
-                    CellText(net.toString(), IndividualActionWidth, 38.dp, HeaderBlue, bold = true, size = 8)
+                    CellText(if (hideAmounts) "••••" else net.toString(), IndividualActionWidth, 38.dp, HeaderBlue, bold = true, size = 8)
                 }
 
-                Row {
-                    CellText("إجمالي اليوم", CustomerWidth + PageWidth, 38.dp, Color(0xFFFFE58F), bold = true, size = 10)
-                    pieces.forEach { piece ->
-                        val count = entries.fold(0) { total, entry -> total + (entry.quantities[piece.id] ?: 0) }
-                        CellText(if (count == 0) "" else count.toString(), IndividualPieceWidth, 38.dp, Color(0xFFFFE58F), bold = true)
+                if (showTotalRow) {
+                    Row {
+                        CellText("إجمالي اليوم", CustomerWidth + PageWidth, 38.dp, Color(0xFFFFE58F), bold = true, size = 10)
+                        pieces.forEach { piece ->
+                            val count = entries.fold(0) { total, entry -> total + (entry.quantities[piece.id] ?: 0) }
+                            CellText(if (count == 0) "" else count.toString(), IndividualPieceWidth, 38.dp, Color(0xFFFFE58F), bold = true)
+                        }
+                        CellText(if (hideAmounts) "••••" else earned.toString(), IndividualTotalWidth, 38.dp, HeaderBlue, bold = true)
+                        CellText("", IndividualActionWidth, 38.dp, Color(0xFFFFE58F))
                     }
-                    CellText(earned.toString(), IndividualTotalWidth, 38.dp, HeaderBlue, bold = true)
-                    CellText("", IndividualActionWidth, 38.dp, Color(0xFFFFE58F))
                 }
             }
         }

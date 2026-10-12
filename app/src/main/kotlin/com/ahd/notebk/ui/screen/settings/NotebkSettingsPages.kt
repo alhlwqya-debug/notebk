@@ -392,11 +392,7 @@ fun AppSettingsPage(
                     Text("لغة التطبيق: العربية — الاتجاه: من اليمين إلى اليسار (RTL). التبديل إلى لغات أو اتجاهات أخرى غير مدعوم حاليًا.", fontSize = 11.sp, color = AppMuted)
                     Text("لغة التقارير: العربية. العملة الحالية: الريال اليمني (YER)، ويمكن تعديل الرمز أدناه.", fontSize = 11.sp, color = AppMuted)
                     OutlinedTextField(symbol, { symbol = it; store.putString("currency_symbol", it) }, label={Text("رمز العملة")}, singleLine=true, modifier=Modifier.fillMaxWidth())
-                    SettingsChoice("موضع رمز العملة", "بعد المبلغ", store.getString("currency_position", "after")) { store.putString("currency_position", "after") }
-                    SettingsChoice("الخانات العشرية", decimalPlaces.toString(), decimalPlaces.toString()) { decimalPlaces = if (decimalPlaces >= 2) 0 else decimalPlaces + 1; store.putInt("decimal_places", decimalPlaces) }
-                    SettingsChoice("صيغة التاريخ", dateFormat, dateFormat) { dateFormat = if (dateFormat == "yyyy/MM/dd") "dd/MM/yyyy" else "yyyy/MM/dd"; store.putString("date_format", dateFormat) }
-                    SettingsChoice("صيغة الوقت", timeFormat, timeFormat) { timeFormat = if (timeFormat == "24h") "12h" else "24h"; store.putString("time_format", timeFormat) }
-                    SettingsChoice("كثافة العرض", density, density) { density = if (density == "normal") "comfortable" else "normal"; store.putString("density", density) }
+                    Text("تنسيق موضع العملة والتاريخ والوقت والخانات العشرية وكثافة العرض غير مربوط بجميع الشاشات حاليًا، لذلك أُخفيت أدوات تغييره حتى لا تعطي انطباعًا زائفًا.", fontSize = 11.sp, color = AppMuted)
                     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Text("الوضع الداكن", Modifier.weight(1f)); Switch(darkTheme, onDarkThemeChange) }
                     Text("حجم الخط: ${(fontScale*100).toInt()}%", fontSize=12.sp)
                     androidx.compose.material3.Slider(value=fontScale, onValueChange={fontScale=it;store.putFloat("font_scale",it)}, valueRange=0.9f..1.3f, steps=3)

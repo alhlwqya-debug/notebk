@@ -32,7 +32,7 @@ internal fun applyReportPreferences(context: Context, sourceHtml: String): Strin
         if (!settings.getBoolean("report_header", true)) append(".top,.header{display:none!important;}\n")
         if (!settings.getBoolean("report_footer", true)) append(".footer{display:none!important;}\n")
         if (!settings.getBoolean("report_logo", true)) append(".top img,.header img{display:none!important;}\n")
-        if (!settings.getBoolean("report_shop_data", true)) append(".profile{display:none!important;}\n")
+        if (!settings.getBoolean("report_shop_data", true)) append(".profile{display:none!important;}.info-table tr:first-child{display:none!important;}\n")
         val orientation = settings.getString("paper_orientation", "portrait")
         val size = settings.getString("paper_size", "A4")
         append("@page{size:$size $orientation;}\n")

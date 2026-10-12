@@ -102,7 +102,7 @@ fun WorkLedgerDrawerHost(
                 onShopSettings = { shopId ->
                     onDrawerOpenChange(false); onShopSettingsTargetChange(shopId); onShopSettingsChange(true)
                 },
-                onAppSettings = { onDrawerOpenChange(false); onAppSettingsChange(true) },
+                onAppSettings = { onDrawerOpenChange(false); onControlCenterChange(true) },
                 onDeleteShop = {
                     onDrawerOpenChange(false)
                     if (selectedShopId != null) onDeleteShopDialogChange(true)

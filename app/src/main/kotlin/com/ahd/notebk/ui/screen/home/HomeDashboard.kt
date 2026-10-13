@@ -1,6 +1,21 @@
 package com.ahd.notebk.ui.screen.home
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
+import com.ahd.notebk.data.cloud.AdvertisementRepository
+import com.ahd.notebk.data.cloud.HomeAdvertisement
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -113,6 +128,8 @@ fun HomeDashboard(
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
+    var advertisements by remember { mutableStateOf<List<HomeAdvertisement>>(emptyList()) }
+    var advertisementIndex by remember { mutableStateOf(0) }
 
     // Settings are observed rather than read once, so returning from Settings applies them immediately.
     val context = LocalContext.current
@@ -207,6 +224,18 @@ fun HomeDashboard(
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
+    LaunchedEffect(refreshKey) {
+        advertisements = AdvertisementRepository.loadActive()
+        if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
+    }
+    LaunchedEffect(advertisements.size) {
+        if (advertisements.size > 1) {
+            while (true) {
+                delay(5_000)
+                advertisementIndex = (advertisementIndex + 1) % advertisements.size
+            }
+        }
+    }
 
     val filteredActivities = totals.activities.filter { activity ->
         val matchesFilter = when (filter) {
@@ -241,6 +270,15 @@ fun HomeDashboard(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
+                    if (advertisements.isNotEmpty()) {
+                        item {
+                            AdvertisementCarouselCard(
+                                advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
+                                currentIndex = advertisementIndex + 1,
+                                total = advertisements.size
+                            )
+                        }
+                    }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                             DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp, hideAmounts)
@@ -366,6 +404,66 @@ fun HomeDashboard(
                     } else {
                         items(filteredActivities, key = { "${it.date}-${it.monthName}-${it.earned}-${it.expense}" }) { activity -> ActivityRow(activity, hideAmounts) }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdvertisementCarouselCard(
+    advertisement: HomeAdvertisement,
+    currentIndex: Int,
+    total: Int
+) {
+    val uriHandler = LocalUriHandler.current
+    val canOpen = advertisement.targetUrl.startsWith("https://") || advertisement.targetUrl.startsWith("http://")
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(listOf(Purple, Blue)),
+                RoundedCornerShape(18.dp)
+            )
+            .then(
+                if (canOpen) Modifier.clickable {
+                    runCatching { uriHandler.openUri(advertisement.targetUrl) }
+                } else Modifier
+            )
+            .padding(14.dp)
+    ) {
+        AnimatedContent(
+            targetState = advertisement,
+            transitionSpec = {
+                (slideInVertically { height -> height / 3 } + fadeIn()) togetherWith
+                    (slideOutVertically { height -> -height / 3 } + fadeOut())
+            },
+            label = "home_advertisement_carousel"
+        ) { ad ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("إعلان", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
+                    Spacer(Modifier.height(3.dp))
+                    Text(ad.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                    if (ad.body.isNotBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(ad.body, color = Color.White, fontSize = 12.sp, maxLines = 3)
+                    }
+                    Spacer(Modifier.height(7.dp))
+                    Text(
+                        if (canOpen) "اضغط لمعرفة المزيد  •  $currentIndex / $total" else "$currentIndex / $total",
+                        color = Color.White.copy(alpha = 0.82f),
+                        fontSize = 10.sp
+                    )
+                }
+                if (ad.imageUrl.startsWith("https://") || ad.imageUrl.startsWith("http://")) {
+                    Spacer(Modifier.width(10.dp))
+                    AsyncImage(
+                        model = ad.imageUrl,
+                        contentDescription = "صورة الإعلان",
+                        modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
         }

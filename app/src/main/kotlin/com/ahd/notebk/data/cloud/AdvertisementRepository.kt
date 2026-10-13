@@ -45,13 +45,13 @@ object AdvertisementRepository {
             connection.setRequestProperty("Authorization", "Bearer ${SupabaseConfig.PUBLISHABLE_KEY}")
             connection.setRequestProperty("Accept", "application/json")
             val code = connection.responseCode
-            if (code !in 200..299) return@withContext emptyList()
+            if (code !in 200..299) return@withContext context?.let { loadCached(it) } ?: emptyList()
             val raw = connection.inputStream.bufferedReader().use { it.readText() }
             val parsed = parseAds(raw)
             if (context != null) saveCache(context, raw)
             parsed
         } catch (_: Exception) {
-            emptyList()
+            context?.let { loadCached(it) } ?: emptyList()
         } finally {
             connection.disconnect()
         }

@@ -544,7 +544,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onShowDeleteShopDialog = { showDeleteShopDialog = it }, onShowRenameMonthDialog = { showRenameMonthDialog = it },
         onShowCopyMonthDialog = { showCopyMonthDialog = it }, onShowStartDatePicker = { showStartDatePicker = it },
         onShowPdfRangeDialog = { showPdfRangeDialog = it }, onShowShopSettings = { showShopSettings = it },
-        onShowAppSettings = { showAppSettings = it }, onCloudSyncOnlyChange = { cloudSyncOnly = it }, onShowSystemSettings = { showSystemSettings = it },
+        onShowAppSettings = { showAppSettings = it }, onShowSystemSettings = { showSystemSettings = it },
         onActiveExpenseDay = { activeExpenseDay = it }, onNewShopName = { newShopName = it },
         onNewShopRegistrationNumber = { newShopRegistrationNumber = it }, onNewShopMode = { newShopMode = it },
         onNewYear = { newYear = it }, onNewMonthNumber = { newMonthNumber = it }, onNewStartDate = { newStartDate = it },

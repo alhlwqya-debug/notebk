@@ -224,9 +224,12 @@ fun HomeDashboard(
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
-    LaunchedEffect(refreshKey) {
-        advertisements = AdvertisementRepository.loadActive()
-        if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
+    LaunchedEffect(refreshKey, selectedShopId) {
+        while (true) {
+            advertisements = AdvertisementRepository.loadActive()
+            if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
+            delay(60_000)
+        }
     }
     LaunchedEffect(advertisements.size) {
         if (advertisements.size > 1) {
@@ -262,6 +265,16 @@ fun HomeDashboard(
 
             Spacer(Modifier.height(10.dp))
 
+            // Ads remain visible even before the user creates their first shop.
+            if (advertisements.isNotEmpty()) {
+                AdvertisementCarouselCard(
+                    advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
+                    currentIndex = advertisementIndex + 1,
+                    total = advertisements.size
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
             if (shops.isEmpty()) {
                 EmptyDashboard(onAddShop)
             } else {
@@ -270,15 +283,6 @@ fun HomeDashboard(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
-                    if (advertisements.isNotEmpty()) {
-                        item {
-                            AdvertisementCarouselCard(
-                                advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
-                                currentIndex = advertisementIndex + 1,
-                                total = advertisements.size
-                            )
-                        }
-                    }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                             DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp, hideAmounts)

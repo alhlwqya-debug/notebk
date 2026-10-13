@@ -124,15 +124,15 @@ fun HomeDashboard(
     onAppSettings: () -> Unit,
     onHelp: () -> Unit,
     onStatistics: () -> Unit
-) {
+ ) {
+    val context = LocalContext.current
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
-    var advertisements by remember { mutableStateOf(AdvertisementRepository.loadCached(LocalContext.current)) }
+    var advertisements by remember { mutableStateOf(AdvertisementRepository.loadCached(context)) }
     var advertisementIndex by remember { mutableStateOf(0) }
 
     // Settings are observed rather than read once, so returning from Settings applies them immediately.
-    val context = LocalContext.current
     val settingsPrefs = remember(context) {
         context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE)
     }

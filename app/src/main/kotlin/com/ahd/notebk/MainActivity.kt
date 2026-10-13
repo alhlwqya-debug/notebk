@@ -29,10 +29,20 @@ import android.view.WindowManager
 import com.ahd.notebk.ui.screen.splash.SplashScreen
 import com.ahd.notebk.ui.theme.NotebkTheme
 import com.ahd.notebk.data.local.NotebkSettingsStore
+import com.ahd.notebk.data.cloud.AdvertisementRefreshWorker
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        scheduleAdvertisementRefresh()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -113,4 +123,35 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    /**
+     * Schedules an immediate refresh and periodic background refresh.
+     * WorkManager runs when Android allows it and a network is available.
+     */
+    private fun scheduleAdvertisementRefresh() {
+        val workManager = WorkManager.getInstance(applicationContext)
+        val networkConstraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val immediate = OneTimeWorkRequestBuilder<AdvertisementRefreshWorker>()
+            .setConstraints(networkConstraints)
+            .build()
+        workManager.enqueueUniqueWork(
+            "notebk_advertisement_refresh_now",
+            ExistingWorkPolicy.KEEP,
+            immediate
+        )
+
+        val periodic = PeriodicWorkRequestBuilder<AdvertisementRefreshWorker>(
+            15, TimeUnit.MINUTES
+        )
+            .setConstraints(networkConstraints)
+            .build()
+        workManager.enqueueUniquePeriodicWork(
+            "notebk_advertisement_refresh_periodic",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            periodic
+        )
+    }
+
 }

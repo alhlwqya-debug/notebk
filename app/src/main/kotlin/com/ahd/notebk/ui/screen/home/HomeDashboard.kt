@@ -124,15 +124,15 @@ fun HomeDashboard(
     onAppSettings: () -> Unit,
     onHelp: () -> Unit,
     onStatistics: () -> Unit
-) {
+ ) {
+    val context = LocalContext.current
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
-    var advertisements by remember { mutableStateOf<List<HomeAdvertisement>>(emptyList()) }
+    var advertisements by remember { mutableStateOf(AdvertisementRepository.loadCached(context)) }
     var advertisementIndex by remember { mutableStateOf(0) }
 
     // Settings are observed rather than read once, so returning from Settings applies them immediately.
-    val context = LocalContext.current
     val settingsPrefs = remember(context) {
         context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE)
     }
@@ -224,9 +224,12 @@ fun HomeDashboard(
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
-    LaunchedEffect(refreshKey) {
-        advertisements = AdvertisementRepository.loadActive()
-        if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
+    LaunchedEffect(refreshKey, selectedShopId) {
+        while (true) {
+            advertisements = AdvertisementRepository.loadActive(context)
+            if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
+            delay(60_000)
+        }
     }
     LaunchedEffect(advertisements.size) {
         if (advertisements.size > 1) {
@@ -262,6 +265,16 @@ fun HomeDashboard(
 
             Spacer(Modifier.height(10.dp))
 
+            // Ads remain visible even before the user creates their first shop.
+            if (advertisements.isNotEmpty()) {
+                AdvertisementCarouselCard(
+                    advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
+                    currentIndex = advertisementIndex + 1,
+                    total = advertisements.size
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
             if (shops.isEmpty()) {
                 EmptyDashboard(onAddShop)
             } else {
@@ -270,15 +283,6 @@ fun HomeDashboard(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
-                    if (advertisements.isNotEmpty()) {
-                        item {
-                            AdvertisementCarouselCard(
-                                advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
-                                currentIndex = advertisementIndex + 1,
-                                total = advertisements.size
-                            )
-                        }
-                    }
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                             DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp, hideAmounts)
@@ -440,6 +444,15 @@ private fun AdvertisementCarouselCard(
             },
             label = "home_advertisement_carousel"
         ) { ad ->
+            var imageIndex by remember(ad.id) { mutableStateOf(0) }
+            LaunchedEffect(ad.id, ad.images) {
+                imageIndex = 0
+                while (ad.images.size > 1) {
+                    delay(3_500)
+                    imageIndex = (imageIndex + 1) % ad.images.size
+                }
+            }
+            val imageToShow = ad.images.getOrNull(imageIndex) ?: ad.imageUrl
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("إعلان", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
@@ -451,16 +464,21 @@ private fun AdvertisementCarouselCard(
                     }
                     Spacer(Modifier.height(7.dp))
                     Text(
-                        if (canOpen) "اضغط لمعرفة المزيد  •  $currentIndex / $total" else "$currentIndex / $total",
-                        color = Color.White.copy(alpha = 0.82f),
-                        fontSize = 10.sp
+                        if (canOpen) "${ad.buttonText.ifBlank { "معرفة المزيد" }}  •  $currentIndex / $total"
+                        else "$currentIndex / $total",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    if (ad.images.size > 1) {
+                        Text("الصورة ${imageIndex + 1} من ${ad.images.size}", color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp)
+                    }
                 }
-                if (ad.imageUrl.startsWith("https://") || ad.imageUrl.startsWith("http://")) {
+                if (imageToShow.startsWith("https://") || imageToShow.startsWith("http://")) {
                     Spacer(Modifier.width(10.dp))
                     AsyncImage(
-                        model = ad.imageUrl,
-                        contentDescription = "صورة الإعلان",
+                        model = imageToShow,
+                        contentDescription = "صورة الإعلان ${imageIndex + 1}",
                         modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )

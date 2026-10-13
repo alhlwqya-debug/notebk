@@ -439,60 +439,135 @@ private fun AdvertisementCarouselCard(
 ) {
     val uriHandler = LocalUriHandler.current
     val canOpen = advertisement.targetUrl.startsWith("https://") || advertisement.targetUrl.startsWith("http://")
-    Box(
+    val imageUrls = remember(advertisement.images, advertisement.imageUrl) {
+        (advertisement.images.ifEmpty {
+            listOf(advertisement.imageUrl).filter { it.isNotBlank() }
+        })
+            .map { it.trim() }
+            .filter { it.startsWith("https://") || it.startsWith("http://") }
+            .distinct()
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.horizontalGradient(listOf(Purple, Blue)), RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(Brush.horizontalGradient(listOf(Purple, Blue)))
             .then(
                 if (canOpen) Modifier.clickable {
                     runCatching { uriHandler.openUri(advertisement.targetUrl) }
                 } else Modifier
             )
-            .padding(14.dp)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("إعلان  •  $currentIndex / $total", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "إعلان • $currentIndex / $total",
+                    color = Color.White.copy(alpha = 0.82f),
+                    fontSize = 10.sp
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    advertisement.title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 2
+                )
+                if (advertisement.body.isNotBlank()) {
                     Spacer(Modifier.height(3.dp))
-                    Text(advertisement.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-                    if (advertisement.body.isNotBlank()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(advertisement.body, color = Color.White, fontSize = 12.sp, maxLines = 4)
-                    }
-                }
-                if (canOpen) {
-                    Spacer(Modifier.width(8.dp))
-                    Text(advertisement.buttonText.ifBlank { "معرفة المزيد" }, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        advertisement.body,
+                        color = Color.White.copy(alpha = 0.94f),
+                        fontSize = 12.sp,
+                        maxLines = 2
+                    )
                 }
             }
+            if (canOpen) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    advertisement.buttonText.ifBlank { "معرفة المزيد" },
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+        }
 
-            // Show every selected image at once in a responsive two-column gallery (no image carousel).
-            val imageUrls = advertisement.images
-                .ifEmpty { listOf(advertisement.imageUrl).filter { it.startsWith("https://") || it.startsWith("http://") } }
-                .filter { it.startsWith("https://") || it.startsWith("http://") }
-                .distinct()
-            imageUrls.chunked(2).forEach { imageRow ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Fixed-height media frame keeps the card stable across ads with different image counts.
+        if (imageUrls.isNotEmpty()) {
+            val visibleImages = imageUrls.take(4)
+            val frameHeight = 164.dp
+            if (visibleImages.size == 1) {
+                AdvertisementImage(
+                    imageUrl = visibleImages.first(),
+                    description = "صورة الإعلان " + advertisement.title,
+                    modifier = Modifier.fillMaxWidth().height(frameHeight)
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(frameHeight),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    imageRow.forEach { imageUrl ->
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription = "صورة من صور الإعلان " + advertisement.title,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .height(104.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
+                    visibleImages.chunked(2).forEachIndexed { rowIndex, rowImages ->
+                        Row(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowImages.forEachIndexed { columnIndex, imageUrl ->
+                                val imageIndex = rowIndex * 2 + columnIndex
+                                Box(Modifier.weight(1f).fillMaxSize()) {
+                                    AdvertisementImage(
+                                        imageUrl = imageUrl,
+                                        description = "صورة " + (imageIndex + 1) + " من الإعلان " + advertisement.title,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    if (imageIndex == 3 && imageUrls.size > 4) {
+                                        Box(
+                                            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "+" + (imageUrls.size - 4),
+                                                color = Color.White,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (rowImages.size == 1) Spacer(Modifier.weight(1f))
+                        }
                     }
-                    if (imageRow.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AdvertisementImage(
+    imageUrl: String,
+    description: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(11.dp))
+            .background(Color.White.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = description,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 

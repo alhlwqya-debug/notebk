@@ -36,6 +36,7 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -360,6 +361,61 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     val currentBundle = bundle
     val currentShop = shops.firstOrNull { it.id == selectedShopId }
+
+    // Handle Android system back consistently: dismiss the topmost dialog/page first,
+    // then return from the ledger to the dashboard instead of finishing the Activity.
+    val hasOverlayToClose =
+        drawerOpen || shopMenuOpen ||
+        showSetPinDialog || showSecurityDialog || showAccountSecurityDialog ||
+        showHelp || showAbout || showStatistics || showUserProfile ||
+        showShopDialog || showMonthDialog || showPieceDialog || showPieceManager ||
+        showExpenseDialog || showClearDialog || showDeleteMonthDialog || showDeleteShopDialog ||
+        showRenameMonthDialog || showCopyMonthDialog || showStartDatePicker || showPdfRangeDialog ||
+        showRegistrationSettings || showShopSettings || showAppSettings || showSystemSettings ||
+        showControlCenter || showFeatureHub ||
+        showMonthsPage || showPiecesPage || showReportsPage || showStatisticsPage
+
+    BackHandler(enabled = hasOverlayToClose || !showDashboard) {
+        when {
+            // Dismiss modal/dialog state before navigating away from its parent screen.
+            showSetPinDialog -> showSetPinDialog = false
+            showAccountSecurityDialog -> showAccountSecurityDialog = false
+            showSecurityDialog -> showSecurityDialog = false
+            showHelp -> showHelp = false
+            showAbout -> showAbout = false
+            showStatistics -> showStatistics = false
+            showExpenseDialog -> { showExpenseDialog = false; activeExpenseDay = null }
+            showPdfRangeDialog -> showPdfRangeDialog = false
+            showStartDatePicker -> showStartDatePicker = false
+            showDeleteShopDialog -> showDeleteShopDialog = false
+            showDeleteMonthDialog -> showDeleteMonthDialog = false
+            showClearDialog -> showClearDialog = false
+            showRenameMonthDialog -> showRenameMonthDialog = false
+            showCopyMonthDialog -> showCopyMonthDialog = false
+            showPieceDialog -> showPieceDialog = false
+            showPieceManager -> showPieceManager = false
+            showMonthDialog -> showMonthDialog = false
+            showShopDialog -> showShopDialog = false
+            showUserProfile -> showUserProfile = false
+            showRegistrationSettings -> showRegistrationSettings = false
+            showSystemSettings -> showSystemSettings = false
+            showAppSettings -> { showAppSettings = false; cloudSyncOnly = false }
+            showShopSettings -> showShopSettings = false
+            showFeatureHub -> showFeatureHub = false
+            showControlCenter -> showControlCenter = false
+            showReportsPage -> showReportsPage = false
+            showStatisticsPage -> showStatisticsPage = false
+            showPiecesPage -> showPiecesPage = false
+            showMonthsPage -> showMonthsPage = false
+            shopMenuOpen -> shopMenuOpen = false
+            drawerOpen -> drawerOpen = false
+            !showDashboard -> {
+                // Return to the dashboard from the ledger/daily-work area.
+                showDashboard = true
+                openDailyWorkRequested = false
+            }
+        }
+    }
 
     // ===== الواجهة =====
     Box(

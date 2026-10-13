@@ -240,9 +240,11 @@ fun HomeDashboard(
     }
     LaunchedEffect(refreshKey, selectedShopId, foregroundRefreshToken) {
         while (true) {
-            val latest = AdvertisementRepository.loadActive(context)
-            advertisements = latest
-            if (latest.isEmpty() || advertisementIndex >= latest.size) advertisementIndex = 0
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                val latest = AdvertisementRepository.loadActive(context)
+                advertisements = latest
+                if (latest.isEmpty() || advertisementIndex >= latest.size) advertisementIndex = 0
+            }
             delay(20_000)
         }
     }

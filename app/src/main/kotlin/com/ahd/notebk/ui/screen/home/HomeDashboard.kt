@@ -444,6 +444,15 @@ private fun AdvertisementCarouselCard(
             },
             label = "home_advertisement_carousel"
         ) { ad ->
+            var imageIndex by remember(ad.id) { mutableStateOf(0) }
+            LaunchedEffect(ad.id, ad.images) {
+                imageIndex = 0
+                while (ad.images.size > 1) {
+                    delay(3_500)
+                    imageIndex = (imageIndex + 1) % ad.images.size
+                }
+            }
+            val imageToShow = ad.images.getOrNull(imageIndex) ?: ad.imageUrl
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("إعلان", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
@@ -455,16 +464,21 @@ private fun AdvertisementCarouselCard(
                     }
                     Spacer(Modifier.height(7.dp))
                     Text(
-                        if (canOpen) "اضغط لمعرفة المزيد  •  $currentIndex / $total" else "$currentIndex / $total",
-                        color = Color.White.copy(alpha = 0.82f),
-                        fontSize = 10.sp
+                        if (canOpen) "${ad.buttonText.ifBlank { "معرفة المزيد" }}  •  $currentIndex / $total"
+                        else "$currentIndex / $total",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    if (ad.images.size > 1) {
+                        Text("الصورة ${imageIndex + 1} من ${ad.images.size}", color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp)
+                    }
                 }
-                if (ad.imageUrl.startsWith("https://") || ad.imageUrl.startsWith("http://")) {
+                if (imageToShow.startsWith("https://") || imageToShow.startsWith("http://")) {
                     Spacer(Modifier.width(10.dp))
                     AsyncImage(
-                        model = ad.imageUrl,
-                        contentDescription = "صورة الإعلان",
+                        model = imageToShow,
+                        contentDescription = "صورة الإعلان ${imageIndex + 1}",
                         modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )

@@ -65,6 +65,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 import com.ahd.notebk.data.local.LedgerDatabase
 import com.ahd.notebk.domain.model.MonthBundle
@@ -224,11 +227,23 @@ fun HomeDashboard(
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
-    LaunchedEffect(refreshKey, selectedShopId) {
+    // Refresh immediately when the dashboard opens/returns to foreground, and poll while visible.
+    // This keeps ads independent from the manual data-sync button.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var foregroundRefreshToken by remember { mutableStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) foregroundRefreshToken++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(refreshKey, selectedShopId, foregroundRefreshToken) {
         while (true) {
-            advertisements = AdvertisementRepository.loadActive(context)
-            if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
-            delay(60_000)
+            val latest = AdvertisementRepository.loadActive(context)
+            advertisements = latest
+            if (latest.isEmpty() || advertisementIndex >= latest.size) advertisementIndex = 0
+            delay(20_000)
         }
     }
     LaunchedEffect(advertisements.size) {
@@ -425,10 +440,7 @@ private fun AdvertisementCarouselCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.horizontalGradient(listOf(Purple, Blue)),
-                RoundedCornerShape(18.dp)
-            )
+            .background(Brush.horizontalGradient(listOf(Purple, Blue)), RoundedCornerShape(18.dp))
             .then(
                 if (canOpen) Modifier.clickable {
                     runCatching { uriHandler.openUri(advertisement.targetUrl) }
@@ -436,52 +448,46 @@ private fun AdvertisementCarouselCard(
             )
             .padding(14.dp)
     ) {
-        AnimatedContent(
-            targetState = advertisement,
-            transitionSpec = {
-                (slideInVertically { height -> height / 3 } + fadeIn()) togetherWith
-                    (slideOutVertically { height -> -height / 3 } + fadeOut())
-            },
-            label = "home_advertisement_carousel"
-        ) { ad ->
-            var imageIndex by remember(ad.id) { mutableStateOf(0) }
-            LaunchedEffect(ad.id, ad.images) {
-                imageIndex = 0
-                while (ad.images.size > 1) {
-                    delay(3_500)
-                    imageIndex = (imageIndex + 1) % ad.images.size
-                }
-            }
-            val imageToShow = ad.images.getOrNull(imageIndex) ?: ad.imageUrl
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("إعلان", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
+                    Text("إعلان  •  $currentIndex / $total", color = Color.White.copy(alpha = 0.82f), fontSize = 10.sp)
                     Spacer(Modifier.height(3.dp))
-                    Text(ad.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-                    if (ad.body.isNotBlank()) {
+                    Text(advertisement.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                    if (advertisement.body.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
-                        Text(ad.body, color = Color.White, fontSize = 12.sp, maxLines = 3)
-                    }
-                    Spacer(Modifier.height(7.dp))
-                    Text(
-                        if (canOpen) "${ad.buttonText.ifBlank { "معرفة المزيد" }}  •  $currentIndex / $total"
-                        else "$currentIndex / $total",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    if (ad.images.size > 1) {
-                        Text("الصورة ${imageIndex + 1} من ${ad.images.size}", color = Color.White.copy(alpha = 0.72f), fontSize = 9.sp)
+                        Text(advertisement.body, color = Color.White, fontSize = 12.sp, maxLines = 4)
                     }
                 }
-                if (imageToShow.startsWith("https://") || imageToShow.startsWith("http://")) {
-                    Spacer(Modifier.width(10.dp))
-                    AsyncImage(
-                        model = imageToShow,
-                        contentDescription = "صورة الإعلان ${imageIndex + 1}",
-                        modifier = Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                if (canOpen) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(advertisement.buttonText.ifBlank { "معرفة المزيد" }, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Show every selected image at once in a responsive two-column gallery (no image carousel).
+            val imageUrls = advertisement.images
+                .ifEmpty { listOf(advertisement.imageUrl).filter { it.startsWith("https://") || it.startsWith("http://") } }
+                .filter { it.startsWith("https://") || it.startsWith("http://") }
+                .distinct()
+            imageUrls.chunked(2).forEach { imageRow ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    imageRow.forEach { imageUrl ->
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "صورة من صور الإعلان " + advertisement.title,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .height(104.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    if (imageRow.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }

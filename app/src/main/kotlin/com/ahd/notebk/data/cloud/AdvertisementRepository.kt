@@ -12,6 +12,8 @@ data class HomeAdvertisement(
     val title: String,
     val body: String,
     val imageUrl: String,
+    val images: List<String>,
+    val buttonText: String,
     val targetUrl: String
 )
 
@@ -35,7 +37,7 @@ object AdvertisementRepository {
     }
     suspend fun loadActive(context: Context? = null): List<HomeAdvertisement> = withContext(Dispatchers.IO) {
         val connection = (URL(
-            "${SupabaseConfig.URL}/rest/v1/notebk_ads?select=id,title,body,image_url,target_url&is_active=eq.true&order=sort_order.asc,created_at.desc"
+            "${SupabaseConfig.URL}/rest/v1/notebk_ads?select=id,title,body,image_url,image_urls,button_text,target_url&is_active=eq.true&order=sort_order.asc,created_at.desc"
         ).openConnection() as HttpURLConnection)
         try {
             connection.requestMethod = "GET"
@@ -57,6 +59,16 @@ object AdvertisementRepository {
         }
     }
 
+    private fun parseImageUrls(array: JSONArray?, legacyImageUrl: String): List<String> {
+        val urls = if (array == null) emptyList() else
+            (0 until array.length()).mapNotNull { index ->
+                array.optString(index).takeIf { it.startsWith("https://") || it.startsWith("http://") }
+            }
+        return (urls.ifEmpty {
+            listOf(legacyImageUrl).filter { it.startsWith("https://") || it.startsWith("http://") }
+        }).distinct().take(10)
+    }
+
     private fun parseAds(raw: String): List<HomeAdvertisement> {
         val array = JSONArray(raw)
         return (0 until array.length()).mapNotNull { index ->
@@ -68,6 +80,8 @@ object AdvertisementRepository {
                 title = title,
                 body = item.optString("body"),
                 imageUrl = item.optString("image_url"),
+                images = parseImageUrls(item.optJSONArray("image_urls"), item.optString("image_url")),
+                buttonText = item.optString("button_text", "معرفة المزيد").ifBlank { "معرفة المزيد" },
                 targetUrl = item.optString("target_url")
             )
         }

@@ -226,7 +226,7 @@ fun HomeDashboard(
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
     LaunchedEffect(refreshKey, selectedShopId) {
         while (true) {
-            advertisements = AdvertisementRepository.loadActive()
+            advertisements = AdvertisementRepository.loadActive(context)
             if (advertisements.isEmpty() || advertisementIndex >= advertisements.size) advertisementIndex = 0
             delay(60_000)
         }

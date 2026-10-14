@@ -1,6 +1,21 @@
 package com.ahd.notebk.ui.screen.home
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
+import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
+import com.ahd.notebk.data.cloud.AdvertisementRepository
+import com.ahd.notebk.data.cloud.HomeAdvertisement
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +65,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.DisposableEffect
 import com.ahd.notebk.data.local.LedgerDatabase
 import com.ahd.notebk.domain.model.MonthBundle
@@ -109,13 +127,15 @@ fun HomeDashboard(
     onAppSettings: () -> Unit,
     onHelp: () -> Unit,
     onStatistics: () -> Unit
-) {
+ ) {
+    val context = LocalContext.current
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
+    var advertisements by remember { mutableStateOf(AdvertisementRepository.loadCached(context)) }
+    var advertisementIndex by remember { mutableStateOf(0) }
 
     // Settings are observed rather than read once, so returning from Settings applies them immediately.
-    val context = LocalContext.current
     val settingsPrefs = remember(context) {
         context.applicationContext.getSharedPreferences("notebk_settings", android.content.Context.MODE_PRIVATE)
     }
@@ -207,6 +227,35 @@ fun HomeDashboard(
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
+    // Refresh immediately when the dashboard opens/returns to foreground, and poll while visible.
+    // This keeps ads independent from the manual data-sync button.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var foregroundRefreshToken by remember { mutableStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) foregroundRefreshToken++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(refreshKey, selectedShopId, foregroundRefreshToken) {
+        while (true) {
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                val latest = AdvertisementRepository.loadActive(context)
+                advertisements = latest
+                if (latest.isEmpty() || advertisementIndex >= latest.size) advertisementIndex = 0
+            }
+            delay(20_000)
+        }
+    }
+    LaunchedEffect(advertisements.size) {
+        if (advertisements.size > 1) {
+            while (true) {
+                delay(5_000)
+                advertisementIndex = (advertisementIndex + 1) % advertisements.size
+            }
+        }
+    }
 
     val filteredActivities = totals.activities.filter { activity ->
         val matchesFilter = when (filter) {
@@ -232,6 +281,16 @@ fun HomeDashboard(
             )
 
             Spacer(Modifier.height(10.dp))
+
+            // Ads remain visible even before the user creates their first shop.
+            if (advertisements.isNotEmpty()) {
+                AdvertisementCarouselCard(
+                    advertisement = advertisements[advertisementIndex.coerceIn(0, advertisements.lastIndex)],
+                    currentIndex = advertisementIndex + 1,
+                    total = advertisements.size
+                )
+                Spacer(Modifier.height(10.dp))
+            }
 
             if (shops.isEmpty()) {
                 EmptyDashboard(onAddShop)
@@ -369,6 +428,146 @@ fun HomeDashboard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AdvertisementCarouselCard(
+    advertisement: HomeAdvertisement,
+    currentIndex: Int,
+    total: Int
+) {
+    val uriHandler = LocalUriHandler.current
+    val canOpen = advertisement.targetUrl.startsWith("https://") || advertisement.targetUrl.startsWith("http://")
+    val imageUrls = remember(advertisement.images, advertisement.imageUrl) {
+        (advertisement.images.ifEmpty {
+            listOf(advertisement.imageUrl).filter { it.isNotBlank() }
+        })
+            .map { it.trim() }
+            .filter { it.startsWith("https://") || it.startsWith("http://") }
+            .distinct()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Brush.horizontalGradient(listOf(Purple, Blue)))
+            .then(
+                if (canOpen) Modifier.clickable {
+                    runCatching { uriHandler.openUri(advertisement.targetUrl) }
+                } else Modifier
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "إعلان • $currentIndex / $total",
+                    color = Color.White.copy(alpha = 0.82f),
+                    fontSize = 10.sp
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    advertisement.title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 2
+                )
+                if (advertisement.body.isNotBlank()) {
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        advertisement.body,
+                        color = Color.White.copy(alpha = 0.94f),
+                        fontSize = 12.sp,
+                        maxLines = 2
+                    )
+                }
+            }
+            if (canOpen) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    advertisement.buttonText.ifBlank { "معرفة المزيد" },
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+        }
+
+        // Fixed-height media frame keeps the card stable across ads with different image counts.
+        if (imageUrls.isNotEmpty()) {
+            val visibleImages = imageUrls.take(4)
+            val frameHeight = 164.dp
+            if (visibleImages.size == 1) {
+                AdvertisementImage(
+                    imageUrl = visibleImages.first(),
+                    description = "صورة الإعلان " + advertisement.title,
+                    modifier = Modifier.fillMaxWidth().height(frameHeight)
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(frameHeight),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    visibleImages.chunked(2).forEachIndexed { rowIndex, rowImages ->
+                        Row(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowImages.forEachIndexed { columnIndex, imageUrl ->
+                                val imageIndex = rowIndex * 2 + columnIndex
+                                Box(Modifier.weight(1f).fillMaxSize()) {
+                                    AdvertisementImage(
+                                        imageUrl = imageUrl,
+                                        description = "صورة " + (imageIndex + 1) + " من الإعلان " + advertisement.title,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    if (imageIndex == 3 && imageUrls.size > 4) {
+                                        Box(
+                                            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.58f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "+" + (imageUrls.size - 4),
+                                                color = Color.White,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (rowImages.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdvertisementImage(
+    imageUrl: String,
+    description: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(11.dp))
+            .background(Color.White.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = description,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
     }
 }
 

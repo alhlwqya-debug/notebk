@@ -66,7 +66,9 @@ fun ControlCenterScreen(
     onStatistics: () -> Unit,
     onSecurity: () -> Unit,
     onAccountAuth: () -> Unit,
-    onAppSettings: () -> Unit
+    onCloudSync: () -> Unit,
+    onAppSettings: () -> Unit,
+    onAbout: () -> Unit
 ) {
     val primary = com.ahd.notebk.ui.components.NotebkBrandPurple
 
@@ -86,7 +88,7 @@ fun ControlCenterScreen(
         ControlItem("الملف الشخصي", "بيانات المستخدم والصورة وبيانات التقارير", Icons.Default.Person, onProfile),
         ControlItem("إعدادات المحل", "هوية المحل ورقم التسجيل وطريقة الحساب", Icons.Default.Storefront, onShopSettings),
         ControlItem("طريقة تسجيل العمل", "عددي أو فردي حسب طبيعة المحل", Icons.Default.Tune, onRegistrationSettings),
-        ControlItem("الحساب والمزامنة", "تسجيل الدخول أو إنشاء حساب أو متابعة كضيف", Icons.Default.AccountCircle, onAccountAuth)
+        ControlItem("الحساب والأمان", "معلومات الحساب وتغيير كلمة المرور وتسجيل الخروج", Icons.Default.AccountCircle, onAccountAuth)
     )
 
     LazyColumn(
@@ -151,6 +153,14 @@ fun ControlCenterScreen(
         }
         item {
             AppSettingItem(
+                title = "المزامنة السحابية",
+                description = "تفعيل المزامنة ومتابعة حالتها وإجراء مزامنة الآن",
+                icon = Icons.Default.Backup,
+                onClick = onCloudSync
+            )
+        }
+        item {
+            AppSettingItem(
                 title = "الحماية والنسخ الاحتياطي",
                 description = if (reminderEnabled) "النسخ الاحتياطي والحماية — التذكير اليومي مفعل" else "النسخ الاحتياطي والحماية وإدارة بيانات التطبيق",
                 icon = Icons.Default.Security,
@@ -162,7 +172,7 @@ fun ControlCenterScreen(
                 title = "معلومات notebk",
                 description = "${NotebkBrand.APP_NAME} • ${NotebkBrand.DEVELOPER_NAME}",
                 icon = Icons.Default.Backup,
-                onClick = onBack
+                onClick = onAbout
             )
         }
     }

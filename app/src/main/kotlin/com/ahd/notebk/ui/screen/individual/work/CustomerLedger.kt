@@ -281,10 +281,10 @@ internal fun IndividualLedger(
     val totalQuantities = entries.sumOf { entry -> entry.quantities.values.sum() }
     val shopName = shops.firstOrNull { it.id == selectedShopId }?.name ?: "اختر محل"
 
+    Box(Modifier.fillMaxSize().background(PageBg)) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(PageBg)
             .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
         // رأس موحد لكل شاشات notebk.
@@ -533,19 +533,6 @@ internal fun IndividualLedger(
                 Spacer(Modifier.width(2.dp))
                 Text("PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
-        }
-
-        Spacer(Modifier.height(5.dp))
-
-        Button(
-            onClick = { addCustomer() },
-            colors = ButtonDefaults.buttonColors(containerColor = Purple),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-            modifier = Modifier.fillMaxWidth().height(36.dp)
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(5.dp))
-            Text("إضافة زبون جديد", fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(5.dp))
@@ -833,6 +820,27 @@ internal fun IndividualLedger(
                 Text("${recordedDays.size} يوم مسجل", fontSize = 7.sp, color = Color.Gray)
             }
         }
+    }
+
+    // زر عائم لإضافة زبون، يبقى ظاهرًا أثناء تمرير جدول التسجيل الفردي.
+    androidx.compose.material3.ExtendedFloatingActionButton(
+        onClick = { addCustomer() },
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = 16.dp, bottom = 82.dp),
+        containerColor = Purple,
+        contentColor = Color.White,
+        icon = {
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+        },
+        text = {
+            Text("إضافة زبون", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    )
     }
 
     if (showDatePicker) {

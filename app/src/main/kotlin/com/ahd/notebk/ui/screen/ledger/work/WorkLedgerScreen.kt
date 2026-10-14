@@ -36,6 +36,7 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -131,6 +132,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     val prefs = remember {
         context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE)
     }
+    val profilePrefs = remember { com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context) }
 
     // ===== حالة البيانات =====
     var shops by remember { mutableStateOf(database.getShops()) }
@@ -141,11 +143,11 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var pieces by remember { mutableStateOf(selectedShopId?.let(database::getPieces) ?: emptyList()) }
 
     // ===== حالة الملف الشخصي =====
-    var userName by remember { mutableStateOf(prefs.getString("user_name", "") ?: "") }
-    var userPhone by remember { mutableStateOf(prefs.getString("user_phone", "") ?: "") }
-    var userEmail by remember { mutableStateOf(prefs.getString("user_email", "") ?: "") }
-    var userShop by remember { mutableStateOf(prefs.getString("user_shop", "") ?: "") }
-    var userImagePath by remember { mutableStateOf(prefs.getString("user_image", "") ?: "") }
+    var userName by remember { mutableStateOf(profilePrefs.getString("user_name", "") ?: "") }
+    var userPhone by remember { mutableStateOf(profilePrefs.getString("user_phone", "") ?: "") }
+    var userEmail by remember { mutableStateOf(profilePrefs.getString("user_email", "") ?: "") }
+    var userShop by remember { mutableStateOf(profilePrefs.getString("user_shop", "") ?: "") }
+    var userImagePath by remember { mutableStateOf(profilePrefs.getString("user_image", "") ?: "") }
 
     // ===== حالة واجهة المستخدم =====
     val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
@@ -179,6 +181,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showRegistrationSettings by remember { mutableStateOf(false) }
     var showShopSettings by remember { mutableStateOf(false) }
     var showAppSettings by remember { mutableStateOf(false) }
+    var cloudSyncOnly by remember { mutableStateOf(false) }
     var showSystemSettings by remember { mutableStateOf(false) }
     var showControlCenter by remember { mutableStateOf(false) }
     var showFeatureHub by remember { mutableStateOf(false) }
@@ -206,6 +209,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showPdfRangeDialog by remember { mutableStateOf(false) }
     var showSecurityDialog by remember { mutableStateOf(false) }
+    var showAccountSecurityDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
     var appPinEnabled by remember { mutableStateOf(hasAppPin(context)) }
     var lockedByBackground by remember { mutableStateOf(false) }
@@ -253,7 +257,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             try {
                 val imageFile = saveImageToInternalStorage(context, uri)
                 userImagePath = imageFile.absolutePath
-                prefs.edit().putString("user_image", imageFile.absolutePath).apply()
+                profilePrefs.edit().putString("user_image", imageFile.absolutePath).apply()
                 Toast.makeText(context, "تم حفظ الصورة", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(context, "تعذر حفظ الصورة", Toast.LENGTH_SHORT).show()
@@ -358,6 +362,61 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     val currentBundle = bundle
     val currentShop = shops.firstOrNull { it.id == selectedShopId }
 
+    // Handle Android system back consistently: dismiss the topmost dialog/page first,
+    // then return from the ledger to the dashboard instead of finishing the Activity.
+    val hasOverlayToClose =
+        drawerOpen || shopMenuOpen ||
+        showSetPinDialog || showSecurityDialog || showAccountSecurityDialog ||
+        showHelp || showAbout || showStatistics || showUserProfile ||
+        showShopDialog || showMonthDialog || showPieceDialog || showPieceManager ||
+        showExpenseDialog || showClearDialog || showDeleteMonthDialog || showDeleteShopDialog ||
+        showRenameMonthDialog || showCopyMonthDialog || showStartDatePicker || showPdfRangeDialog ||
+        showRegistrationSettings || showShopSettings || showAppSettings || showSystemSettings ||
+        showControlCenter || showFeatureHub ||
+        showMonthsPage || showPiecesPage || showReportsPage || showStatisticsPage
+
+    BackHandler(enabled = hasOverlayToClose || !showDashboard) {
+        when {
+            // Dismiss modal/dialog state before navigating away from its parent screen.
+            showSetPinDialog -> showSetPinDialog = false
+            showAccountSecurityDialog -> showAccountSecurityDialog = false
+            showSecurityDialog -> showSecurityDialog = false
+            showHelp -> showHelp = false
+            showAbout -> showAbout = false
+            showStatistics -> showStatistics = false
+            showExpenseDialog -> { showExpenseDialog = false; activeExpenseDay = null }
+            showPdfRangeDialog -> showPdfRangeDialog = false
+            showStartDatePicker -> showStartDatePicker = false
+            showDeleteShopDialog -> showDeleteShopDialog = false
+            showDeleteMonthDialog -> showDeleteMonthDialog = false
+            showClearDialog -> showClearDialog = false
+            showRenameMonthDialog -> showRenameMonthDialog = false
+            showCopyMonthDialog -> showCopyMonthDialog = false
+            showPieceDialog -> showPieceDialog = false
+            showPieceManager -> showPieceManager = false
+            showMonthDialog -> showMonthDialog = false
+            showShopDialog -> showShopDialog = false
+            showUserProfile -> showUserProfile = false
+            showRegistrationSettings -> showRegistrationSettings = false
+            showSystemSettings -> showSystemSettings = false
+            showAppSettings -> { showAppSettings = false; cloudSyncOnly = false }
+            showShopSettings -> showShopSettings = false
+            showFeatureHub -> showFeatureHub = false
+            showControlCenter -> showControlCenter = false
+            showReportsPage -> showReportsPage = false
+            showStatisticsPage -> showStatisticsPage = false
+            showPiecesPage -> showPiecesPage = false
+            showMonthsPage -> showMonthsPage = false
+            shopMenuOpen -> shopMenuOpen = false
+            drawerOpen -> drawerOpen = false
+            !showDashboard -> {
+                // Return to the dashboard from the ledger/daily-work area.
+                showDashboard = true
+                openDailyWorkRequested = false
+            }
+        }
+    }
+
     // ===== الواجهة =====
     Box(
         modifier = Modifier
@@ -380,7 +439,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     if (selectedShopId != null) showShopSettings = true
                 },
                 onUserProfile = { showUserProfile = true },
-                onAppSettings = { showFeatureHub = true },
+                onAppSettings = { showControlCenter = true },
                 onHelp = { showHelp = true },
                 onStatistics = { showStatistics = true }
             )
@@ -490,7 +549,10 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             onShopSettingsTargetChange = { shopSettingsTargetId = it },
             onNewShop = { newShopName = ""; newShopRegistrationNumber = ""; newShopMode = RegistrationMode.NUMERIC; showShopDialog = true },
             onProfile = { showUserProfile = true }, onRefreshRevision = { dataRevision++ },
-            onOpenAuth = onOpenAuth, onSecurity = { showSecurityDialog = true },
+            onOpenAuth = onOpenAuth,
+            onAccountSecurity = { showAccountSecurityDialog = true },
+            onCloudSync = { cloudSyncOnly = true; showAppSettings = true },
+            onSecurity = { showSecurityDialog = true },
             onRegistrationSettings = { showRegistrationSettings = selectedShopId != null }
         )
 
@@ -525,6 +587,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         showClearDialog = showClearDialog, showDeleteMonthDialog = showDeleteMonthDialog, showDeleteShopDialog = showDeleteShopDialog,
         showRenameMonthDialog = showRenameMonthDialog, showCopyMonthDialog = showCopyMonthDialog, showStartDatePicker = showStartDatePicker,
         showPdfRangeDialog = showPdfRangeDialog, showShopSettings = showShopSettings, showAppSettings = showAppSettings,
+        cloudSyncOnly = cloudSyncOnly, onCloudSyncOnlyChange = { cloudSyncOnly = it },
         showSystemSettings = showSystemSettings, shopSettingsTargetId = shopSettingsTargetId, activeExpenseDay = activeExpenseDay,
         newShopName = newShopName, newShopRegistrationNumber = newShopRegistrationNumber, newShopMode = newShopMode,
         newYear = newYear, newMonthNumber = newMonthNumber, newStartDate = newStartDate, newPieceName = newPieceName,
@@ -567,7 +630,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         },
         onSecurity = { showAppSettings = false; showSecurityDialog = true },
         onSystemSettings = { showAppSettings = false; showSystemSettings = true },
-        onAccountAuth = { showAppSettings = false; onOpenAuth() }, onHelp = { showAppSettings = false; showHelp = true },
+        onAccountAuth = { showAppSettings = false; showAccountSecurityDialog = true }, onHelp = { showAppSettings = false; showHelp = true },
         onBackAppSettings = { showAppSettings = false }, onBackShopSettings = { showShopSettings = false },
         refreshAll = { refreshAll() }, reloadBundle = { reloadBundle() }, reloadMonths = { reloadMonths() }, reloadShops = { reloadShops() },
         dataRevision = dataRevision, onDataRevisionChange = { dataRevision++ },
@@ -585,6 +648,20 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 reloadShops()
                 showRegistrationSettings = false
                 Toast.makeText(context, "تم حفظ طريقة تسجيل العمل", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showAccountSecurityDialog) {
+        com.ahd.notebk.ui.screen.settings.AccountSecurityDialog(
+            onDismiss = { showAccountSecurityDialog = false },
+            onOpenAuth = {
+                showAccountSecurityDialog = false
+                onOpenAuth()
+            },
+            onSignedOut = {
+                showAccountSecurityDialog = false
+                onOpenAuth()
             }
         )
     }

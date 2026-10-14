@@ -58,7 +58,7 @@ internal fun normalizePageForSearch(value: String): String = value.trim().map {
 class LedgerDatabase(context: Context) :
 SQLiteOpenHelper(
     context.applicationContext,
-    DATABASE_NAME,
+    AccountDataScope.databaseName(context),
     null,
     DATABASE_VERSION
 ) {

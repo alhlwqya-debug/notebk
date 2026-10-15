@@ -114,13 +114,13 @@ fun ReportsPage(
     onOpenReport: () -> Unit,
     onRefresh: () -> Unit
 ) {
-    NotebkPage("التقارير والطباعة", "إنشاء التقارير ومشاركتها بصيغة PDF", onBack) {
-        NotebkSectionCard("التقرير الشهري", "اختر النطاق بعد الضغط على إنشاء التقرير") {
-            Text(if (hasMonth) "يوجد شهر محدد وجاهز للتقرير." else "اختر شهرًا أولًا قبل إنشاء التقرير.")
-            NotebkPrimaryAction("إنشاء تقرير PDF", onOpenReport, enabled = hasMonth)
+    NotebkPage("النواتج والتقارير", "إدارة تقارير الشهر والسنة وكل السنوات ومشاركتها أو طباعتها بصيغة PDF", onBack) {
+        NotebkSectionCard("التقارير والنواتج", "اختر النطاق من شاشة إعداد التقرير") {
+            Text(if (hasMonth) "يمكن إنشاء تقرير للشهر المحدد أو سنة كاملة أو جميع السنوات المسجلة." else "أضف شهرًا وسجّل بيانات العمل أولًا حتى تتوفر نواتج للتقرير.")
+            NotebkPrimaryAction("إدارة التقارير والطباعة والمشاركة", onOpenReport, enabled = hasMonth)
         }
-        NotebkSectionCard("الطباعة والمشاركة") {
-            Text("بعد إنشاء التقرير يمكنك معاينته وطباعته أو مشاركته من شاشة التقرير.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        NotebkSectionCard("ما الذي يشمله التقرير؟") {
+            Text("يُنشأ التقرير من تسجيلات المحل الفعلية، ويتضمن الإنتاج والمصروفات والصافي وتفاصيل الأيام؛ والتسجيل الفردي يتضمن تفاصيل الزبائن والصفحات والقطع.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             NotebkSecondaryAction("تحديث البيانات", onRefresh)
         }
     }

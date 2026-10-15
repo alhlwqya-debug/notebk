@@ -103,9 +103,9 @@ object AppUpdateRepository {
 
     sealed class ManualCheckResult {
         data class UpdateAvailable(val detailsUrl: String) : ManualCheckResult()
-        data object UpToDate : ManualCheckResult()
-        data object NotPublished : ManualCheckResult()
-        data object Failed : ManualCheckResult()
+        object UpToDate : ManualCheckResult()
+        object NotPublished : ManualCheckResult()
+        object Failed : ManualCheckResult()
     }
 
     /**

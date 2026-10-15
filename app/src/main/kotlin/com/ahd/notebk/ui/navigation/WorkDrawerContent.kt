@@ -4,6 +4,11 @@ import com.ahd.notebk.data.report.LocalProfileImage
 import com.ahd.notebk.domain.model.ShopRecord
 import com.ahd.notebk.ui.components.*
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import com.ahd.notebk.data.cloud.AppUpdateRepository
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +45,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,18 +54,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun DrawerContent(
@@ -90,6 +99,8 @@ internal fun DrawerContent(
     val surface = AppSurface
     val text = AppText
     val muted = AppMuted
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Surface(
@@ -373,6 +384,61 @@ internal fun DrawerContent(
                         icon = Icons.Default.Assessment,
                         selected = false,
                         onClick = onStatistics
+                    )
+                }
+
+                item {
+                    Spacer(Modifier.height(18.dp))
+                    DrawerSectionTitle("متجر AHD")
+                }
+
+                item {
+                    DrawerNavItem(
+                        text = "متجرنا - المزيد من التطبيقات",
+                        icon = Icons.Default.Storefront,
+                        selected = false,
+                        onClick = {
+                            onClose()
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://ahdstoer.vercel.app"))
+                                )
+                            }.onFailure {
+                                Toast.makeText(context, "تعذر فتح متجر AHD", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+
+                item {
+                    DrawerNavItem(
+                        text = "التحقق من تحديث التطبيق",
+                        icon = Icons.Default.Update,
+                        selected = false,
+                        onClick = {
+                            Toast.makeText(context, "جارٍ التحقق من وجود تحديث...", Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch {
+                                when (val result = AppUpdateRepository.checkManually(context)) {
+                                    is AppUpdateRepository.ManualCheckResult.UpdateAvailable -> {
+                                        Toast.makeText(context, "يتوفر تحديث جديد؛ سيتم فتح صفحة التطبيق في متجر AHD", Toast.LENGTH_LONG).show()
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_VIEW, Uri.parse(result.detailsUrl))
+                                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            )
+                                        }.onFailure {
+                                            Toast.makeText(context, "تعذر فتح صفحة التحديث", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    AppUpdateRepository.ManualCheckResult.UpToDate ->
+                                        Toast.makeText(context, "تطبيقك محدّث إلى آخر إصدار منشور", Toast.LENGTH_LONG).show()
+                                    AppUpdateRepository.ManualCheckResult.NotPublished ->
+                                        Toast.makeText(context, "لم يتم نشر إصدار التطبيق في متجر AHD بعد", Toast.LENGTH_LONG).show()
+                                    AppUpdateRepository.ManualCheckResult.Failed ->
+                                        Toast.makeText(context, "تعذر التحقق الآن؛ تحقق من اتصال الإنترنت وحاول مجددًا", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
                     )
                 }
 

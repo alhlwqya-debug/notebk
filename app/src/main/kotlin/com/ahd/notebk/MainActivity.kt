@@ -1,6 +1,9 @@
 package com.ahd.notebk
 
 import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
@@ -42,6 +45,7 @@ import java.util.concurrent.TimeUnit
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestUpdateNotificationPermission()
         scheduleAdvertisementRefresh()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
@@ -123,6 +127,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private fun requestUpdateNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4801)
+        }
+    }
+
     /**
      * Schedules an immediate refresh and periodic background refresh.
      * WorkManager runs when Android allows it and a network is available.

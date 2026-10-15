@@ -8,10 +8,12 @@ class AdvertisementRefreshWorker(
     appContext: Context,
     params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
-    override suspend fun doWork(): Result = try {
-        AdvertisementRepository.loadActive(applicationContext)
-        Result.success()
-    } catch (_: Exception) {
-        Result.retry()
+    override suspend fun doWork(): Result {
+        val adsResult = runCatching {
+            AdvertisementRepository.loadActive(applicationContext)
+        }
+        // Keep update notifications independent from advertisement API availability.
+        runCatching { AppUpdateRepository.checkAndNotify(applicationContext) }
+        return if (adsResult.isSuccess) Result.success() else Result.retry()
     }
 }

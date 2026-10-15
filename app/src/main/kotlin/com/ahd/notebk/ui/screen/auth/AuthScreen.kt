@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -123,7 +124,12 @@ fun AuthScreen(
         Modifier.fillMaxSize().background(AppBackground)
     ) {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).safeDrawingPadding(),
+            Modifier
+                .widthIn(max = 560.dp)
+                .fillMaxSize()
+                .align(Alignment.TopCenter)
+                .verticalScroll(rememberScrollState())
+                .safeDrawingPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(

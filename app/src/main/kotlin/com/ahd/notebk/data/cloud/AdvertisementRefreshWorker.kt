@@ -10,6 +10,8 @@ class AdvertisementRefreshWorker(
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result = try {
         AdvertisementRepository.loadActive(applicationContext)
+        // Update checking is independent: a store/API hiccup must not fail ad refresh.
+        runCatching { AppUpdateRepository.checkAndNotify(applicationContext) }
         Result.success()
     } catch (_: Exception) {
         Result.retry()

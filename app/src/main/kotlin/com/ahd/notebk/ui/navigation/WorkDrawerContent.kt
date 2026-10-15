@@ -301,7 +301,7 @@ internal fun DrawerContent(
 
                 item {
                     DrawerNavItem(
-                        text = "التقارير",
+                        text = "النواتج والتقارير",
                         icon = Icons.Default.Description,
                         selected = false,
                         onClick = onReports

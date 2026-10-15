@@ -416,7 +416,6 @@ internal fun DrawerContent(
                         icon = Icons.Default.Update,
                         selected = false,
                         onClick = {
-                            onClose()
                             Toast.makeText(context, "جارٍ التحقق من وجود تحديث...", Toast.LENGTH_SHORT).show()
                             coroutineScope.launch {
                                 when (val result = AppUpdateRepository.checkManually(context)) {

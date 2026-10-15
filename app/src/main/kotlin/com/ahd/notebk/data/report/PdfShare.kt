@@ -53,8 +53,11 @@ internal fun shareWebViewAsPdf(
         try {
             val metrics = context.resources.displayMetrics
             val viewWidth = metrics.widthPixels.coerceAtLeast(1)
+            // DOM scrollHeight is measured in CSS pixels; convert it to the
+            // WebView's physical-pixel coordinate space before sizing the view.
+            val domHeightPx = (contentHeight * webView.scale).roundToInt()
             val measuredHeight = maxOf(
-                contentHeight,
+                domHeightPx,
                 (webView.contentHeight * webView.scale).roundToInt(),
                 webView.height,
                 metrics.heightPixels
@@ -171,8 +174,9 @@ internal fun shareWebViewAsPdf(
     }
 
     try {
-        // DOM scrollHeight is more reliable than WebView.contentHeight for
-        // long HTML reports containing tables and multiple sections.
+        // JavaScript must be enabled for evaluateJavascript to return the
+        // document's full scrollHeight. These reports are generated locally
+        // from escaped app data; no remote page is loaded.
         webView.post {
             webView.evaluateJavascript(
                 """

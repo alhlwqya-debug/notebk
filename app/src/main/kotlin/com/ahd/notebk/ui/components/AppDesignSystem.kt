@@ -80,9 +80,27 @@ fun setNotebkPalette(dark: Boolean) {
     CardNetBg = if (dark) Color(0xFF1E2C40) else Color(0xFFEDF5FF)
 }
 
+/**
+ * Shared responsive canvas:
+ * - Phones keep the full available width.
+ * - Tablets, foldables and desktop-sized windows use a centered readable content width.
+ * - Background still fills the entire window, independent of the content width.
+ */
 @Composable
 fun NotebkScreenBackground(content: @Composable BoxScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().background(AppGradient)) { content() }
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().background(AppGradient)
+    ) {
+        val contentWidth = if (maxWidth >= 840.dp) 760.dp else maxWidth
+        Box(
+            modifier = Modifier
+                .width(contentWidth)
+                .fillMaxHeight()
+                .align(Alignment.TopCenter)
+        ) {
+            content()
+        }
+    }
 }
 
 @Composable
@@ -163,13 +181,20 @@ fun NotebkPage(
     onBack: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBackground)
             .safeDrawingPadding()
-            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
+        val pageWidth = if (maxWidth >= 840.dp) 760.dp else maxWidth
+        Column(
+            modifier = Modifier
+                .width(pageWidth)
+                .fillMaxHeight()
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+        ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = AppSurface,
@@ -205,6 +230,7 @@ fun NotebkPage(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content
         )
+        }
     }
 }
 

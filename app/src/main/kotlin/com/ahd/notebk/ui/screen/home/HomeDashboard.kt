@@ -559,14 +559,18 @@ private fun AdvertisementImage(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(11.dp))
-            .background(Color.White.copy(alpha = 0.12f)),
+            // Neutral letterbox background keeps portrait and landscape images tidy
+            // without stretching or cropping any part of the original image.
+            .background(Color(0xFFF4F6FA))
+            .border(1.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(11.dp)),
         contentAlignment = Alignment.Center
     ) {
         AsyncImage(
             model = imageUrl,
             contentDescription = description,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            modifier = Modifier.fillMaxSize().padding(4.dp),
+            contentScale = ContentScale.Fit,
+            alignment = Alignment.Center
         )
     }
 }

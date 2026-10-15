@@ -90,7 +90,8 @@ internal fun generatePdf(
     userImagePath: String,
     shopRegistrationNumber: String = "",
     sharePdf: Boolean = false,
-    netOverride: Int? = null
+    netOverride: Int? = null,
+    deductExpenseSummary: String? = null
 ) {
     try {
         val totalEarned = database.calculateMonthEarned(bundle)
@@ -247,7 +248,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
             append("<tr><td>المحل</td><td>${escapeHtml(userShop.ifBlank { database.getShops().firstOrNull { it.id == bundle.month.shopId }?.name.orEmpty() })}</td></tr>")
             append("<tr><td>العامل</td><td>${escapeHtml(bundle.month.workerName)}</td></tr>")
             append("<tr><td>تاريخ البداية</td><td>${escapeHtml(bundle.month.startDate)}</td></tr>")
-            append("<tr><td>خصم المصروف</td><td>${if (bundle.month.deductExpense) "نعم" else "لا"}</td></tr>")
+            append("<tr><td>خصم المصروف</td><td>${deductExpenseSummary ?: if (bundle.month.deductExpense) "نعم" else "لا"}</td></tr>")
             append("</table></div></td>")
             append("<td><div class='panel'><div class='section-title'>مؤشرات العمل</div>")
             append("<table class='info-table'>")
@@ -279,7 +280,8 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
             append("<th>المصروف</th><th class='total'>المجموع</th></tr></thead><tbody>")
             bundle.days.forEach { day ->
                 val earned = database.calculateDayEarned(day)
-                val dayTotal = if (bundle.month.deductExpense) earned - day.expense else earned
+                val dayDeductExpense = database.getMonth(day.monthId)?.deductExpense ?: bundle.month.deductExpense
+                val dayTotal = if (dayDeductExpense) earned - day.expense else earned
                 append("<tr>")
                 append("<td>${escapeHtml(day.dayName)}</td>")
                 append("<td>${escapeHtml(day.date)}</td>")
@@ -372,7 +374,8 @@ internal fun generateIndividualPdf(
     userImagePath: String,
     shopRegistrationNumber: String = "",
     sharePdf: Boolean = false,
-    netOverride: Int? = null
+    netOverride: Int? = null,
+    deductExpenseSummary: String? = null
 ) {
     try {
         fun amount(value: Int): String = String.format(java.util.Locale.US, "%,d", value)
@@ -499,7 +502,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
             append("<table class='info'><tr>")
             append("<td class='label'>الأيام المسجلة</td><td class='value'>$activeDays يوم</td>")
             append("<td class='label'>متوسط الإنتاج اليومي</td><td class='value'>${amount(averageDaily)} ريال</td>")
-            append("<td class='label'>خصم المصروف</td><td class='value'>${if (bundle.month.deductExpense) "نعم" else "لا"}</td>")
+            append("<td class='label'>خصم المصروف</td><td class='value'>${deductExpenseSummary ?: if (bundle.month.deductExpense) "نعم" else "لا"}</td>")
             append("</tr></table>")
 
             append("<div class='section'>تفاصيل التسجيل الفردي حسب الأيام</div>")

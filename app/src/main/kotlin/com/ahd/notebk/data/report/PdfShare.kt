@@ -20,7 +20,8 @@ internal fun shareWebViewAsPdf(
     jobName: String,
     phone: String,
     email: String,
-    onFinished: () -> Unit
+    onFinished: () -> Unit,
+    landscape: Boolean = false
 ) {
     val reportsDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
     val safeName = jobName.replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
@@ -82,9 +83,10 @@ internal fun shareWebViewAsPdf(
             try {
                 val document = PdfDocument()
                 try {
-                    // A4 in points.
-                    val pageWidth = 595
-                    val pageHeight = 842
+                    // A4 dimensions in PDF points. Match the report's layout so
+                    // wide individual-ledger tables are not squeezed into portrait pages.
+                    val pageWidth = if (landscape) 842 else 595
+                    val pageHeight = if (landscape) 595 else 842
 
                     val scale = pageWidth.toFloat() / webView.measuredWidth.toFloat()
                     val contentHeightPerPage = pageHeight.toFloat() / scale

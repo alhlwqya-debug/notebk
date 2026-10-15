@@ -101,6 +101,52 @@ object AppUpdateRepository {
         }
     }
 
+    sealed class ManualCheckResult {
+        data class UpdateAvailable(val detailsUrl: String) : ManualCheckResult()
+        data object UpToDate : ManualCheckResult()
+        data object NotPublished : ManualCheckResult()
+        data object Failed : ManualCheckResult()
+    }
+
+    /**
+     * Runs an on-demand check for the menu action and reports a result to the UI.
+     * When a newer published version exists, also posts the regular update notification.
+     */
+    suspend fun checkManually(context: Context): ManualCheckResult = withContext(Dispatchers.IO) {
+        val appContext = context.applicationContext
+        var connection: HttpURLConnection? = null
+        try {
+            val packageName = appContext.packageName
+            val installedVersion = installedVersionCode(appContext)
+            val encodedPackage = URLEncoder.encode(packageName, Charsets.UTF_8.name())
+            val endpoint = "$SUPABASE_URL/rest/v1/apps?select=id,title,version_code,version_name&package_name=eq.$encodedPackage&is_published=eq.true&limit=1"
+            connection = URL(endpoint).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 12_000
+            connection.readTimeout = 12_000
+            connection.setRequestProperty("apikey", SUPABASE_PUBLISHABLE_KEY)
+            connection.setRequestProperty("Authorization", "Bearer $SUPABASE_PUBLISHABLE_KEY")
+            connection.setRequestProperty("Accept", "application/json")
+            if (connection.responseCode !in 200..299) return@withContext ManualCheckResult.Failed
+
+            val apps = JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
+            if (apps.length() == 0) return@withContext ManualCheckResult.NotPublished
+
+            val listing = apps.getJSONObject(0)
+            val availableVersion = listing.optLong("version_code", 0L)
+            val appId = listing.optLong("id", 0L)
+            if (availableVersion <= 0L) return@withContext ManualCheckResult.NotPublished
+            if (availableVersion <= installedVersion) return@withContext ManualCheckResult.UpToDate
+
+            checkAndNotify(appContext)
+            ManualCheckResult.UpdateAvailable("$STORE_URL/app-details.html?id=$appId")
+        } catch (_: Exception) {
+            ManualCheckResult.Failed
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
     private fun installedVersionCode(context: Context): Long {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

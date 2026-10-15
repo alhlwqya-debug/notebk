@@ -89,12 +89,13 @@ internal fun generatePdf(
     userShop: String,
     userImagePath: String,
     shopRegistrationNumber: String = "",
-    sharePdf: Boolean = false
+    sharePdf: Boolean = false,
+    netOverride: Int? = null
 ) {
     try {
         val totalEarned = database.calculateMonthEarned(bundle)
         val totalExpenses = database.calculateMonthExpenses(bundle)
-        val net = database.calculateMonthNet(bundle)
+        val net = netOverride ?: database.calculateMonthNet(bundle)
         val totalPieces = bundle.days.sumOf { it.quantities.values.sum() }
         val pieces = database.getPieces(bundle.month.shopId)
         val resolvedShopNumber = shopRegistrationNumber.ifBlank {
@@ -370,7 +371,8 @@ internal fun generateIndividualPdf(
     userShop: String,
     userImagePath: String,
     shopRegistrationNumber: String = "",
-    sharePdf: Boolean = false
+    sharePdf: Boolean = false,
+    netOverride: Int? = null
 ) {
     try {
         fun amount(value: Int): String = String.format(java.util.Locale.US, "%,d", value)
@@ -384,7 +386,7 @@ internal fun generateIndividualPdf(
         val allEntries = daysWithEntries.flatMap { it.second }
         val totalEarned = allEntries.sumOf { database.calculateIndividualEntryEarned(it) }
         val totalExpenses = daysWithEntries.sumOf { it.first.expense }
-        val net = if (bundle.month.deductExpense) totalEarned - totalExpenses else totalEarned
+        val net = netOverride ?: if (bundle.month.deductExpense) totalEarned - totalExpenses else totalEarned
         val totalCustomers = allEntries.count { it.customerName.isNotBlank() || it.pageNumber.isNotBlank() }
         val totalPieces = allEntries.sumOf { entry -> entry.quantities.values.sum() }
         val activeDays = daysWithEntries.size
@@ -506,7 +508,8 @@ table.data tr:nth-child(even) td { background: #fafafa; }
             } else {
                 daysWithEntries.forEach { (day, entries) ->
                     val dayEarned = database.calculateIndividualDayEarned(entries)
-                    val dayNet = if (bundle.month.deductExpense) dayEarned - day.expense else dayEarned
+                    val dayDeductExpense = database.getMonth(day.monthId)?.deductExpense ?: bundle.month.deductExpense
+                    val dayNet = if (dayDeductExpense) dayEarned - day.expense else dayEarned
                     append("<div style='margin-top:7px;font-weight:bold;color:#5A3A78;'>${escapeHtml(day.dayName)} — ${escapeHtml(day.date)} — إجمالي اليوم: ${signed(dayNet)} ريال</div>")
                     append("<table class='data'><thead><tr>")
                     append("<th>اسم الزبون</th><th>رقم الصفحة</th>")

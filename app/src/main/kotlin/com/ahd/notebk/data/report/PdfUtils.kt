@@ -321,9 +321,15 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                 val jobName = "notebk_${bundle.month.name}"
                 try {
                     if (sharePdf) {
-                        shareWebViewAsPdf(context, webView, jobName, userPhone, userEmail) {
-                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
-                        }
+                        shareWebViewAsPdf(
+                            context, webView, jobName, userPhone, userEmail,
+                            onFinished = {
+                                decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                            },
+                            landscape = com.ahd.notebk.data.local.NotebkSettingsStore(context)
+                                .getString("paper_orientation", "portrait")
+                                .equals("landscape", ignoreCase = true)
+                        )
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                         val adapter: PrintDocumentAdapter = webView.createPrintDocumentAdapter(jobName)
@@ -562,9 +568,13 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                 val jobName = "تسجيل_فردي_${bundle.month.name}"
                 try {
                     if (sharePdf) {
-                        shareWebViewAsPdf(context, webView, jobName, userPhone, userEmail) {
-                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
-                        }
+                        shareWebViewAsPdf(
+                            context, webView, jobName, userPhone, userEmail,
+                            onFinished = {
+                                decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                            },
+                            landscape = true
+                        )
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                         val adapter: PrintDocumentAdapter = webView.createPrintDocumentAdapter(jobName)

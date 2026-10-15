@@ -321,7 +321,8 @@ internal fun printNumericReportRange(
                     userShop,
                     userImagePath,
                     sharePdf = sharePdf,
-                    netOverride = yearBundles.sumOf { database.calculateMonthNet(it) }
+                    netOverride = yearBundles.sumOf { database.calculateMonthNet(it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }
@@ -356,7 +357,8 @@ internal fun printNumericReportRange(
                     userShop,
                     userImagePath,
                     sharePdf = sharePdf,
-                    netOverride = sourceBundles.sumOf { database.calculateMonthNet(it) }
+                    netOverride = sourceBundles.sumOf { database.calculateMonthNet(it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }
@@ -470,7 +472,8 @@ internal fun printIndividualReportRange(
                     userShop,
                     userImagePath,
                     sharePdf = sharePdf,
-                    netOverride = yearBundles.sumOf { individualMonthNet(database, it) }
+                    netOverride = yearBundles.sumOf { individualMonthNet(database, it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }
@@ -502,7 +505,8 @@ internal fun printIndividualReportRange(
                     userShop,
                     userImagePath,
                     sharePdf = sharePdf,
-                    netOverride = sourceBundles.sumOf { individualMonthNet(database, it) }
+                    netOverride = sourceBundles.sumOf { individualMonthNet(database, it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }

@@ -89,12 +89,14 @@ internal fun generatePdf(
     userShop: String,
     userImagePath: String,
     shopRegistrationNumber: String = "",
-    sharePdf: Boolean = false
+    sharePdf: Boolean = false,
+    netOverride: Int? = null,
+    deductExpenseSummary: String? = null
 ) {
     try {
         val totalEarned = database.calculateMonthEarned(bundle)
         val totalExpenses = database.calculateMonthExpenses(bundle)
-        val net = database.calculateMonthNet(bundle)
+        val net = netOverride ?: database.calculateMonthNet(bundle)
         val totalPieces = bundle.days.sumOf { it.quantities.values.sum() }
         val pieces = database.getPieces(bundle.month.shopId)
         val resolvedShopNumber = shopRegistrationNumber.ifBlank {
@@ -246,7 +248,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
             append("<tr><td>المحل</td><td>${escapeHtml(userShop.ifBlank { database.getShops().firstOrNull { it.id == bundle.month.shopId }?.name.orEmpty() })}</td></tr>")
             append("<tr><td>العامل</td><td>${escapeHtml(bundle.month.workerName)}</td></tr>")
             append("<tr><td>تاريخ البداية</td><td>${escapeHtml(bundle.month.startDate)}</td></tr>")
-            append("<tr><td>خصم المصروف</td><td>${if (bundle.month.deductExpense) "نعم" else "لا"}</td></tr>")
+            append("<tr><td>خصم المصروف</td><td>${deductExpenseSummary ?: if (bundle.month.deductExpense) "نعم" else "لا"}</td></tr>")
             append("</table></div></td>")
             append("<td><div class='panel'><div class='section-title'>مؤشرات العمل</div>")
             append("<table class='info-table'>")
@@ -278,7 +280,8 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
             append("<th>المصروف</th><th class='total'>المجموع</th></tr></thead><tbody>")
             bundle.days.forEach { day ->
                 val earned = database.calculateDayEarned(day)
-                val dayTotal = if (bundle.month.deductExpense) earned - day.expense else earned
+                val dayDeductExpense = database.getMonth(day.monthId)?.deductExpense ?: bundle.month.deductExpense
+                val dayTotal = if (dayDeductExpense) earned - day.expense else earned
                 append("<tr>")
                 append("<td>${escapeHtml(day.dayName)}</td>")
                 append("<td>${escapeHtml(day.date)}</td>")
@@ -370,7 +373,9 @@ internal fun generateIndividualPdf(
     userShop: String,
     userImagePath: String,
     shopRegistrationNumber: String = "",
-    sharePdf: Boolean = false
+    sharePdf: Boolean = false,
+    netOverride: Int? = null,
+    deductExpenseSummary: String? = null
 ) {
     try {
         fun amount(value: Int): String = String.format(java.util.Locale.US, "%,d", value)
@@ -384,7 +389,7 @@ internal fun generateIndividualPdf(
         val allEntries = daysWithEntries.flatMap { it.second }
         val totalEarned = allEntries.sumOf { database.calculateIndividualEntryEarned(it) }
         val totalExpenses = daysWithEntries.sumOf { it.first.expense }
-        val net = if (bundle.month.deductExpense) totalEarned - totalExpenses else totalEarned
+        val net = netOverride ?: if (bundle.month.deductExpense) totalEarned - totalExpenses else totalEarned
         val totalCustomers = allEntries.count { it.customerName.isNotBlank() || it.pageNumber.isNotBlank() }
         val totalPieces = allEntries.sumOf { entry -> entry.quantities.values.sum() }
         val activeDays = daysWithEntries.size
@@ -497,7 +502,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
             append("<table class='info'><tr>")
             append("<td class='label'>الأيام المسجلة</td><td class='value'>$activeDays يوم</td>")
             append("<td class='label'>متوسط الإنتاج اليومي</td><td class='value'>${amount(averageDaily)} ريال</td>")
-            append("<td class='label'>خصم المصروف</td><td class='value'>${if (bundle.month.deductExpense) "نعم" else "لا"}</td>")
+            append("<td class='label'>خصم المصروف</td><td class='value'>${deductExpenseSummary ?: if (bundle.month.deductExpense) "نعم" else "لا"}</td>")
             append("</tr></table>")
 
             append("<div class='section'>تفاصيل التسجيل الفردي حسب الأيام</div>")
@@ -506,7 +511,8 @@ table.data tr:nth-child(even) td { background: #fafafa; }
             } else {
                 daysWithEntries.forEach { (day, entries) ->
                     val dayEarned = database.calculateIndividualDayEarned(entries)
-                    val dayNet = if (bundle.month.deductExpense) dayEarned - day.expense else dayEarned
+                    val dayDeductExpense = database.getMonth(day.monthId)?.deductExpense ?: bundle.month.deductExpense
+                    val dayNet = if (dayDeductExpense) dayEarned - day.expense else dayEarned
                     append("<div style='margin-top:7px;font-weight:bold;color:#5A3A78;'>${escapeHtml(day.dayName)} — ${escapeHtml(day.date)} — إجمالي اليوم: ${signed(dayNet)} ريال</div>")
                     append("<table class='data'><thead><tr>")
                     append("<th>اسم الزبون</th><th>رقم الصفحة</th>")

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 internal enum class PdfReportRange {
     DAY,
     MONTH,
+    YEAR,
     ALL
 }
 
@@ -53,6 +54,15 @@ internal fun PdfReportRangeDialog(
     onPrint: (PdfReportRange, String?, Long, Boolean) -> Unit
 ) {
     var range by remember { mutableStateOf(PdfReportRange.MONTH) }
+    val availableYears = remember(bundle.month.shopId) {
+        database.getMonths(bundle.month.shopId).map { it.year }.distinct().sortedDescending()
+    }
+    var selectedYear by remember(availableYears, bundle.month.year) {
+        mutableStateOf(bundle.month.year.takeIf { it in availableYears } ?: availableYears.firstOrNull() ?: bundle.month.year)
+    }
+    val selectedYearMonthId = remember(availableYears, selectedYear, bundle.month.shopId) {
+        database.getMonths(bundle.month.shopId).firstOrNull { it.year == selectedYear }?.id ?: bundle.month.id
+    }
     val activeDates = remember(bundle, mode) {
         bundle.days
             .filter { day ->
@@ -98,8 +108,33 @@ internal fun PdfReportRangeDialog(
                     range == PdfReportRange.MONTH
                 ) { range = PdfReportRange.MONTH }
                 ReportRangeOption(
-                    "من بداية التسجيل إلى النهاية",
-                    "من أول يوم يحتوي على تسجيل فعلي حتى آخر يوم مسجل لهذا المحل فقط",
+                    "سنة كاملة",
+                    "جميع الأشهر المسجلة في السنة المحددة",
+                    range == PdfReportRange.YEAR
+                ) { range = PdfReportRange.YEAR }
+                if (range == PdfReportRange.YEAR) {
+                    Spacer(Modifier.height(6.dp))
+                    Text("اختر السنة:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    if (availableYears.isEmpty()) {
+                        Text("لا توجد سنوات مسجلة لهذا المحل.", color = Color.Gray, fontSize = 10.sp)
+                    } else {
+                        availableYears.forEach { year ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = selectedYear == year,
+                                    onClick = { selectedYear = year }
+                                )
+                                Text(year.toString(), fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+                ReportRangeOption(
+                    "كل السنوات",
+                    "جميع السجلات الفعلية لهذا المحل من أول تسجيل إلى آخر تسجيل",
                     range == PdfReportRange.ALL
                 ) { range = PdfReportRange.ALL }
 
@@ -144,7 +179,7 @@ internal fun PdfReportRangeDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    onClick = { onPrint(range, selectedDate, bundle.month.id, false) },
+                    onClick = { onPrint(range, selectedDate, if (range == PdfReportRange.YEAR) selectedYearMonthId else bundle.month.id, false) },
                     enabled = range != PdfReportRange.DAY || selectedDate != null,
                     colors = ButtonDefaults.buttonColors(containerColor = Purple),
                     modifier = Modifier.weight(1f)
@@ -152,7 +187,7 @@ internal fun PdfReportRangeDialog(
                     Text("طباعة PDF", fontSize = 11.sp)
                 }
                 OutlinedButton(
-                    onClick = { onPrint(range, selectedDate, bundle.month.id, true) },
+                    onClick = { onPrint(range, selectedDate, if (range == PdfReportRange.YEAR) selectedYearMonthId else bundle.month.id, true) },
                     enabled = range != PdfReportRange.DAY || selectedDate != null,
                     modifier = Modifier.weight(1f)
                 ) {
@@ -255,28 +290,28 @@ internal fun printNumericReportRange(
             }
         }
 
-        PdfReportRange.ALL -> {
-            val activeDays = sourceBundles
-                .flatMap { bundle ->
-                    bundle.days.filter { it.quantities.values.any { q -> q > 0 } || it.expense > 0 }
-                }
-                .sortedBy { it.date }
-
-            if (activeDays.isEmpty()) {
-                Toast.makeText(context, "لا توجد تسجيلات عددية للطباعة", Toast.LENGTH_SHORT).show()
+        PdfReportRange.YEAR -> {
+            val selectedYear = sourceBundles.firstOrNull { it.month.id == selectedMonthId }?.month?.year
+            val yearBundles = sourceBundles.filter { selectedYear != null && it.month.year == selectedYear }
+            val activeDays = yearBundles.flatMap { bundle ->
+                bundle.days.filter { it.quantities.values.any { q -> q > 0 } || it.expense > 0 }
+            }.sortedBy { it.date }
+            if (activeDays.isEmpty() || yearBundles.isEmpty()) {
+                Toast.makeText(context, "لا توجد تسجيلات في السنة المحددة", Toast.LENGTH_SHORT).show()
             } else {
-                val first = sourceBundles.first()
+                val first = yearBundles.first()
                 val lastDate = activeDays.last().date
                 val firstDate = activeDays.first().date
-                val fullMonth = first.month.copy(
-                    name = "السجل الكامل — ${firstDate} إلى ${lastDate}",
-                    startDate = firstDate
+                val annualMonth = first.month.copy(
+                    name = "التقرير السنوي — $selectedYear",
+                    startDate = firstDate,
+                    deductExpense = yearBundles.all { it.month.deductExpense }
                 )
                 generatePdf(
                     context,
                     database,
                     MonthBundle(
-                        month = fullMonth,
+                        month = annualMonth,
                         pieces = database.getPieces(first.month.shopId),
                         days = activeDays
                     ),
@@ -285,7 +320,45 @@ internal fun printNumericReportRange(
                     userEmail,
                     userShop,
                     userImagePath,
-                    sharePdf = sharePdf
+                    sharePdf = sharePdf,
+                    netOverride = yearBundles.sumOf { database.calculateMonthNet(it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
+                )
+            }
+        }
+
+        PdfReportRange.ALL -> {
+            val activeDays = sourceBundles.flatMap { bundle ->
+                bundle.days.filter { it.quantities.values.any { q -> q > 0 } || it.expense > 0 }
+            }.sortedBy { it.date }
+
+            if (activeDays.isEmpty()) {
+                Toast.makeText(context, "لا توجد تسجيلات في كل السنوات", Toast.LENGTH_SHORT).show()
+            } else {
+                val first = sourceBundles.first()
+                val lastDate = activeDays.last().date
+                val firstDate = activeDays.first().date
+                val allYearsMonth = first.month.copy(
+                    name = "تقرير جميع السنوات — $firstDate إلى $lastDate",
+                    startDate = firstDate,
+                    deductExpense = sourceBundles.all { it.month.deductExpense }
+                )
+                generatePdf(
+                    context,
+                    database,
+                    MonthBundle(
+                        month = allYearsMonth,
+                        pieces = database.getPieces(first.month.shopId),
+                        days = activeDays
+                    ),
+                    userName,
+                    userPhone,
+                    userEmail,
+                    userShop,
+                    userImagePath,
+                    sharePdf = sharePdf,
+                    netOverride = sourceBundles.sumOf { database.calculateMonthNet(it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }
@@ -371,44 +444,82 @@ internal fun printIndividualReportRange(
             }
         }
 
-        PdfReportRange.ALL -> {
-            val activeDays = sourceBundles
-                .flatMap { bundle ->
-                    bundle.days.filter { day ->
-                        database.getIndividualEntries(bundle.month.id, day.date).isNotEmpty() || day.expense > 0
-                    }
-                }
-                .sortedBy { it.date }
-
-            if (activeDays.isEmpty()) {
-                Toast.makeText(context, "لا توجد تسجيلات فردية للطباعة", Toast.LENGTH_SHORT).show()
+        PdfReportRange.YEAR -> {
+            val selectedYear = sourceBundles.firstOrNull { it.month.id == selectedMonthId }?.month?.year
+            val yearBundles = sourceBundles.filter { selectedYear != null && it.month.year == selectedYear }
+            val activeDays = yearBundles.flatMap { bundle ->
+                bundle.days.filter { database.getIndividualEntries(bundle.month.id, it.date).isNotEmpty() || it.expense > 0 }
+            }.sortedBy { it.date }
+            if (activeDays.isEmpty() || yearBundles.isEmpty()) {
+                Toast.makeText(context, "لا توجد تسجيلات فردية في السنة المحددة", Toast.LENGTH_SHORT).show()
             } else {
-                val first = sourceBundles.first()
+                val first = yearBundles.first()
                 val firstDate = activeDays.first().date
                 val lastDate = activeDays.last().date
-                val fullMonth = first.month.copy(
-                    name = "السجل الفردي الكامل — ${firstDate} إلى ${lastDate}",
-                    startDate = firstDate
+                val annualMonth = first.month.copy(
+                    name = "التقرير السنوي للتسجيل الفردي — $selectedYear",
+                    startDate = firstDate,
+                    deductExpense = yearBundles.all { it.month.deductExpense }
                 )
                 generateIndividualPdf(
                     context,
                     database,
-                    MonthBundle(
-                        month = fullMonth,
-                        pieces = pieces,
-                        days = activeDays
-                    ),
+                    MonthBundle(annualMonth, pieces, activeDays),
                     pieces,
                     userName,
                     userPhone,
                     userEmail,
                     userShop,
                     userImagePath,
-                    sharePdf = sharePdf
+                    sharePdf = sharePdf,
+                    netOverride = yearBundles.sumOf { individualMonthNet(database, it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
+                )
+            }
+        }
+
+        PdfReportRange.ALL -> {
+            val activeDays = sourceBundles.flatMap { bundle ->
+                bundle.days.filter { database.getIndividualEntries(bundle.month.id, it.date).isNotEmpty() || it.expense > 0 }
+            }.sortedBy { it.date }
+
+            if (activeDays.isEmpty()) {
+                Toast.makeText(context, "لا توجد تسجيلات فردية في كل السنوات", Toast.LENGTH_SHORT).show()
+            } else {
+                val first = sourceBundles.first()
+                val firstDate = activeDays.first().date
+                val lastDate = activeDays.last().date
+                val allYearsMonth = first.month.copy(
+                    name = "تقرير التسجيل الفردي — كل السنوات ($firstDate إلى $lastDate)",
+                    startDate = firstDate,
+                    deductExpense = sourceBundles.all { it.month.deductExpense }
+                )
+                generateIndividualPdf(
+                    context,
+                    database,
+                    MonthBundle(allYearsMonth, pieces, activeDays),
+                    pieces,
+                    userName,
+                    userPhone,
+                    userEmail,
+                    userShop,
+                    userImagePath,
+                    sharePdf = sharePdf,
+                    netOverride = sourceBundles.sumOf { individualMonthNet(database, it) },
+                    deductExpenseSummary = "حسب إعداد كل شهر"
                 )
             }
         }
     }
+}
+
+private fun individualMonthNet(database: LedgerDatabase, bundle: MonthBundle): Int {
+    val earned = bundle.days.sumOf { day ->
+        database.getIndividualEntries(bundle.month.id, day.date)
+            .sumOf { database.calculateIndividualEntryEarned(it) }
+    }
+    val expenses = bundle.days.sumOf { it.expense }
+    return if (bundle.month.deductExpense) earned - expenses else earned
 }
 
 private fun verifyShopMode(

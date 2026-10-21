@@ -310,7 +310,7 @@ internal fun createInternalAutoBackup(context: Context): Boolean {
         val stamp = java.text.SimpleDateFormat(
             "yyyyMMdd_HHmmss_SSS",
             java.util.Locale.US
-        ).format(Date())
+        ).format(java.util.Date())
         val backupFile = File(backupDir, "$INTERNAL_BACKUP_PREFIX$stamp.zip")
         FileOutputStream(backupFile).use { output ->
             ZipOutputStream(output).use { zip ->
@@ -333,7 +333,7 @@ internal fun createInternalAutoBackup(context: Context): Boolean {
 
                 zip.putNextEntry(ZipEntry("backup_info.txt"))
                 zip.write(
-                    "notebk internal automatic backup\n${Date()}\n"
+                    "notebk internal automatic backup\n${java.util.Date()}\n"
                         .toByteArray(Charsets.UTF_8)
                 )
                 zip.closeEntry()

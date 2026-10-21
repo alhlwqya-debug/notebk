@@ -19,7 +19,7 @@ import kotlin.math.max
 
 /**
  * Creates a PDF from the current WebView report and opens Android's share sheet.
- * The FileProvider authority must be "${'$'}{applicationId}.fileprovider".
+ * The FileProvider authority must be "${applicationId}.fileprovider".
  */
 internal fun shareWebViewAsPdf(
     context: Context,
@@ -102,7 +102,7 @@ internal fun shareWebViewAsPdf(
 
                 pdfFile = File(
                     reportDirectory,
-                    "${'$'}{safeName}_${'$'}{System.currentTimeMillis()}.pdf"
+                    "${safeName}_${System.currentTimeMillis()}.pdf"
                 )
                 FileOutputStream(pdfFile).use { output -> pdf.writeTo(output) }
             } finally {
@@ -111,7 +111,7 @@ internal fun shareWebViewAsPdf(
 
             val uri: Uri = FileProvider.getUriForFile(
                 context,
-                "${'$'}{context.packageName}.fileprovider",
+                "${context.packageName}.fileprovider",
                 pdfFile
             )
 
@@ -147,7 +147,7 @@ internal fun shareWebViewAsPdf(
         } catch (e: Exception) {
             Toast.makeText(
                 context,
-                "تعذرت مشاركة التقرير: ${'$'}{e.localizedMessage ?: "خطأ غير معروف"}",
+                "تعذرت مشاركة التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}",
                 Toast.LENGTH_LONG
             ).show()
         } finally {

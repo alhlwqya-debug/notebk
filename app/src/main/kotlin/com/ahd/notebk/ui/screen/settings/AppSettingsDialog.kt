@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
@@ -163,7 +163,7 @@ internal fun AppSettingsDialog(
 
                 SettingsSectionTitle("المساعدة")
                 SettingsRow(
-                    Icons.Default.HelpOutline,
+                    Icons.AutoMirrored.Filled.HelpOutline,
                     "دليل الاستخدام",
                     "شرح المكونات وطريقة العمل خطوة بخطوة",
                     onHelp

@@ -26,9 +26,10 @@ private val NotebkLightColors = lightColorScheme(
     onError = SurfaceWhite,
     onBackground = Color(0xFF211B2B),
     onSurface = Color(0xFF211B2B),
-    onSurfaceVariant = Color(0xFF756C80),
-    outline = Color(0xFFB9A9C9),
-    outlineVariant = Color(0xFFD8C8EF)
+    // Darker than the previous muted lavender for clearer small text.
+    onSurfaceVariant = Color(0xFF51465F),
+    outline = Color(0xFF8E7DA2),
+    outlineVariant = Color(0xFFC8B9D9)
 )
 
 private val NotebkDarkColors = darkColorScheme(
@@ -45,7 +46,9 @@ private val NotebkDarkColors = darkColorScheme(
     onError = Color.White,
     onBackground = DarkTextPrimary,
     onSurface = DarkTextPrimary,
-    onSurfaceVariant = DarkTextSecondary
+    onSurfaceVariant = Color(0xFFD5D3E0),
+    outline = Color(0xFF8E8A9D),
+    outlineVariant = Color(0xFF514D60)
 )
 
 @Composable

@@ -1,21 +1,21 @@
 package com.ahd.notebk.data.report
 
-import com.ahd.notebk.ui.components.NotebkBrand
-
-import android.content.ClipData
 import android.content.Context
-import android.content.Intent
-import android.os.CancellationSignal
-import android.os.ParcelFileDescriptor
-import android.print.PageRange
 import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
-import android.print.PrintDocumentInfo
+import android.print.PrintManager
 import android.webkit.WebView
 import android.widget.Toast
-import androidx.core.content.FileProvider
-import java.io.File
+import com.ahd.notebk.ui.components.NotebkBrand
 
+/**
+ * Opens Android's native print dialog for the rendered report.
+ *
+ * PrintManager owns the PrintDocumentAdapter callbacks. App code must not
+ * instantiate LayoutResultCallback/WriteResultCallback directly because their
+ * constructors are package-private in Android SDK stubs.
+ * Users can select "Save as PDF" in the system dialog, then share that file.
+ */
 internal fun shareWebViewAsPdf(
     context: Context,
     webView: WebView,
@@ -25,73 +25,14 @@ internal fun shareWebViewAsPdf(
     onFinished: () -> Unit,
     landscape: Boolean = false
 ) {
-    val reportsDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
     val safeName = jobName.replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
         .trim('_')
         .ifBlank { "report" }
-    val pdfFile = File(reportsDir, System.currentTimeMillis().toString() + "_" + safeName + ".pdf")
-    var finished = false
-
-    fun finishOnce() {
-        if (!finished) {
-            finished = true
-            onFinished()
-        }
-    }
-
-    fun fail(message: String) {
-        runCatching { pdfFile.delete() }
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        finishOnce()
-    }
-
-    fun shareCreatedPdf() {
-        try {
-            if (!pdfFile.exists() || pdfFile.length() <= 0L) {
-                fail("تعذر إنشاء ملف PDF: الملف فارغ")
-                return
-            }
-
-            val uri = FileProvider.getUriForFile(
-                context,
-                context.packageName + ".fileprovider",
-                pdfFile
-            )
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(
-                    Intent.EXTRA_TEXT,
-                    "تقرير PDF من ${NotebkBrand.APP_NAME} — ${NotebkBrand.DEVELOPER_NAME}" +
-                        if (phone.isNotBlank()) " — رقم التواصل: $phone" else ""
-                )
-                if (email.isNotBlank()) putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                clipData = ClipData.newRawUri("تقرير PDF", uri)
-            }
-            val chooser = Intent.createChooser(
-                shareIntent,
-                "مشاركة تقرير PDF عبر الرسائل أو واتساب أو البريد"
-            ).apply {
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                clipData = ClipData.newRawUri("تقرير PDF", uri)
-            }
-            context.startActivity(chooser)
-            Toast.makeText(context, "تم تجهيز تقرير PDF للمشاركة", Toast.LENGTH_SHORT).show()
-            finishOnce()
-        } catch (e: Exception) {
-            fail("تعذر مشاركة ملف PDF: ${e.message ?: "خطأ غير معروف"}")
-        }
-    }
 
     try {
-        // Use Chromium's print layout engine rather than drawing a tall WebView
-        // onto manually sliced canvases. This lets the engine paginate tables,
-        // repeat table headers, and calculate the actual printable page count.
         webView.post {
             try {
-                val adapter = webView.createPrintDocumentAdapter(safeName)
-                val cancellationSignal = CancellationSignal()
+                val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                 val attributes = PrintAttributes.Builder()
                     .setMediaSize(
                         if (landscape) {
@@ -105,62 +46,71 @@ internal fun shareWebViewAsPdf(
                     .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                     .build()
 
-                adapter.onLayout(
-                    null,
-                    attributes,
-                    cancellationSignal,
-                    object : PrintDocumentAdapter.LayoutResultCallback() {
-                        override fun onLayoutFinished(info: PrintDocumentInfo, changed: Boolean) {
-                            var descriptor: ParcelFileDescriptor? = null
-                            try {
-                                descriptor = ParcelFileDescriptor.open(
-                                    pdfFile,
-                                    ParcelFileDescriptor.MODE_CREATE or
-                                        ParcelFileDescriptor.MODE_TRUNCATE or
-                                        ParcelFileDescriptor.MODE_READ_WRITE
-                                )
-                                adapter.onWrite(
-                                    arrayOf(PageRange.ALL_PAGES),
-                                    descriptor,
-                                    cancellationSignal,
-                                    object : PrintDocumentAdapter.WriteResultCallback() {
-                                        override fun onWriteFinished(pages: Array<PageRange>) {
-                                            runCatching { descriptor?.close() }
-                                            shareCreatedPdf()
-                                        }
+                val baseAdapter = webView.createPrintDocumentAdapter(safeName)
+                val adapter = object : PrintDocumentAdapter() {
+                    override fun onStart() {
+                        baseAdapter.onStart()
+                    }
 
-                                        override fun onWriteFailed(error: CharSequence?) {
-                                            runCatching { descriptor?.close() }
-                                            fail("تعذر إكمال صفحات PDF: ${error ?: "خطأ في الطباعة"}")
-                                        }
+                    override fun onLayout(
+                        oldAttributes: PrintAttributes?,
+                        newAttributes: PrintAttributes,
+                        cancellationSignal: android.os.CancellationSignal,
+                        callback: LayoutResultCallback,
+                        extras: android.os.Bundle?
+                    ) {
+                        baseAdapter.onLayout(
+                            oldAttributes,
+                            newAttributes,
+                            cancellationSignal,
+                            callback,
+                            extras
+                        )
+                    }
 
-                                        override fun onWriteCancelled() {
-                                            runCatching { descriptor?.close() }
-                                            fail("تم إلغاء إنشاء ملف PDF")
-                                        }
-                                    }
-                                )
-                            } catch (e: Exception) {
-                                runCatching { descriptor?.close() }
-                                fail("تعذر حفظ ملف PDF: ${e.message ?: "خطأ غير معروف"}")
-                            }
+                    override fun onWrite(
+                        pages: Array<android.print.PageRange>,
+                        destination: android.os.ParcelFileDescriptor,
+                        cancellationSignal: android.os.CancellationSignal,
+                        callback: WriteResultCallback
+                    ) {
+                        baseAdapter.onWrite(pages, destination, cancellationSignal, callback)
+                    }
+
+                    override fun onFinish() {
+                        try {
+                            baseAdapter.onFinish()
+                        } finally {
+                            onFinished()
                         }
+                    }
+                }
 
-                        override fun onLayoutFailed(error: CharSequence?) {
-                            fail("تعذر تجهيز صفحات PDF: ${error ?: "خطأ في تخطيط التقرير"}")
-                        }
-
-                        override fun onLayoutCancelled() {
-                            fail("تم إلغاء تجهيز صفحات PDF")
-                        }
-                    },
-                    null
-                )
+                printManager.print(safeName, adapter, attributes)
+                val details = buildString {
+                    append("تم فتح نافذة طباعة التقرير. اختر «حفظ بتنسيق PDF» لإنشاء الملف")
+                    if (phone.isNotBlank() || email.isNotBlank()) {
+                        append(" — بيانات التواصل متاحة في التقرير عند تضمينها")
+                    }
+                    append(" — ")
+                    append(NotebkBrand.APP_NAME)
+                }
+                Toast.makeText(context, details, Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
-                fail("تعذر تجهيز محتوى التقرير: ${e.message ?: "خطأ غير معروف"}")
+                Toast.makeText(
+                    context,
+                    "تعذر فتح طباعة PDF: \${e.message ?: "خطأ غير معروف"}",
+                    Toast.LENGTH_LONG
+                ).show()
+                onFinished()
             }
         }
     } catch (e: Exception) {
-        fail("تعذر إنشاء ملف PDF للمشاركة: ${e.message ?: "خطأ غير معروف"}")
+        Toast.makeText(
+            context,
+            "تعذر تجهيز التقرير للطباعة: \${e.message ?: "خطأ غير معروف"}",
+            Toast.LENGTH_LONG
+        ).show()
+        onFinished()
     }
 }

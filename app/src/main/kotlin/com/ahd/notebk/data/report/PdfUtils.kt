@@ -59,6 +59,23 @@ internal fun applyReportPreferences(context: Context, sourceHtml: String): Strin
     }
     val currencySymbol = settings.getString("currency_symbol", "ريال").trim()
     if (currencySymbol.isNotEmpty() && currencySymbol != "ريال") html = html.replace("ريال", escapeHtml(currencySymbol))
+
+    // Add the official AHD Store app link to every generated report (numeric,
+    // individual, and range reports), while keeping it clickable in PDF viewers.
+    val storeUrl = "https://ahdstoer.vercel.app/app/1"
+    if (!html.contains(storeUrl)) {
+        val storeLink = """
+<div class="ahd-store-link" style="margin-top:12px;padding:8px 6px;border-top:1px solid #d7d7d7;text-align:center;font-family:Arial,Tahoma,sans-serif;font-size:9px;color:#546e7a;direction:rtl;">
+  حمّل التطبيق واحصل على التحديثات من متجر AHD:
+  <a href="$storeUrl" style="color:#1565c0;text-decoration:underline;word-break:break-all;">$storeUrl</a>
+</div>
+"""
+        html = if (html.contains("</body>", ignoreCase = true)) {
+            html.replace(Regex("</body>", RegexOption.IGNORE_CASE), "$storeLink</body>")
+        } else {
+            html + storeLink
+        }
+    }
     return html
 }
 

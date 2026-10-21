@@ -566,7 +566,9 @@ internal fun printHtmlRange(context: Context, jobName: String, html: String) {
                 webView.postDelayed({
                 try {
                     val manager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-                    val adapter: PrintDocumentAdapter = webView.createPrintDocumentAdapter(jobName)
+                    val adapter = createCleanupPrintAdapter(webView, jobName) {
+                        decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                    }
                     manager.print(
                         jobName,
                         adapter,
@@ -581,13 +583,6 @@ internal fun printHtmlRange(context: Context, jobName: String, html: String) {
                         "تعذر إنشاء التقرير: ${e.message ?: "خطأ"}",
                         Toast.LENGTH_LONG
                     ).show()
-                } finally {
-                    decorView?.postDelayed({
-                        try {
-                            decorView.removeView(webView)
-                        } catch (_: Exception) {
-                        }
-                    }, 700L)
                 }
                 }, 180L)
             }

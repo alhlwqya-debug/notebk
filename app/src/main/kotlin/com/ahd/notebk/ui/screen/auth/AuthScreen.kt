@@ -110,15 +110,21 @@ fun AuthScreen(
     }
 
     suspend fun finishSession(result: AuthResult.SignedIn) {
+        if (registerMode) {
+            // Keep a retry marker before attempting the copy, including registrations
+            // that return an authenticated session without requiring email confirmation.
+            prefs.edit().putString("guest_migration_pending_email", result.session.label).apply()
+        }
         val pendingMigrationEmail = prefs.getString("guest_migration_pending_email", null)
-        val shouldMigrateGuest = registerMode ||
+        val shouldMigrateGuest =
             pendingMigrationEmail?.equals(result.session.label, ignoreCase = true) == true
 
         if (shouldMigrateGuest) {
             when (com.ahd.notebk.data.local.GuestAccountMigration.migrate(context, result.session.userId)) {
                 com.ahd.notebk.data.local.GuestAccountMigration.Outcome.FAILED -> {
                     success = false
-                    message = "تم تسجيل الدخول، لكن تعذر نقل بيانات الضيف بأمان. بياناتك الأصلية ما زالت محفوظة؛ حاول تسجيل الدخول مرة أخرى لإعادة المحاولة."
+                    registerMode = false
+                    message = "تم تسجيل الدخول، لكن تعذر نقل بيانات الضيف بأمان. بياناتك الأصلية ما زالت محفوظة؛ سجّل الدخول مرة أخرى لإعادة المحاولة."
                     return
                 }
                 else -> prefs.edit().remove("guest_migration_pending_email").apply()

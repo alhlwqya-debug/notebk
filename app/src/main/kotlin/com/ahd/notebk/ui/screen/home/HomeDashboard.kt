@@ -39,8 +39,8 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -302,8 +302,8 @@ fun HomeDashboard(
                 ) {
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-                            DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.Default.TrendingUp, hideAmounts)
-                            DashboardStat("المصروفات", totals.expense, CardExpBg, Red, Modifier.weight(1f), Icons.Default.TrendingDown, hideAmounts)
+                            DashboardStat("الإيرادات", totals.earned, CardWorkBg, Green, Modifier.weight(1f), Icons.AutoMirrored.Filled.TrendingUp, hideAmounts)
+                            DashboardStat("المصروفات", totals.expense, CardExpBg, Red, Modifier.weight(1f), Icons.AutoMirrored.Filled.TrendingDown, hideAmounts)
                         }
                         Spacer(Modifier.height(7.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {

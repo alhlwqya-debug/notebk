@@ -19,9 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Visibility
@@ -159,7 +159,7 @@ fun AuthScreen(
             ) {
                 if (allowBack && onBack != null) {
                     IconButton(onClick = onBack, modifier = Modifier.padding(8.dp).align(Alignment.TopStart)) {
-                        Icon(Icons.Default.ArrowBack, "رجوع", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "رجوع", tint = Color.White)
                     }
                 }
                 Column(
@@ -215,7 +215,7 @@ fun AuthScreen(
                 ) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ModeButton("تسجيل الدخول", !registerMode, Icons.Default.Login) { registerMode = false; message = null; success = false }
+                            ModeButton("تسجيل الدخول", !registerMode, Icons.AutoMirrored.Filled.Login) { registerMode = false; message = null; success = false }
                             ModeButton("حساب جديد", registerMode, Icons.Default.PersonAdd) { registerMode = true; message = null; success = false }
                         }
                         Spacer(Modifier.height(4.dp))

@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.AlertDialog
@@ -175,7 +175,7 @@ fun AccountSecurityDialog(
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        androidx.compose.material3.Icon(Icons.Default.Logout, null)
+                        androidx.compose.material3.Icon(Icons.AutoMirrored.Filled.Logout, null)
                         Spacer(Modifier.size(8.dp))
                         Text("تسجيل الخروج")
                     }

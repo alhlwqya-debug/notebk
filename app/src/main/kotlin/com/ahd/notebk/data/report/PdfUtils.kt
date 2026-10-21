@@ -647,7 +647,7 @@ private fun buildProfileImageHtml(path: String): String {
  * Do not detach the WebView while Android is still laying out or writing the
  * print job. Fixed-delay cleanup can truncate multi-page reports.
  */
-private fun createCleanupPrintAdapter(
+internal fun createCleanupPrintAdapter(
     webView: WebView,
     jobName: String,
     onFinished: () -> Unit

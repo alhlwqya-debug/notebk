@@ -389,7 +389,7 @@ fun WorkLedgerDialogsHost(
                         val startDate = String.format(Locale.ENGLISH, "%04d/%02d/01", year, month)
 
                         val id = database.addMonth(
-                            shopId = selectedShopId!!,
+                            shopId = selectedShopId,
                             year = year,
                             month = month,
                             name = "$year - ${monthName(month)}",
@@ -489,7 +489,7 @@ fun WorkLedgerDialogsHost(
             title = { Text("تعديل مصروف اليوم", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("التاريخ: ${activeExpenseDay!!.date}", fontSize = 12.sp, color = Purple)
+                    Text("التاريخ: ${activeExpenseDay.date}", fontSize = 12.sp, color = Purple)
                     Spacer(Modifier.height(8.dp))
 
                     OutlinedTextField(
@@ -511,10 +511,10 @@ fun WorkLedgerDialogsHost(
                     )
 
                     // ✅ عرض البيان الحالي إن وجد
-                    if (activeExpenseDay!!.expenseNote.isNotBlank()) {
+                    if (activeExpenseDay.expenseNote.isNotBlank()) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "البيان الحالي: ${activeExpenseDay!!.expenseNote}",
+                            "البيان الحالي: ${activeExpenseDay.expenseNote}",
                             fontSize = 11.sp,
                             color = Color.Gray
                         )
@@ -523,7 +523,7 @@ fun WorkLedgerDialogsHost(
             },
             confirmButton = {
                 Button(onClick = {
-                        val day = activeExpenseDay!!
+                        val day = activeExpenseDay
                         database.setExpense(
                             currentBundle.month.id,
                             day.date,
@@ -592,7 +592,7 @@ fun WorkLedgerDialogsHost(
                 Button(
                     onClick = {
                         createInternalAutoBackup(context)
-                        database.deleteShop(selectedShopId!!)
+                        database.deleteShop(selectedShopId)
                         onShowDeleteShopDialog(false)
                         onSelectedShopId(null)
                         onSelectedMonthId(null)

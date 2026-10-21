@@ -65,7 +65,13 @@ fun ProfilePage(
 ) {
     val hasContact = userPhone.isNotBlank() || userEmail.isNotBlank()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val profileStore = androidx.compose.runtime.remember { com.ahd.notebk.data.local.AccountProfileStore(context) }
+    // Contact details are not the same as authentication status. Read the saved
+    // Supabase session so a signed-in user is not prompted to log in again.
+    val accountKey = com.ahd.notebk.data.local.AccountDataScope.accountKey(context)
+    val authSession = androidx.compose.runtime.remember(context, accountKey) {
+        com.ahd.notebk.data.cloud.SupabaseAuthRepository(context.applicationContext).savedSession()
+    }
+    val profileStore = androidx.compose.runtime.remember(context, accountKey) { com.ahd.notebk.data.local.AccountProfileStore(context) }
     var jobTitle by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_job_title")) }
     var bio by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_bio")) }
     var phoneAlt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(profileStore.getString("user_phone_alt")) }
@@ -109,14 +115,25 @@ fun ProfilePage(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                if (hasContact) "بيانات الاتصال متوفرة" else "أضف رقم الهاتف أو البريد الإلكتروني",
+                                if (authSession != null) "متصل بحسابك السحابي"
+                                else if (hasContact) "بيانات الاتصال متوفرة"
+                                else "أضف رقم الهاتف أو البريد الإلكتروني",
                                 fontSize = 12.sp,
-                                color = AppMuted
+                                color = if (authSession != null) Color(0xFF16803D) else AppMuted
                             )
+                            if (authSession != null) {
+                                Text(
+                                    authSession.label,
+                                    fontSize = 12.sp,
+                                    color = AppMuted
+                                )
+                            }
                         }
                     }
-                    Spacer(Modifier.size(8.dp))
-                    NotebkSecondaryAction("تسجيل الدخول / إدارة الحساب", onAccountAuth)
+                    if (authSession == null) {
+                        Spacer(Modifier.size(8.dp))
+                        NotebkSecondaryAction("تسجيل الدخول / إنشاء حساب", onAccountAuth)
+                    }
                 }
             }
             item {

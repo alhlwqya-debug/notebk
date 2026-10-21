@@ -30,8 +30,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
@@ -544,7 +544,7 @@ internal fun IndividualLedger(
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                 modifier = Modifier.weight(1f).height(31.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(15.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(3.dp))
                 Text("اليوم السابق", fontSize = 9.sp)
             }
@@ -565,7 +565,7 @@ internal fun IndividualLedger(
             ) {
                 Text("اليوم التالي", fontSize = 9.sp)
                 Spacer(Modifier.width(3.dp))
-                Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(15.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(15.dp))
             }
         }
 

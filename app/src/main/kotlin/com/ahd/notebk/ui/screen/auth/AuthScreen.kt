@@ -109,10 +109,25 @@ fun AuthScreen(
         onContinue()
     }
 
-    fun finishSession(result: AuthResult.SignedIn) {
+    suspend fun finishSession(result: AuthResult.SignedIn) {
+        val pendingMigrationEmail = prefs.getString("guest_migration_pending_email", null)
+        val shouldMigrateGuest = registerMode ||
+            pendingMigrationEmail?.equals(result.session.label, ignoreCase = true) == true
+
+        if (shouldMigrateGuest) {
+            when (com.ahd.notebk.data.local.GuestAccountMigration.migrate(context, result.session.userId)) {
+                com.ahd.notebk.data.local.GuestAccountMigration.Outcome.FAILED -> {
+                    success = false
+                    message = "تم تسجيل الدخول، لكن تعذر نقل بيانات الضيف بأمان. بياناتك الأصلية ما زالت محفوظة؛ حاول تسجيل الدخول مرة أخرى لإعادة المحاولة."
+                    return
+                }
+                else -> prefs.edit().remove("guest_migration_pending_email").apply()
+            }
+        }
+
         activeSession = result.session
         guestMode = false
-        com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context).edit()
+        com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context, result.session.userId).edit()
             .putString("user_email", result.session.label)
             .putString("user_name", name.trim().ifBlank { result.session.label.substringBefore('@') })
             .apply()
@@ -229,7 +244,14 @@ fun AuthScreen(
                                     busy = false
                                     when (result) {
                                         is AuthResult.SignedIn -> finishSession(result)
-                                        is AuthResult.EmailConfirmationRequired -> { success = true; message = "تم إنشاء الحساب. افتح رسالة تأكيد البريد ثم سجّل الدخول."; registerMode = false }
+                                        is AuthResult.EmailConfirmationRequired -> {
+                                            // Remember that this registration began as a guest so
+                                            // the guest ledger can be migrated after email confirmation.
+                                            prefs.edit().putString("guest_migration_pending_email", email.trim()).apply()
+                                            success = true
+                                            message = "تم إنشاء الحساب. افتح رسالة تأكيد البريد ثم سجّل الدخول لنقل بيانات الضيف إلى حسابك."
+                                            registerMode = false
+                                        }
                                         is AuthResult.ConfirmationEmailSent -> { success = true; message = "أُعيد إرسال رسالة التأكيد." }
                                         is AuthResult.Failure -> { success = false; message = result.message }
                                     }

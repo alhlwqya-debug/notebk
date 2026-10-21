@@ -136,7 +136,7 @@ fun WorkLedgerManagementHost(
                     val target = editPieceTarget
                     val name = editPieceName.trim()
                     val price = editPiecePrice.toIntOrNull()
-                    if (target != null && name.isNotEmpty() && price != null && price >= 0) {
+                    if (name.isNotEmpty() && price != null && price >= 0) {
                         database.updatePiece(target.id, name, price)
                         onEditPieceTargetChange(null)
                         onReloadBundle()

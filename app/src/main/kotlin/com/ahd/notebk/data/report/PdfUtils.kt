@@ -13,6 +13,10 @@ import android.graphics.BitmapFactory
 import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
 import android.print.PrintManager
+import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.ParcelFileDescriptor
+import android.print.PageRange
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -335,7 +339,9 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                         )
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-                        val adapter: PrintDocumentAdapter = webView.createPrintDocumentAdapter(jobName)
+                        val adapter = createCleanupPrintAdapter(webView, jobName) {
+                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                        }
                         printManager.print(
                             jobName,
                             adapter,
@@ -344,9 +350,6 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                                 .build()
                         )
-                        decorView?.postDelayed({
-                            try { decorView.removeView(webView) } catch (_: Exception) { }
-                        }, 500L)
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "تعذر إنشاء ملف PDF: ${e.message ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show()
@@ -583,7 +586,9 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                         )
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
-                        val adapter: PrintDocumentAdapter = webView.createPrintDocumentAdapter(jobName)
+                        val adapter = createCleanupPrintAdapter(webView, jobName) {
+                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                        }
                         printManager.print(
                             jobName,
                             adapter,
@@ -592,9 +597,6 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                                 .build()
                         )
-                        decorView?.postDelayed({
-                            try { decorView.removeView(webView) } catch (_: Exception) { }
-                        }, 700L)
                     }
                 } catch (e: Exception) {
                     Toast.makeText(
@@ -637,6 +639,47 @@ private fun buildProfileImageHtml(path: String): String {
         "<img src='data:image/jpeg;base64,$base64' alt='الصورة الشخصية'/>"
     } catch (_: Exception) {
         ""
+    }
+}
+
+
+/**
+ * Do not detach the WebView while Android is still laying out or writing the
+ * print job. Fixed-delay cleanup can truncate multi-page reports.
+ */
+private fun createCleanupPrintAdapter(
+    webView: WebView,
+    jobName: String,
+    onFinished: () -> Unit
+): PrintDocumentAdapter {
+    val delegate = webView.createPrintDocumentAdapter(jobName)
+    return object : PrintDocumentAdapter() {
+        override fun onLayout(
+            oldAttributes: PrintAttributes?,
+            newAttributes: PrintAttributes,
+            cancellationSignal: CancellationSignal,
+            callback: LayoutResultCallback,
+            extras: Bundle?
+        ) {
+            delegate.onLayout(oldAttributes, newAttributes, cancellationSignal, callback, extras)
+        }
+
+        override fun onWrite(
+            pages: Array<out PageRange>,
+            destination: ParcelFileDescriptor,
+            cancellationSignal: CancellationSignal,
+            callback: WriteResultCallback
+        ) {
+            delegate.onWrite(pages, destination, cancellationSignal, callback)
+        }
+
+        override fun onFinish() {
+            try {
+                delegate.onFinish()
+            } finally {
+                onFinished()
+            }
+        }
     }
 }
 

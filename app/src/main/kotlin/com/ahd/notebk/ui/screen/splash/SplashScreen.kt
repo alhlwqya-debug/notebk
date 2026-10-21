@@ -192,7 +192,7 @@ fun SplashScreen(onFinished: () -> Unit) {
 
             Spacer(Modifier.height(44.dp))
             Image(
-                painter = painterResource(R.drawable.developer_logo),
+                painter = painterResource(R.drawable.ahd_mark),
                 contentDescription = NotebkBrand.DEVELOPER_NAME,
                 modifier = Modifier.size(width = 72.dp, height = 52.dp).alpha(footerAlpha),
                 contentScale = ContentScale.Fit

@@ -52,7 +52,7 @@ fun BrandLogo(modifier: Modifier = Modifier) {
 @Composable
 fun AhdDeveloperMark(modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(R.drawable.developer_logo),
+        painter = painterResource(R.drawable.ahd_mark),
         contentDescription = NotebkBrand.DEVELOPER_NAME,
         modifier = modifier,
         contentScale = ContentScale.Fit

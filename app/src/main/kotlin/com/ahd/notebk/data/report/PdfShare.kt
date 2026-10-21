@@ -55,10 +55,11 @@ internal fun shareWebViewAsPdf(
             val viewWidth = metrics.widthPixels.coerceAtLeast(1)
             // DOM scrollHeight is measured in CSS pixels; convert it to the
             // WebView's physical-pixel coordinate space before sizing the view.
-            val domHeightPx = (contentHeight * webView.scale).roundToInt()
+            val density = webView.resources.displayMetrics.density
+            val domHeightPx = (contentHeight * density).roundToInt()
             val measuredHeight = maxOf(
                 domHeightPx,
-                (webView.contentHeight * webView.scale).roundToInt(),
+                (webView.contentHeight * density).roundToInt(),
                 webView.height,
                 metrics.heightPixels
             ).coerceAtLeast(1)

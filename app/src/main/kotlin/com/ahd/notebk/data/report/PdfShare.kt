@@ -182,7 +182,7 @@ internal fun shareWebViewAsPdf(
             webView.evaluateJavascript(
                 """
                 (function() {
-                    Math.max(
+                    return Math.max(
                         document.body ? document.body.scrollHeight : 0,
                         document.documentElement ? document.documentElement.scrollHeight : 0,
                         document.body ? document.body.offsetHeight : 0,

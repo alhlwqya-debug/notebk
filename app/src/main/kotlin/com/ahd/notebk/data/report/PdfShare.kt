@@ -5,12 +5,10 @@ import android.print.PrintAttributes
 import android.print.PrintManager
 import android.webkit.WebView
 import android.widget.Toast
-import kotlin.math.roundToInt
 
 /**
- * Uses Android's native WebView printing pipeline instead of drawing the page manually.
- * Android handles pagination and PDF rendering; no PrintDocumentAdapter callback
- * constructors are instantiated by application code.
+ * Uses Android's native WebView printing pipeline instead of manually drawing pages.
+ * Android handles pagination and PDF rendering; no callback constructors are created here.
  */
 internal fun shareWebViewAsPdf(
     context: Context,
@@ -29,29 +27,17 @@ internal fun shareWebViewAsPdf(
 
             val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
             val adapter = webView.createPrintDocumentAdapter(jobName.ifBlank { "report" })
-
-            val metrics = context.resources.displayMetrics
-            val pageWidthMils: Int
-            val pageHeightMils: Int
-            if (landscape) {
-                pageWidthMils = 11690
-                pageHeightMils = 8268
+            val mediaSize = if (landscape) {
+                PrintAttributes.MediaSize.ISO_A4.asLandscape()
             } else {
-                pageWidthMils = 8268
-                pageHeightMils = 11690
+                PrintAttributes.MediaSize.ISO_A4
             }
-
             val attributes = PrintAttributes.Builder()
-                .setMediaSize(
-                    if (landscape) PrintAttributes.MediaSize.ISO_A4.asLandscape()
-                    else PrintAttributes.MediaSize.ISO_A4
-                )
-                .setResolution(PrintAttributes.Resolution("report_pdf", "Report PDF", 300, 300))
+                .setMediaSize(mediaSize)
                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                 .build()
 
-            // Android's print framework lays out the full document and paginates it.
-            // The user can choose "Save as PDF" and then share the resulting file.
+            // The Android print UI can save the complete report as a PDF.
             printManager.print(jobName.ifBlank { "report" }, adapter, attributes)
             onFinished()
         } catch (e: Exception) {

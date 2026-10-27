@@ -714,23 +714,7 @@ internal fun createCleanupPrintAdapter(
 
 package com.ahd.notebk.data.report
 
-import android.app.Activity
-import android.content.ClipData
-import android.content.Context
-import android.content.Intent
-import android.graphics.Canvas
-import android.graphics.pdf.PdfDocument
-import android.net.Uri
 import android.view.View
-import android.webkit.WebView
-import android.widget.Toast
-import androidx.core.content.FileProvider
-import com.ahd.notebk.ui.components.NotebkBrand
-import java.io.File
-import java.io.FileOutputStream
-import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Creates a PDF directly from the currently rendered WebView and opens the share sheet.

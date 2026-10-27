@@ -4,18 +4,27 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Picture
+import android.graphics.Rect
+import android.graphics.pdf.PdfDocument
 import android.net.Uri
-import android.os.CancellationSignal
-import android.os.ParcelFileDescriptor
-import android.print.PageRange
-import android.print.PrintAttributes
-import android.print.PrintDocumentAdapter
+import android.os.Build
+import android.view.View
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.ahd.notebk.ui.components.NotebkBrand
 import java.io.File
+import java.io.FileOutputStream
+import kotlin.math.ceil
+import kotlin.math.max
 
+/**
+ * Creates a real multi-page PDF from the already-rendered report WebView and shares
+ * it as an application/pdf attachment. The report HTML/data generation is deliberately
+ * left untouched.
+ */
 internal fun shareWebViewAsPdf(
     context: Context,
     webView: WebView,
@@ -25,106 +34,115 @@ internal fun shareWebViewAsPdf(
     onFinished: () -> Unit,
     landscape: Boolean = false
 ) {
-    val safeName = jobName.replace(Regex("[^\\p{L}\\p{N}_-]+"), "_").trim('_').ifBlank { "report" }
+    val safeName = jobName
+        .replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
+        .trim('_')
+        .ifBlank { "report" }
+
     webView.post {
-        var completed = false
+        var finished = false
         fun finishOnce() {
-            if (!completed) {
-                completed = true
+            if (!finished) {
+                finished = true
                 onFinished()
             }
         }
+
+        var document: PdfDocument? = null
         try {
+            check(webView.width > 0 && webView.height > 0) {
+                "صفحة التقرير غير جاهزة للإنشاء"
+            }
+
             val directory = File(context.cacheDir, "shared_reports")
-            if (!directory.exists() && !directory.mkdirs()) error("تعذر إنشاء مجلد التقرير")
-            val pdfFile = File(directory, safeName + "_" + System.currentTimeMillis() + ".pdf")
-            val descriptor = ParcelFileDescriptor.open(
-                pdfFile,
-                ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_TRUNCATE or ParcelFileDescriptor.MODE_READ_WRITE
+            if (!directory.exists()) check(directory.mkdirs()) {
+                "تعذر إنشاء مجلد التقرير"
+            }
+            val pdfFile = File(directory, "${safeName}_${System.currentTimeMillis()}.pdf")
+
+            // Capture the existing WebView content; do not rebuild or truncate the report HTML.
+            val picture: Picture = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                webView.capturePicture()
+            } else {
+                webView.capturePicture()
+            }
+            val sourceWidth = max(picture.width, webView.width)
+            val sourceHeight = max(picture.height, webView.contentHeight)
+            check(sourceWidth > 0 && sourceHeight > 0) { "محتوى التقرير فارغ" }
+
+            val pageWidth = if (landscape) 842 else 595
+            val pageHeight = if (landscape) 595 else 842
+            val margin = 24
+            val printableWidth = pageWidth - margin * 2
+            val printableHeight = pageHeight - margin * 2
+            val scale = printableWidth.toFloat() / sourceWidth.toFloat()
+            val sourcePageHeight = max(1, (printableHeight / scale).toInt())
+            val pageCount = ceil(sourceHeight.toDouble() / sourcePageHeight.toDouble()).toInt()
+            check(pageCount in 1..500) { "عدد صفحات التقرير غير صالح: $pageCount" }
+
+            val pdf = PdfDocument()
+            document = pdf
+            for (pageIndex in 0 until pageCount) {
+                val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageIndex + 1).create()
+                val page = pdf.startPage(pageInfo)
+                val canvas: Canvas = page.canvas
+                canvas.save()
+                canvas.translate(margin.toFloat(), margin.toFloat())
+                canvas.scale(scale, scale)
+                canvas.translate(0f, -(pageIndex * sourcePageHeight).toFloat())
+                canvas.clipRect(
+                    0,
+                    pageIndex * sourcePageHeight,
+                    sourceWidth,
+                    (pageIndex + 1) * sourcePageHeight
+                )
+                picture.draw(canvas)
+                canvas.restore()
+                pdf.finishPage(page)
+            }
+
+            FileOutputStream(pdfFile).use { output ->
+                pdf.writeTo(output)
+                output.flush()
+            }
+            pdf.close()
+            document = null
+
+            check(pdfFile.isFile && pdfFile.length() > 0L) { "ملف PDF فارغ" }
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                context.packageName + ".fileprovider",
+                pdfFile
             )
-            val mediaSize = if (landscape) PrintAttributes.MediaSize.ISO_A4.asLandscape()
-                else PrintAttributes.MediaSize.ISO_A4.asPortrait()
-            val attributes = PrintAttributes.Builder()
-                .setMediaSize(mediaSize)
-                .setResolution(PrintAttributes.Resolution("pdf", "PDF", 300, 300))
-                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-                .build()
-            val adapter = webView.createPrintDocumentAdapter(safeName)
-            val cancellation = CancellationSignal()
-            adapter.onLayout(null, attributes, cancellation, object : PrintDocumentAdapter.LayoutResultCallback() {
-                override fun onLayoutFinished(info: PrintDocumentAdapter.DocumentInfo?, changed: Boolean) {
-                    if (info == null || cancellation.isCanceled) {
-                        runCatching { descriptor.close() }
-                        pdfFile.delete()
-                        Toast.makeText(context, "تعذر تجهيز صفحات التقرير", Toast.LENGTH_LONG).show()
-                        adapter.onFinish()
-                        finishOnce()
-                        return
-                    }
-                    adapter.onWrite(arrayOf(PageRange.ALL_PAGES), descriptor, cancellation, object : PrintDocumentAdapter.WriteResultCallback() {
-                        override fun onWriteFinished(pages: Array<out PageRange>) {
-                            runCatching { descriptor.close() }
-                            adapter.onFinish()
-                            try {
-                                check(pdfFile.exists() && pdfFile.length() > 0L) { "ملف PDF فارغ" }
-                                val uri: Uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", pdfFile)
-                                val shareText = buildString {
-                                    append("تقرير: ")
-                                    append(jobName.ifBlank { "تقرير" })
-                                    if (phone.isNotBlank()) append("\nالهاتف: " + phone)
-                                    if (email.isNotBlank()) append("\nالبريد الإلكتروني: " + email)
-                                    append("\n" + NotebkBrand.APP_NAME)
-                                }
-                                val send = Intent(Intent.ACTION_SEND).apply {
-                                    type = "application/pdf"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    putExtra(Intent.EXTRA_SUBJECT, jobName.ifBlank { "تقرير" })
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                    clipData = ClipData.newUri(context.contentResolver, pdfFile.name, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                val chooser = Intent.createChooser(send, "مشاركة التقرير").apply {
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(chooser)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "تعذرت مشاركة التقرير: " + (e.localizedMessage ?: "خطأ غير معروف"), Toast.LENGTH_LONG).show()
-                            } finally {
-                                finishOnce()
-                            }
-                        }
-                        override fun onWriteFailed(error: CharSequence?) {
-                            runCatching { descriptor.close() }
-                            adapter.onFinish()
-                            pdfFile.delete()
-                            Toast.makeText(context, "تعذر إنشاء PDF: " + (error ?: "خطأ غير معروف"), Toast.LENGTH_LONG).show()
-                            finishOnce()
-                        }
-                        override fun onWriteCancelled() {
-                            runCatching { descriptor.close() }
-                            adapter.onFinish()
-                            pdfFile.delete()
-                            finishOnce()
-                        }
-                    })
-                }
-                override fun onLayoutFailed(error: CharSequence?) {
-                    runCatching { descriptor.close() }
-                    adapter.onFinish()
-                    pdfFile.delete()
-                    Toast.makeText(context, "تعذر تخطيط التقرير: " + (error ?: "خطأ غير معروف"), Toast.LENGTH_LONG).show()
-                    finishOnce()
-                }
-                override fun onLayoutCancelled() {
-                    runCatching { descriptor.close() }
-                    adapter.onFinish()
-                    pdfFile.delete()
-                    finishOnce()
-                }
-            }, null)
+            val shareText = buildString {
+                append("تقرير: ")
+                append(jobName.ifBlank { "تقرير" })
+                if (phone.isNotBlank()) append("\\nالهاتف: $phone")
+                if (email.isNotBlank()) append("\\nالبريد الإلكتروني: $email")
+                append("\\n")
+                append(NotebkBrand.APP_NAME)
+            }
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, jobName.ifBlank { "تقرير" })
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                clipData = ClipData.newUri(context.contentResolver, pdfFile.name, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(sendIntent, "مشاركة التقرير").apply {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
         } catch (e: Exception) {
-            Toast.makeText(context, "تعذرت مشاركة التقرير: " + (e.localizedMessage ?: "خطأ غير معروف"), Toast.LENGTH_LONG).show()
+            runCatching { document?.close() }
+            Toast.makeText(
+                context,
+                "تعذرت مشاركة التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}",
+                Toast.LENGTH_LONG
+            ).show()
+        } finally {
             finishOnce()
         }
     }

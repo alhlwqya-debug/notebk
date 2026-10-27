@@ -6,11 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Picture
-import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
-import android.view.View
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -66,8 +64,8 @@ internal fun shareWebViewAsPdf(
             } else {
                 webView.capturePicture()
             }
-            val sourceWidth = max(picture.width, webView.width)
-            val sourceHeight = max(picture.height, webView.contentHeight)
+            val sourceWidth = picture.width
+            val sourceHeight = picture.height
             check(sourceWidth > 0 && sourceHeight > 0) { "محتوى التقرير فارغ" }
 
             val pageWidth = if (landscape) 842 else 595

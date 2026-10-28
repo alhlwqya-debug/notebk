@@ -567,13 +567,13 @@ internal fun printHtmlRange(context: Context, jobName: String, html: String) {
                 try {
                     val manager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                     val adapter = createCleanupPrintAdapter(webView, jobName) {
-                        decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                        decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                     }
                     manager.print(
                         jobName,
                         adapter,
                         PrintAttributes.Builder()
-                            .setMediaSize(reportMediaSize(context))
+                            .setMediaSize(reportMediaSize (context))
                             .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                             .build()
                     )

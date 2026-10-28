@@ -17,6 +17,8 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.print.PageRange
+import android.print.PrintDocumentAdapter.LayoutResultCallback
+import android.print.PrintDocumentAdapter.WriteResultCallback
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -348,7 +350,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                         shareWebViewAsPdf(
                             context, webView, jobName, userPhone, userEmail,
                             onFinished = {
-                                decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                                decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                             },
                             landscape = com.ahd.notebk.data.local.NotebkSettingsStore(context)
                                 .getString("paper_orientation", "portrait")
@@ -357,7 +359,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                         val adapter = createCleanupPrintAdapter(webView, jobName) {
-                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                            decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                         }
                         printManager.print(
                             jobName,
@@ -597,14 +599,14 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                         shareWebViewAsPdf(
                             context, webView, jobName, userPhone, userEmail,
                             onFinished = {
-                                decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                                decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                             },
                             landscape = true
                         )
                     } else {
                         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
                         val adapter = createCleanupPrintAdapter(webView, jobName) {
-                            decorView?.post { try { decorView.removeView(webView) } catch (_: Exception) { } }
+                            decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                         }
                         printManager.print(
                             jobName,

@@ -717,9 +717,9 @@ internal fun createCleanupPrintAdapter(
 
 
 /**
- * Creates a PDF directly from the currently rendered WebView and opens the share sheet.
- * It captures the visible WebView viewport page-by-page instead of expanding the WebView
- * to the entire document, which can cause clipping and excessive memory usage.
+ * Renders the complete HTML document into a full-height WebView before slicing it
+ * into PDF pages. Drawing a normal viewport after scrollTo() can produce blank pages
+ * because WebView.draw() does not reliably redraw scrolled content for a PDF canvas.
  */
 internal fun createAndShareRenderedPdf(
     context: Context,
@@ -734,28 +734,37 @@ internal fun createAndShareRenderedPdf(
         var document: PdfDocument? = null
         val oldScrollY = webView.scrollY
         val oldLayerType = webView.layerType
+        val oldLayoutParams = webView.layoutParams
+        val oldWidth = webView.width
+        val oldHeight = webView.height
         try {
-            check(webView.width > 0 && webView.height > 0) {
+            check(oldWidth > 0 && oldHeight > 0) {
                 "صفحة التقرير غير جاهزة للإنشاء"
             }
 
-            val sourceWidth = webView.width
-            val viewportHeight = webView.height
+            val sourceWidth = oldWidth
             val density = webView.resources.displayMetrics.density
-            val contentHeight = max(viewportHeight, (webView.contentHeight * density).toInt())
+            val fullContentHeight = max(oldHeight, (webView.contentHeight * density).toInt())
+            check(fullContentHeight > 0) { "محتوى التقرير فارغ" }
+
+            // Give WebView a layout tall enough for the entire HTML document, not just
+            // the visible screen. This avoids relying on scrollTo() during PDF drawing.
+            webView.layoutParams = ViewGroup.LayoutParams(sourceWidth, fullContentHeight)
+            webView.measure(
+                View.MeasureSpec.makeMeasureSpec(sourceWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(fullContentHeight, View.MeasureSpec.EXACTLY)
+            )
+            webView.layout(0, 0, sourceWidth, fullContentHeight)
+            webView.scrollTo(0, 0)
+
             val pageWidth = if (landscape) 842 else 595
             val pageHeight = if (landscape) 595 else 842
             val margin = 24
             val printableWidth = pageWidth - margin * 2
             val printableHeight = pageHeight - margin * 2
             val scale = printableWidth.toFloat() / sourceWidth.toFloat()
-
-            // Never request more source pixels than WebView can actually draw in one viewport.
-            val sourcePageHeight = max(
-                1,
-                min(viewportHeight, (printableHeight / scale).toInt())
-            )
-            val pageCount = ceil(contentHeight.toDouble() / sourcePageHeight.toDouble()).toInt()
+            val sourcePageHeight = max(1, (printableHeight / scale).toInt())
+            val pageCount = ceil(fullContentHeight.toDouble() / sourcePageHeight.toDouble()).toInt()
             check(pageCount in 1..500) { "عدد صفحات التقرير غير صالح: $pageCount" }
 
             val safeName = jobName
@@ -767,6 +776,7 @@ internal fun createAndShareRenderedPdf(
             val pdfFile = File(directory, "${safeName}_${System.currentTimeMillis()}.pdf")
 
             webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            webView.isVerticalScrollBarEnabled = false
             val pdf = PdfDocument()
             document = pdf
 
@@ -776,13 +786,11 @@ internal fun createAndShareRenderedPdf(
                 val canvas: Canvas = page.canvas
                 val startY = index * sourcePageHeight
 
-                webView.scrollTo(0, startY)
-                webView.invalidate()
-
                 canvas.save()
                 canvas.translate(margin.toFloat(), margin.toFloat())
                 canvas.scale(scale, scale)
                 canvas.clipRect(0, 0, sourceWidth, sourcePageHeight)
+                canvas.translate(0f, -startY.toFloat())
                 webView.draw(canvas)
                 canvas.restore()
                 pdf.finishPage(page)
@@ -833,6 +841,12 @@ internal fun createAndShareRenderedPdf(
             runCatching { document?.close() }
             runCatching { webView.scrollTo(0, oldScrollY) }
             runCatching { webView.setLayerType(oldLayerType, null) }
+            runCatching { webView.layoutParams = oldLayoutParams }
+            runCatching { webView.measure(
+                View.MeasureSpec.makeMeasureSpec(oldWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(oldHeight, View.MeasureSpec.EXACTLY)
+            ) }
+            runCatching { webView.layout(0, 0, oldWidth, oldHeight) }
             runCatching { onFinished() }
         }
     }

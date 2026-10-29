@@ -714,9 +714,6 @@ internal fun createCleanupPrintAdapter(
 
 
 
-package com.ahd.notebk.data.report
-
-import android.view.View
 
 /**
  * Creates a PDF directly from the currently rendered WebView and opens the share sheet.

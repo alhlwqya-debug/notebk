@@ -36,6 +36,7 @@ import android.widget.Toast
 import java.io.ByteArrayOutputStream
 import java.io.File
 import android.util.Base64
+import android.view.View
 
 /**
  * Applies report preferences supported by the current HTML report renderer.

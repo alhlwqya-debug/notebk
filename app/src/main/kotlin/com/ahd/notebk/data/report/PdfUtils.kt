@@ -758,7 +758,7 @@ internal fun createAndShareRenderedPdf(
                 }
                 val pdfFile = File(directory, "${safeName}_${System.currentTimeMillis()}.pdf")
                 val attributes = PrintAttributes.Builder()
-                    .setMediaSize(reportMediaSize(context))
+                    .setMediaSize(if (landscape) reportMediaSize(context).asLandscape() else reportMediaSize(context))
                     .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                     .build()
 

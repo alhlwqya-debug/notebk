@@ -740,6 +740,8 @@ internal fun createAndShareRenderedPdf(
             val media = if (landscape) reportMediaSize(context).asLandscape() else reportMediaSize(context)
             val attributes = PrintAttributes.Builder()
                 .setMediaSize(media)
+                // Some Android print services fail when no explicit resolution is supplied.
+                .setResolution(PrintAttributes.Resolution("pdf", "pdf", 300, 300))
                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                 .build()
 

@@ -356,7 +356,7 @@ table.data tbody tr:nth-child(even) { background: #fafafa; }
                 try {
                     if (sharePdf) {
                         shareWebViewAsPdf(
-                            context, webView, jobName, userPhone, userEmail,
+                            context, webView, jobName, userPhone, userEmail, configuredHtml,
                             onFinished = {
                                 decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                             },
@@ -605,7 +605,7 @@ table.data tr:nth-child(even) td { background: #fafafa; }
                 try {
                     if (sharePdf) {
                         shareWebViewAsPdf(
-                            context, webView, jobName, userPhone, userEmail,
+                            context, webView, jobName, userPhone, userEmail, configuredHtml,
                             onFinished = {
                                 decorView?.post { try { decorView?.removeView(webView) } catch (_: Exception) { } }
                             },
@@ -724,122 +724,78 @@ internal fun createAndShareRenderedPdf(
     jobName: String,
     phone: String,
     email: String,
+    sourceHtml: String,
     onFinished: () -> Unit,
     landscape: Boolean = false
 ) {
-    // Use PdfKit's WebView print pipeline for native multi-page pagination.
+    // PdfKit uses WebView.createPrintDocumentAdapter + onLayout/onWrite.
+    // Feed it the original report HTML, never a screenshot/bitmap of the visible view.
     webView.post {
         try {
-            check(webView.width > 0 && webView.height > 0) {
-                "صفحة التقرير غير جاهزة للإنشاء"
-            }
-            webView.evaluateJavascript(
-                "(function(){return document.documentElement ? document.documentElement.outerHTML : '';})()"
-            ) { encodedHtml ->
-                val html = try {
-                    org.json.JSONTokener(encodedHtml ?: "\"\"").nextValue() as? String
-                } catch (_: Exception) {
-                    null
-                }
-                if (html.isNullOrBlank()) {
-                    Toast.makeText(context, "محتوى التقرير فارغ، تعذّر إنشاء PDF", Toast.LENGTH_LONG).show()
-                    onFinished()
-                    return@evaluateJavascript
-                }
+            check(sourceHtml.isNotBlank()) { "محتوى التقرير فارغ" }
+            val safeName = jobName.replace(Regex("[^\\p{L}\\p{N}_-]+"), "_").trim('_').ifBlank { "report" }
+            val directory = File(context.cacheDir, "shared_reports")
+            if (!directory.exists() && !directory.mkdirs()) throw IllegalStateException("تعذّر إنشاء مجلد التقرير")
+            val output = File(directory, "${safeName}_${System.currentTimeMillis()}.pdf")
+            val media = if (landscape) reportMediaSize(context).asLandscape() else reportMediaSize(context)
+            val attributes = PrintAttributes.Builder()
+                .setMediaSize(media)
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                .build()
 
-                val safeName = jobName
-                    .replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
-                    .trim('_')
-                    .ifBlank { "report" }
-                val directory = File(context.cacheDir, "shared_reports")
-                if (!directory.exists() && !directory.mkdirs()) {
-                    Toast.makeText(context, "تعذّر إنشاء مجلد التقرير", Toast.LENGTH_LONG).show()
-                    onFinished()
-                    return@evaluateJavascript
-                }
-                val pdfFile = File(directory, "${safeName}_${System.currentTimeMillis()}.pdf")
-                val attributes = PrintAttributes.Builder()
-                    .setMediaSize(if (landscape) reportMediaSize(context).asLandscape() else reportMediaSize(context))
-                    .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-                    .build()
-
-                com.mecofarid.pdfkit.PdfKit(context.applicationContext).startConversion(
-                    baseUrl = "file:///android_asset/",
-                    data = html,
-                    mimeType = "text/html",
-                    encoding = "UTF-8",
-                    javascriptEnabled = true,
-                    printAttributes = attributes,
-                    outputFile = pdfFile,
-                    onPdfPrintListener = object : com.mecofarid.pdfkit.PdfKit.OnPdfConversionListener {
-                        override fun onError(e: Exception) {
-                            webView.post {
-                                Toast.makeText(
-                                    context,
-                                    "تعذّر إنشاء PDF: ${e.localizedMessage ?: "خطأ غير معروف"}",
-                                    Toast.LENGTH_LONG
-                                ).show()
+            com.mecofarid.pdfkit.PdfKit(context.applicationContext).startConversion(
+                baseUrl = null,
+                data = sourceHtml,
+                mimeType = "text/html",
+                encoding = "UTF-8",
+                javascriptEnabled = true,
+                printAttributes = attributes,
+                outputFile = output,
+                onPdfPrintListener = object : com.mecofarid.pdfkit.PdfKit.OnPdfConversionListener {
+                    override fun onError(e: Exception) {
+                        webView.post {
+                            Toast.makeText(context, "تعذّر إنشاء PDF: ${e.localizedMessage ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show()
+                            onFinished()
+                        }
+                    }
+                    override fun onSuccess(pdfFileLocation: File) {
+                        webView.post {
+                            try {
+                                check(pdfFileLocation.isFile && pdfFileLocation.length() > 0L) { "ملف PDF الناتج فارغ" }
+                                val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", pdfFileLocation)
+                                val title = jobName.ifBlank { "تقرير" }
+                                val text = buildString {
+                                    append("تقرير: ")
+                                    append(title)
+                                    if (phone.isNotBlank()) append("\\nالهاتف: $phone")
+                                    if (email.isNotBlank()) append("\\nالبريد الإلكتروني: $email")
+                                    append("\\n")
+                                    append(NotebkBrand.APP_NAME)
+                                }
+                                val send = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/pdf"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    putExtra(Intent.EXTRA_SUBJECT, title)
+                                    putExtra(Intent.EXTRA_TEXT, text)
+                                    clipData = ClipData.newUri(context.contentResolver, pdfFileLocation.name, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                val chooser = Intent.createChooser(send, "مشاركة التقرير").apply {
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(chooser)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "تعذّرت مشاركة التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show()
+                            } finally {
                                 onFinished()
                             }
                         }
-
-                        override fun onSuccess(pdfFileLocation: File) {
-                            webView.post {
-                                try {
-                                    check(pdfFileLocation.isFile && pdfFileLocation.length() > 0L) {
-                                        "ملف PDF الناتج فارغ"
-                                    }
-                                    val uri: Uri = FileProvider.getUriForFile(
-                                        context,
-                                        context.packageName + ".fileprovider",
-                                        pdfFileLocation
-                                    )
-                                    val shareTitle = jobName.ifBlank { "تقرير" }
-                                    val shareText = buildString {
-                                        append("تقرير: ")
-                                        append(shareTitle)
-                                        if (phone.isNotBlank()) append("\nالهاتف: $phone")
-                                        if (email.isNotBlank()) append("\nالبريد الإلكتروني: $email")
-                                        append("\n")
-                                        append(NotebkBrand.APP_NAME)
-                                    }
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/pdf"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        putExtra(Intent.EXTRA_SUBJECT, shareTitle)
-                                        putExtra(Intent.EXTRA_TEXT, shareText)
-                                        clipData = ClipData.newUri(
-                                            context.contentResolver,
-                                            pdfFileLocation.name,
-                                            uri
-                                        )
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    val chooser = Intent.createChooser(sendIntent, "مشاركة التقرير").apply {
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(chooser)
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "تعذّرت مشاركة التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                } finally {
-                                    onFinished()
-                                }
-                            }
-                        }
                     }
-                )
-            }
+                }
+            )
         } catch (e: Exception) {
-            Toast.makeText(
-                context,
-                "تعذّرت مشاركة التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}",
-                Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(context, "تعذّر إنشاء التقرير: ${e.localizedMessage ?: "خطأ غير معروف"}", Toast.LENGTH_LONG).show()
             onFinished()
         }
     }

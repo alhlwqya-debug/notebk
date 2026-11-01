@@ -14,6 +14,7 @@ internal fun shareWebViewAsPdf(
     jobName: String,
     phone: String,
     email: String,
+    sourceHtml: String,
     onFinished: () -> Unit,
     landscape: Boolean = false
 ) {
@@ -23,6 +24,7 @@ internal fun shareWebViewAsPdf(
         jobName = jobName,
         phone = phone,
         email = email,
+        sourceHtml = sourceHtml,
         onFinished = onFinished,
         landscape = landscape
     )

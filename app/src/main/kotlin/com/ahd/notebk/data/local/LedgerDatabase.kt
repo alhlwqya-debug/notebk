@@ -757,6 +757,12 @@ SQLiteOpenHelper(
         deductExpense: Boolean,
         workerId: Long? = null
     ): Long {
+        // A shop must have exactly one ledger for each calendar month.
+        // Duplicate month rows make monthly and annual reports count the same
+        // period more than once, so reject them before creating daily rows.
+        if (year !in 1900..2500 || month !in 1..12) return -1L
+        if (getMonths(shopId).any { it.year == year && it.month == month }) return -2L
+
         val selectedWorkerId = workerId ?: getDefaultWorkerId(shopId)
         val selectedWorkerName = if (workerName.trim().isNotEmpty()) {
             workerName.trim()

@@ -567,7 +567,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 val existing = database.getMonths(shopId)
                 val template = existing.firstOrNull()
                 val workerId = database.getDefaultWorkerId(shopId)
-                val workerName = template?.workerName ?: workerId?.let { database.getWorker(it)?.name }.orEmpty()
+                val workerName = template?.workerName.orEmpty()
                 val monthNames = listOf("يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر")
                 val created = mutableListOf<Long>()
                 var failed = false
@@ -596,7 +596,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     var failed = false
                     for (m in 1..12) {
                         val source = templates.firstOrNull { it.month == m } ?: fallback
-                        val id = database.addMonth(shopId, targetYear, m, "$targetYear - ${names[m - 1]}", source?.workerName ?: workerId?.let { database.getWorker(it)?.name }.orEmpty(), "$targetYear/${m.toString().padStart(2, '0')}/01", source?.deductExpense ?: false, workerId)
+                        val id = database.addMonth(shopId, targetYear, m, "$targetYear - ${names[m - 1]}", source?.workerName ?: fallback?.workerName.orEmpty(), "$targetYear/${m.toString().padStart(2, '0')}/01", source?.deductExpense ?: false, workerId)
                         if (id > 0L) created.add(id) else { failed = true; break }
                     }
                     if (failed) created.forEach(database::deleteMonth)

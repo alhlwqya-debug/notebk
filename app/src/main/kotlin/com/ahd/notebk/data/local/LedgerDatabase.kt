@@ -853,7 +853,33 @@ SQLiteOpenHelper(
     }
 
     fun deleteMonth(monthId: Long) {
-        writableDatabase.delete(TABLE_MONTHS, "$COL_ID = ?", arrayOf(monthId.toString()))
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            // Explicitly remove child records by month/day/entry relationship.
+            // This also cleans up legacy rows in databases where FK enforcement
+            // was disabled during an older session or migration.
+            db.delete(
+                TABLE_INDIVIDUAL_ITEMS,
+                "$COL_ENTRY_ID IN (SELECT $COL_ID FROM $TABLE_INDIVIDUAL_ENTRIES WHERE $COL_DAY_ID IN (SELECT $COL_ID FROM $TABLE_DAYS WHERE $COL_MONTH_ID = ?))",
+                arrayOf(monthId.toString())
+            )
+            db.delete(
+                TABLE_INDIVIDUAL_ENTRIES,
+                "$COL_DAY_ID IN (SELECT $COL_ID FROM $TABLE_DAYS WHERE $COL_MONTH_ID = ?)",
+                arrayOf(monthId.toString())
+            )
+            db.delete(
+                TABLE_ENTRIES,
+                "$COL_DAY_ID IN (SELECT $COL_ID FROM $TABLE_DAYS WHERE $COL_MONTH_ID = ?)",
+                arrayOf(monthId.toString())
+            )
+            db.delete(TABLE_DAYS, "$COL_MONTH_ID = ?", arrayOf(monthId.toString()))
+            db.delete(TABLE_MONTHS, "$COL_ID = ?", arrayOf(monthId.toString()))
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
     }
 
     fun getPieceName(pieceId: Long): String {
@@ -998,18 +1024,21 @@ SQLiteOpenHelper(
                 val quantities = mutableMapOf<Long, Int>()
                 val unitPrices = mutableMapOf<Long, Int>()
 
-                readableDatabase.query(
-                    TABLE_ENTRIES,
-                    arrayOf(COL_PIECE_ID, COL_QUANTITY, COL_UNIT_PRICE),
-                    "$COL_DAY_ID = ?",
-                    arrayOf(dayId.toString()),
-                    null,
-                    null,
-                    null
-                ).use { entryCursor ->
-                    while (entryCursor.moveToNext()) {
-                        quantities[entryCursor.getLong(0)] = entryCursor.getInt(1)
-                        unitPrices[entryCursor.getLong(0)] = entryCursor.getInt(2)
+                val monthShopId = getMonth(cursor.getLong(1))?.shopId
+                if (monthShopId != null) {
+                    readableDatabase.rawQuery(
+                        """
+                        SELECT e.$COL_PIECE_ID, e.$COL_QUANTITY, e.$COL_UNIT_PRICE
+                        FROM $TABLE_ENTRIES e
+                        INNER JOIN $TABLE_PIECES p ON p.$COL_ID = e.$COL_PIECE_ID
+                        WHERE e.$COL_DAY_ID = ? AND p.$COL_SHOP_ID = ?
+                        """.trimIndent(),
+                        arrayOf(dayId.toString(), monthShopId.toString())
+                    ).use { entryCursor ->
+                        while (entryCursor.moveToNext()) {
+                            quantities[entryCursor.getLong(0)] = entryCursor.getInt(1)
+                            unitPrices[entryCursor.getLong(0)] = entryCursor.getInt(2)
+                        }
                     }
                 }
 
@@ -1063,7 +1092,23 @@ SQLiteOpenHelper(
         return writableDatabase.insert(TABLE_DAYS, null, values)
     }
 
+    private fun isPieceAssignedToMonthShop(monthId: Long, pieceId: Long): Boolean {
+        readableDatabase.rawQuery(
+            """
+            SELECT 1
+            FROM $TABLE_MONTHS m
+            INNER JOIN $TABLE_PIECES p ON p.$COL_SHOP_ID = m.$COL_SHOP_ID
+            WHERE m.$COL_ID = ? AND p.$COL_ID = ?
+            LIMIT 1
+            """.trimIndent(),
+            arrayOf(monthId.toString(), pieceId.toString())
+        ).use { cursor -> return cursor.moveToFirst() }
+    }
+
     fun setQuantity(monthId: Long, date: String, pieceId: Long, quantity: Int) {
+        // Prevent a piece belonging to another shop from being written into this
+        // month's ledger, even if a stale UI callback supplies the wrong ID.
+        if (!isPieceAssignedToMonthShop(monthId, pieceId)) return
         val dayId = getOrCreateDay(monthId, date)
         val cleanQuantity = quantity.coerceAtLeast(0)
 
@@ -1123,18 +1168,28 @@ SQLiteOpenHelper(
                 val quantities = mutableMapOf<Long, Int>()
                 val unitPrices = mutableMapOf<Long, Int>()
 
-                readableDatabase.query(
-                    TABLE_INDIVIDUAL_ITEMS,
-                    arrayOf(COL_PIECE_ID, COL_QUANTITY, COL_UNIT_PRICE),
-                    "$COL_ENTRY_ID = ?",
-                    arrayOf(entryId.toString()),
-                    null,
-                    null,
-                    null
-                ).use { itemCursor ->
-                    while (itemCursor.moveToNext()) {
-                        quantities[itemCursor.getLong(0)] = itemCursor.getInt(1)
-                        unitPrices[itemCursor.getLong(0)] = itemCursor.getInt(2)
+                val shopId = readableDatabase.rawQuery(
+                    """
+                    SELECT m.$COL_SHOP_ID FROM $TABLE_DAYS d
+                    INNER JOIN $TABLE_MONTHS m ON m.$COL_ID = d.$COL_MONTH_ID
+                    WHERE d.$COL_ID = ?
+                    """.trimIndent(),
+                    arrayOf(cursor.getLong(1).toString())
+                ).use { shopCursor -> if (shopCursor.moveToFirst()) shopCursor.getLong(0) else null }
+                if (shopId != null) {
+                    readableDatabase.rawQuery(
+                        """
+                        SELECT i.$COL_PIECE_ID, i.$COL_QUANTITY, i.$COL_UNIT_PRICE
+                        FROM $TABLE_INDIVIDUAL_ITEMS i
+                        INNER JOIN $TABLE_PIECES p ON p.$COL_ID = i.$COL_PIECE_ID
+                        WHERE i.$COL_ENTRY_ID = ? AND p.$COL_SHOP_ID = ?
+                        """.trimIndent(),
+                        arrayOf(entryId.toString(), shopId.toString())
+                    ).use { itemCursor ->
+                        while (itemCursor.moveToNext()) {
+                            quantities[itemCursor.getLong(0)] = itemCursor.getInt(1)
+                            unitPrices[itemCursor.getLong(0)] = itemCursor.getInt(2)
+                        }
                     }
                 }
 
@@ -1241,6 +1296,19 @@ SQLiteOpenHelper(
     }
 
     fun setIndividualQuantity(entryId: Long, pieceId: Long, quantity: Int) {
+        val belongsToSameShop = readableDatabase.rawQuery(
+            """
+            SELECT 1
+            FROM $TABLE_INDIVIDUAL_ENTRIES ie
+            INNER JOIN $TABLE_DAYS d ON d.$COL_ID = ie.$COL_DAY_ID
+            INNER JOIN $TABLE_MONTHS m ON m.$COL_ID = d.$COL_MONTH_ID
+            INNER JOIN $TABLE_PIECES p ON p.$COL_SHOP_ID = m.$COL_SHOP_ID
+            WHERE ie.$COL_ID = ? AND p.$COL_ID = ?
+            LIMIT 1
+            """.trimIndent(),
+            arrayOf(entryId.toString(), pieceId.toString())
+        ).use { cursor -> cursor.moveToFirst() }
+        if (!belongsToSameShop) return
         val cleanQuantity = quantity.coerceAtLeast(0)
         if (cleanQuantity == 0) {
             writableDatabase.delete(

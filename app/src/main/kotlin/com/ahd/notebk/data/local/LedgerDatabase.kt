@@ -902,11 +902,30 @@ SQLiteOpenHelper(
     fun updatePiece(pieceId: Long, name: String, price: Int) {
         val cleanName = name.trim()
         if (cleanName.isEmpty()) return
-        val values = ContentValues().apply {
-            put(COL_NAME, cleanName)
-            put(COL_PRICE, price.coerceAtLeast(0))
+
+        val db = writableDatabase
+        val newPrice = price.coerceAtLeast(0)
+        db.beginTransaction()
+        try {
+            // Update the catalog price and every saved use of this piece together.
+            // Unit prices are stored on ledger rows, so updating only the catalog
+            // would leave daily, monthly, annual and customer totals stale.
+            val pieceValues = ContentValues().apply {
+                put(COL_NAME, cleanName)
+                put(COL_PRICE, newPrice)
+            }
+            db.update(TABLE_PIECES, pieceValues, "$COL_ID = ?", arrayOf(pieceId.toString()))
+
+            val entryPriceValues = ContentValues().apply {
+                put(COL_UNIT_PRICE, newPrice)
+            }
+            db.update(TABLE_ENTRIES, entryPriceValues, "$COL_PIECE_ID = ?", arrayOf(pieceId.toString()))
+            db.update(TABLE_INDIVIDUAL_ITEMS, entryPriceValues, "$COL_PIECE_ID = ?", arrayOf(pieceId.toString()))
+
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
         }
-        writableDatabase.update(TABLE_PIECES, values, "$COL_ID = ?", arrayOf(pieceId.toString()))
     }
 
     fun deletePiece(pieceId: Long): Boolean {

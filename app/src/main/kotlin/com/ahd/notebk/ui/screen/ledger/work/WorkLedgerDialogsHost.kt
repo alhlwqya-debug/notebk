@@ -682,6 +682,11 @@ fun WorkLedgerDialogsHost(
                                 onShowCopyMonthDialog(false)
                                 reloadMonths()
                                 reloadBundle()
+                                Toast.makeText(context, "تم نسخ الشهر وإنشاء سجل فارغ للمحل نفسه", Toast.LENGTH_SHORT).show()
+                            } else if (id == -2L) {
+                                Toast.makeText(context, "هذا الشهر مسجل مسبقًا لهذه السنة والمحل", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "تعذر نسخ الشهر. تحقق من البيانات", Toast.LENGTH_LONG).show()
                             }
                         }
                 }) { Text("نسخ") }

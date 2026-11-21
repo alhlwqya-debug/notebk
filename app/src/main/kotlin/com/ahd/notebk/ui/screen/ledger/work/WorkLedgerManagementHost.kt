@@ -33,6 +33,10 @@ fun WorkLedgerManagementHost(
     currentBundle: MonthBundle?,
     registrationMode: RegistrationMode,
     selectedMonthId: Long?,
+    selectedShopId: Long?,
+    onCreateYear: (Int) -> Unit,
+    onCopyYear: (Int, Int) -> Unit,
+    onDeleteYear: (Int) -> Unit,
     showMonthsPage: Boolean,
     showPiecesPage: Boolean,
     showReportsPage: Boolean,
@@ -76,7 +80,10 @@ fun WorkLedgerManagementHost(
             onRename = onRenameMonth,
             onCopy = onCopyMonth,
             onDelete = onDeleteMonth,
-            onRefresh = onRefresh
+            onRefresh = onRefresh,
+            onCreateYear = onCreateYear,
+            onCopyYear = onCopyYear,
+            onDeleteYear = onDeleteYear
         )
     }
 

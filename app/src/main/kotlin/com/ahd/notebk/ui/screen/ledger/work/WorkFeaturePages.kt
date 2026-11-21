@@ -130,6 +130,7 @@ fun ReportsPage(
 fun StatisticsPage(
     bundle: MonthBundle?,
     database: LedgerDatabase,
+    registrationMode: RegistrationMode,
     onBack: () -> Unit,
     onRefresh: () -> Unit
 ) {
@@ -138,12 +139,28 @@ fun StatisticsPage(
         if (current == null) {
             NotebkSectionCard("لا يوجد شهر محدد") { Text("اختر شهرًا من صفحة الأشهر ثم افتح الإحصائيات.") }
         } else {
-            val earned = database.calculateMonthEarned(current)
+            // Individual/customer ledger stores quantities and prices on each customer item,
+            // not in the numeric day rows. Aggregate from the correct source for this shop.
+            val individualEntries = if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                current.days.flatMap { day -> database.getIndividualEntries(current.month.id, day.date) }
+            } else emptyList()
+
+            fun earnedForDay(day: DayRecord): Int =
+                if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                    database.calculateIndividualDayEarned(
+                        database.getIndividualEntries(current.month.id, day.date)
+                    )
+                } else database.calculateDayEarned(day)
+
+            val earned = if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                individualEntries.sumOf(database::calculateIndividualEntryEarned)
+            } else database.calculateMonthEarned(current)
             val expenses = database.calculateMonthExpenses(current)
-            val net = database.calculateMonthNet(current)
-            val activeDays = current.days.count { database.calculateDayEarned(it) > 0 || it.expense > 0 }
-            val bestDay = current.days.maxByOrNull { database.calculateDayEarned(it) }
-            val bestDayValue = bestDay?.let(database::calculateDayEarned) ?: 0
+            val net = if (current.month.deductExpense) earned - expenses else earned
+            val activeDays = current.days.count { earnedForDay(it) > 0 || it.expense > 0 }
+            val bestDay = current.days.maxByOrNull(::earnedForDay)
+            val bestDayValue = bestDay?.let(::earnedForDay) ?: 0
+
             NotebkSectionCard(current.month.name, "ملخص الشهر") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NotebkStatCard("الإيرادات", earned.toString(), Modifier.weight(1f))
@@ -153,12 +170,21 @@ fun StatisticsPage(
                     NotebkStatCard("الصافي", net.toString(), Modifier.weight(1f))
                     NotebkStatCard("أيام النشاط", activeDays.toString(), Modifier.weight(1f))
                 }
-                Text("أفضل يوم: ${bestDay?.date ?: "—"} • ${bestDayValue}", fontWeight = FontWeight.SemiBold)
+                Text("أفضل يوم: ${bestDay?.date ?: "—"} • $bestDayValue", fontWeight = FontWeight.SemiBold)
             }
             NotebkSectionCard("تحليل القطع") {
                 current.pieces.forEach { piece ->
-                    val total = database.pieceTotal(current, piece.id)
-                    val value = database.pieceEarned(current, piece.id)
+                    val total: Int
+                    val value: Int
+                    if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                        total = individualEntries.sumOf { it.quantities[piece.id] ?: 0 }
+                        value = individualEntries.sumOf { entry ->
+                            (entry.quantities[piece.id] ?: 0) * (entry.unitPrices[piece.id] ?: 0)
+                        }
+                    } else {
+                        total = database.pieceTotal(current, piece.id)
+                        value = database.pieceEarned(current, piece.id)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(piece.name, Modifier.weight(1f))
                         Text("الكمية: $total • الدخل: $value", fontWeight = FontWeight.SemiBold)

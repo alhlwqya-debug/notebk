@@ -234,8 +234,12 @@ internal fun printNumericReportRange(
     userImagePath: String,
     sharePdf: Boolean = false
 ) {
+    // Anchor report scope to the month/year selected in the dialog, not to
+    // whichever shop happens to be first in the input list.
+    val targetShopId = bundles.firstOrNull { it.month.id == selectedMonthId }?.month?.shopId
+        ?: bundles.firstOrNull()?.month?.shopId
     val sourceBundles = bundles
-        .filter { it.month.shopId == bundles.firstOrNull()?.month?.shopId }
+        .filter { targetShopId != null && it.month.shopId == targetShopId }
         .sortedWith(compareBy<MonthBundle> { it.month.year }.thenBy { it.month.month }.thenBy { it.month.id })
 
     if (sourceBundles.isEmpty()) {
@@ -380,8 +384,12 @@ internal fun printIndividualReportRange(
     userImagePath: String,
     sharePdf: Boolean = false
 ) {
+    // Anchor report scope to the month/year selected in the dialog, not to
+    // whichever shop happens to be first in the input list.
+    val targetShopId = bundles.firstOrNull { it.month.id == selectedMonthId }?.month?.shopId
+        ?: bundles.firstOrNull()?.month?.shopId
     val sourceBundles = bundles
-        .filter { it.month.shopId == bundles.firstOrNull()?.month?.shopId }
+        .filter { targetShopId != null && it.month.shopId == targetShopId }
         .sortedWith(compareBy<MonthBundle> { it.month.year }.thenBy { it.month.month }.thenBy { it.month.id })
 
     if (sourceBundles.isEmpty()) {

@@ -626,7 +626,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onReportsPageChange = { showReportsPage = it }, onStatisticsPageChange = { showStatisticsPage = it },
         onSelectedMonthChange = { selectedMonthId = it }, onBundleChange = { bundle = it },
         onDashboardChange = { showDashboard = it },
-        onNewMonth = { newYear = Calendar.getInstance().get(Calendar.YEAR).toString(); newMonthNumber = (Calendar.getInstance().get(Calendar.MONTH) + 1).toString(); newStartDate = todayString(); showMonthDialog = true },
+        onNewMonth = { year -> newYear = year.toString(); newMonthNumber = (1..12).firstOrNull { month -> months.none { it.year == year && it.month == month } }?.toString() ?: "1"; newStartDate = "$year/${newMonthNumber.padStart(2, '0')}/01"; showMonthDialog = true },
         onRenameMonth = { month -> renamedMonth = month.name; selectedMonthId = month.id; showRenameMonthDialog = true },
         onCopyMonth = { month -> selectedMonthId = month.id; copyYear = month.year.toString(); copyMonth = month.month.toString(); showCopyMonthDialog = true },
         onDeleteMonth = { month -> selectedMonthId = month.id; bundle = database.loadMonthBundle(month.id); showDeleteMonthDialog = true },

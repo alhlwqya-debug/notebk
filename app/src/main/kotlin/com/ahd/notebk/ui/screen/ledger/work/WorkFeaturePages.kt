@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.ledger.work
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,56 +24,45 @@ import com.ahd.notebk.domain.model.*
 import com.ahd.notebk.ui.components.*
 
 @Composable
-fun MonthsPage(
-    months: List<MonthRecord>,
-    selectedMonthId: Long?,
-    onBack: () -> Unit,
-    onSelect: (Long) -> Unit,
-    onAdd: () -> Unit,
-    onRename: (MonthRecord) -> Unit,
-    onCopy: (MonthRecord) -> Unit,
-    onDelete: (MonthRecord) -> Unit,
-    onRefresh: () -> Unit
-) {
-    NotebkPage("الأشهر", "إدارة الأشهر والسجلات المرتبطة بالمحل", onBack) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = onAdd, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("إضافة شهر") }
-            OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("تحديث") }
-        }
-        NotebkSectionCard("الأشهر المسجلة", "اضغط على الشهر لفتحه والعمل عليه") {
-            if (months.isEmpty()) {
-                Text("لا توجد أشهر لهذا المحل حتى الآن.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                months.forEach { month ->
-                    Card(
-                        onClick = { onSelect(month.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (month.id == selectedMonthId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(month.name, fontWeight = FontWeight.Bold)
-                                    Text("${month.year}/${month.month} • بداية ${month.startDate}", style = MaterialTheme.typography.bodySmall)
-                                    Text("العامل: ${month.workerName}", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Row {
-                                    IconButton(onClick = { onRename(month) }) { Icon(Icons.Default.Edit, "إعادة تسمية") }
-                                    IconButton(onClick = { onCopy(month) }) { Icon(Icons.Default.ContentCopy, "نسخ") }
-                                    IconButton(onClick = { onDelete(month) }) { Icon(Icons.Default.Delete, "حذف") }
-                                }
-                            }
-                            if (month.id == selectedMonthId) Text("✓ الشهر المحدد", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> Unit, onSelect: (Long) -> Unit, onAdd: (Int) -> Unit, onRename: (MonthRecord) -> Unit, onCopy: (MonthRecord) -> Unit, onDelete: (MonthRecord) -> Unit, onRefresh: () -> Unit, onCreateYear: (Int) -> Unit, onCopyYear: (Int, Int) -> Unit, onDeleteYear: (Int) -> Unit) {
+    var yearOpen by remember { mutableStateOf<Int?>(null) }
+    var createDialog by remember { mutableStateOf(false) }; var yearInput by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR).toString()) }
+    var copyFrom by remember { mutableStateOf<Int?>(null) }; var copyTo by remember { mutableStateOf("") }; var deleteYear by remember { mutableStateOf<Int?>(null) }
+    val years = months.map { it.year }.distinct().sortedDescending()
+    val yearMonths = months.filter { it.year == yearOpen }.sortedByDescending { it.month }
+    NotebkPage(if (yearOpen == null) "إدارة السنوات" else "أشهر سنة $yearOpen", "إدارة السنوات والشهور المرتبطة بالمحل", { if (yearOpen != null) yearOpen = null else onBack() }) {
+        if (yearOpen == null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { createDialog = true }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إنشاء سنة") }
+                OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") }
+            }
+            NotebkSectionCard("السنوات المسجلة", "افتح السنة لإدارة أشهرها") {
+                if (years.isEmpty()) Text("لا توجد سنوات لهذا المحل بعد. أنشئ سنة للبدء.")
+                years.forEach { year ->
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(Modifier.weight(1f).clickable { yearOpen = year }) { Text("السنة $year", fontWeight = FontWeight.Bold); Text("الأشهر: ${months.count { it.year == year }} / 12", style = MaterialTheme.typography.bodySmall); Text("اضغط لفتح السنة", color = MaterialTheme.colorScheme.primary) }
+                            Row { IconButton(onClick = { copyFrom = year; copyTo = (year + 1).toString() }) { Icon(Icons.Default.ContentCopy, "نسخ سنة") }; IconButton(onClick = { deleteYear = year }) { Icon(Icons.Default.Delete, "حذف سنة") } }
                         }
+                    }
+                }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = { onAdd(yearOpen!!) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إضافة شهر") }; OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") } }
+            NotebkSectionCard("الأشهر المسجلة في $yearOpen", "السجلات الموجودة فعليًا فقط") {
+                if (yearMonths.isEmpty()) Text("لا توجد أشهر مسجلة في هذه السنة.")
+                yearMonths.forEach { month ->
+                    Card(onClick = { onSelect(month.id) }, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (month.id == selectedMonthId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)) {
+                        Column(Modifier.padding(12.dp)) { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Column(Modifier.weight(1f)) { Text(month.name, fontWeight = FontWeight.Bold); Text("${month.year}/${month.month} • ${month.startDate}", style = MaterialTheme.typography.bodySmall); Text("العامل: ${month.workerName}", style = MaterialTheme.typography.bodySmall) }; Row { IconButton(onClick = { onRename(month) }) { Icon(Icons.Default.Edit, "تعديل") }; IconButton(onClick = { onCopy(month) }) { Icon(Icons.Default.ContentCopy, "نسخ") }; IconButton(onClick = { onDelete(month) }) { Icon(Icons.Default.Delete, "حذف") } } }; if (month.id == selectedMonthId) Text("✓ الشهر المحدد", color = MaterialTheme.colorScheme.primary) }
                     }
                 }
             }
         }
     }
+    if (createDialog) AlertDialog(onDismissRequest = { createDialog = false }, title = { Text("إنشاء سنة") }, text = { OutlinedTextField(yearInput, { yearInput = it.filter(Char::isDigit).take(4) }, label = { Text("السنة") }, singleLine = true) }, confirmButton = { Button(onClick = { val y = yearInput.toIntOrNull(); if (y != null && y in 1900..2500) { onCreateYear(y); createDialog = false } }) { Text("إنشاء") } }, dismissButton = { TextButton(onClick = { createDialog = false }) { Text("إلغاء") } })
+    if (copyFrom != null) AlertDialog(onDismissRequest = { copyFrom = null }, title = { Text("نسخ سنة") }, text = { Column { Text("إنشاء سجلات أشهر فارغة دون نسخ الحسابات القديمة."); OutlinedTextField(copyTo, { copyTo = it.filter(Char::isDigit).take(4) }, label = { Text("السنة الجديدة") }, singleLine = true) } }, confirmButton = { Button(onClick = { val y = copyTo.toIntOrNull(); if (y != null && y in 1900..2500 && y != copyFrom) { onCopyYear(copyFrom!!, y); copyFrom = null } }) { Text("نسخ") } }, dismissButton = { TextButton(onClick = { copyFrom = null }) { Text("إلغاء") } })
+    if (deleteYear != null) AlertDialog(onDismissRequest = { deleteYear = null }, title = { Text("حذف السنة", color = MaterialTheme.colorScheme.error) }, text = { Text("سيتم حذف أشهر سنة $deleteYear وجميع سجلاتها لهذا المحل. يُنصح بإنشاء نسخة احتياطية.") }, confirmButton = { Button(onClick = { onDeleteYear(deleteYear!!); deleteYear = null }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("حذف السنة") } }, dismissButton = { TextButton(onClick = { deleteYear = null }) { Text("إلغاء") } })
 }
-
 @Composable
 fun PiecesPage(
     pieces: List<PieceRecord>,

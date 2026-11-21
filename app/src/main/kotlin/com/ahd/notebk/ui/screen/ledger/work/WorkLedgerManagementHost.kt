@@ -110,6 +110,9 @@ fun WorkLedgerManagementHost(
     if (showStatisticsPage) {
         StatisticsPage(
             bundle = currentBundle,
+            months = months,
+            selectedMonthId = selectedMonthId,
+            onSelectMonth = { id -> onSelectedMonthChange(id); onBundleChange(database.loadMonthBundle(id)) },
             database = database,
             registrationMode = registrationMode,
             onBack = { onStatisticsPageChange(false) },

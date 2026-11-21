@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -119,69 +120,118 @@ fun ReportsPage(
 @Composable
 fun StatisticsPage(
     bundle: MonthBundle?,
+    months: List<MonthRecord>,
+    selectedMonthId: Long?,
+    onSelectMonth: (Long) -> Unit,
     database: LedgerDatabase,
     registrationMode: RegistrationMode,
     onBack: () -> Unit,
     onRefresh: () -> Unit
 ) {
-    NotebkPage("الإحصائيات", "تحليل فعلي لبيانات الشهر المحدد", onBack) {
-        val current = bundle
-        if (current == null) {
-            NotebkSectionCard("لا يوجد شهر محدد") { Text("اختر شهرًا من صفحة الأشهر ثم افتح الإحصائيات.") }
+    val years = months.map { it.year }.distinct().sortedDescending()
+    var selectedYear by remember { mutableStateOf<Int?>(bundle?.month?.year ?: years.firstOrNull()) }
+    var annualMode by remember { mutableStateOf(false) }
+    val periodMonths = months.filter { it.year == selectedYear }.sortedBy { it.month }
+    val bundles = periodMonths.mapNotNull { database.loadMonthBundle(it.id) }
+    val monthStats = bundles.map { b ->
+        val entries = if (registrationMode == RegistrationMode.INDIVIDUAL)
+            b.days.flatMap { database.getIndividualEntries(b.month.id, it.date) } else emptyList()
+        val earned = if (registrationMode == RegistrationMode.INDIVIDUAL)
+            entries.sumOf(database::calculateIndividualEntryEarned) else database.calculateMonthEarned(b)
+        val expenses = database.calculateMonthExpenses(b)
+        val net = if (b.month.deductExpense) earned - expenses else earned
+        Triple(b, earned, Pair(expenses, net))
+    }
+    val totalEarned = monthStats.sumOf { it.second }
+    val totalExpenses = monthStats.sumOf { it.third.first }
+    // Expense deduction is a month-level setting. Sum each month's correctly defined net,
+    // rather than subtracting all expenses globally when some months do not deduct them.
+    val totalNet = monthStats.sumOf { it.third.second }
+    val activeDays = bundles.sumOf { b ->
+        b.days.count { day ->
+            val earned = if (registrationMode == RegistrationMode.INDIVIDUAL)
+                database.calculateIndividualDayEarned(database.getIndividualEntries(b.month.id, day.date))
+            else database.calculateDayEarned(day)
+            earned > 0 || day.expense > 0
+        }
+    }
+    val monthLabels = listOf("يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر")
+    val bestMonth = monthStats.maxByOrNull { it.second }
+    val bestDayPair = bundles.flatMap { b -> b.days.map { day ->
+        val earned = if (registrationMode == RegistrationMode.INDIVIDUAL)
+            database.calculateIndividualDayEarned(database.getIndividualEntries(b.month.id, day.date))
+        else database.calculateDayEarned(day)
+        Triple(b.month.name, day.date, earned)
+    } }.maxByOrNull { it.third }
+
+    NotebkPage("التحليلات والإحصائيات", "تحليل شهري وسنوي من السجلات الفعلية للمحل", onBack) {
+        if (months.isEmpty()) {
+            NotebkSectionCard("لا توجد بيانات للتحليل") { Text("أضف شهرًا وسجّل العمل اليومي أولًا.") }
         } else {
-            // Individual/customer ledger stores quantities and prices on each customer item,
-            // not in the numeric day rows. Aggregate from the correct source for this shop.
-            val individualEntries = if (registrationMode == RegistrationMode.INDIVIDUAL) {
-                current.days.flatMap { day -> database.getIndividualEntries(current.month.id, day.date) }
-            } else emptyList()
-
-            fun earnedForDay(day: DayRecord): Int =
-                if (registrationMode == RegistrationMode.INDIVIDUAL) {
-                    database.calculateIndividualDayEarned(
-                        database.getIndividualEntries(current.month.id, day.date)
-                    )
-                } else database.calculateDayEarned(day)
-
-            val earned = if (registrationMode == RegistrationMode.INDIVIDUAL) {
-                individualEntries.sumOf(database::calculateIndividualEntryEarned)
-            } else database.calculateMonthEarned(current)
-            val expenses = database.calculateMonthExpenses(current)
-            val net = if (current.month.deductExpense) earned - expenses else earned
-            val activeDays = current.days.count { earnedForDay(it) > 0 || it.expense > 0 }
-            val bestDay = current.days.maxByOrNull(::earnedForDay)
-            val bestDayValue = bestDay?.let(::earnedForDay) ?: 0
-
-            NotebkSectionCard(current.month.name, "ملخص الشهر") {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NotebkStatCard("الإيرادات", earned.toString(), Modifier.weight(1f))
-                    NotebkStatCard("المصروفات", expenses.toString(), Modifier.weight(1f))
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NotebkStatCard("الصافي", net.toString(), Modifier.weight(1f))
-                    NotebkStatCard("أيام النشاط", activeDays.toString(), Modifier.weight(1f))
-                }
-                Text("أفضل يوم: ${bestDay?.date ?: "—"} • $bestDayValue", fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !annualMode, onClick = { annualMode = false }, label = { Text("تحليل شهري") })
+                FilterChip(selected = annualMode, onClick = { annualMode = true }, label = { Text("تحليل سنوي") })
             }
-            NotebkSectionCard("تحليل القطع") {
-                current.pieces.forEach { piece ->
-                    val total: Int
-                    val value: Int
-                    if (registrationMode == RegistrationMode.INDIVIDUAL) {
-                        total = individualEntries.sumOf { it.quantities[piece.id] ?: 0 }
-                        value = individualEntries.sumOf { entry ->
-                            (entry.quantities[piece.id] ?: 0) * (entry.unitPrices[piece.id] ?: 0)
+            var yearMenu by remember { mutableStateOf(false) }
+            Box {
+                OutlinedButton(onClick = { yearMenu = true }) { Text("السنة: ${selectedYear ?: "—"}"); Icon(Icons.Default.ArrowDropDown, null) }
+                DropdownMenu(expanded = yearMenu, onDismissRequest = { yearMenu = false }) {
+                    years.forEach { y -> DropdownMenuItem(text = { Text(y.toString()) }, onClick = { selectedYear = y; periodMonths.firstOrNull()?.let { onSelectMonth(it.id) }; yearMenu = false }) }
+                }
+            }
+            if (!annualMode) {
+                var monthMenu by remember { mutableStateOf(false) }
+                val chosen = selectedMonthId?.let(database::loadMonthBundle)?.takeIf { it.month.year == selectedYear }
+                Box {
+                    OutlinedButton(onClick = { monthMenu = true }) { Text("الشهر: ${chosen?.month?.name ?: "اختر شهرًا"}"); Icon(Icons.Default.ArrowDropDown, null) }
+                    DropdownMenu(expanded = monthMenu, onDismissRequest = { monthMenu = false }) {
+                        periodMonths.forEach { m -> DropdownMenuItem(text = { Text(m.name) }, onClick = { onSelectMonth(m.id); monthMenu = false }) }
+                    }
+                }
+                val one = chosen?.let { b ->
+                    val entries = if (registrationMode == RegistrationMode.INDIVIDUAL) b.days.flatMap { database.getIndividualEntries(b.month.id, it.date) } else emptyList()
+                    val earned = if (registrationMode == RegistrationMode.INDIVIDUAL) entries.sumOf(database::calculateIndividualEntryEarned) else database.calculateMonthEarned(b)
+                    val expenses = database.calculateMonthExpenses(b)
+                    Triple(earned, expenses, if (b.month.deductExpense) earned-expenses else earned)
+                }
+                NotebkSectionCard(chosen?.month?.name ?: "الشهر المحدد", "نتائج الشهر المختار فقط") {
+                    if (one == null) Text("اختر شهرًا من إدارة الأشهر لعرض تحليله التفصيلي.")
+                    else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { NotebkStatCard("الإيرادات", one.first.toString(), Modifier.weight(1f)); NotebkStatCard("المصروفات", one.second.toString(), Modifier.weight(1f)) }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { NotebkStatCard("الصافي المحاسبي", one.third.toString(), Modifier.weight(1f)); NotebkStatCard("أيام نشطة", chosen!!.days.count { it.expense>0 || (if(registrationMode==RegistrationMode.INDIVIDUAL) database.calculateIndividualDayEarned(database.getIndividualEntries(chosen.month.id,it.date)) else database.calculateDayEarned(it))>0 }.toString(), Modifier.weight(1f)) }
+                    }
+                }
+            } else {
+                NotebkSectionCard("ملخص السنة ${selectedYear ?: ""}", "مجموع الأشهر المسجلة فقط؛ لا تُحتسب أشهر غير موجودة كبيانات") {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { NotebkStatCard("إجمالي الإيرادات", totalEarned.toString(), Modifier.weight(1f)); NotebkStatCard("إجمالي المصروفات", totalExpenses.toString(), Modifier.weight(1f)) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { NotebkStatCard("الصافي المحاسبي", totalNet.toString(), Modifier.weight(1f)); NotebkStatCard("الأشهر المسجلة", "${bundles.size}/12", Modifier.weight(1f)) }
+                    NotebkStatCard("أيام النشاط خلال السنة", activeDays.toString(), Modifier.fillMaxWidth())
+                    Text("أعلى شهر إيرادًا: ${bestMonth?.first?.month?.name ?: "—"} • ${bestMonth?.second ?: 0}", fontWeight = FontWeight.SemiBold)
+                    Text("أفضل يوم: ${bestDayPair?.second ?: "—"} • ${bestDayPair?.third ?: 0}", fontWeight = FontWeight.SemiBold)
+                }
+                NotebkSectionCard("مقارنة الأشهر") {
+                    monthStats.forEach { stat ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stat.first.month.name, Modifier.weight(1f))
+                            Text("دخل ${stat.second} • مصروف ${stat.third.first} • صافي ${stat.third.second}", fontWeight = FontWeight.SemiBold)
                         }
-                    } else {
-                        total = database.pieceTotal(current, piece.id)
-                        value = database.pieceEarned(current, piece.id)
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(piece.name, Modifier.weight(1f))
-                        Text("الكمية: $total • الدخل: $value", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-            NotebkSecondaryAction("تحديث الإحصائيات", onRefresh)
+            NotebkSectionCard("تحليل القطع للسنة ${selectedYear ?: ""}") {
+                val yearPieces = bundles.flatMap { it.pieces }.distinctBy { it.id }
+                yearPieces.forEach { piece ->
+                    val quantity = if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                        bundles.sumOf { b -> b.days.sumOf { day -> database.getIndividualEntries(b.month.id,day.date).sumOf { it.quantities[piece.id] ?: 0 } } }
+                    } else bundles.sumOf { database.pieceTotal(it,piece.id) }
+                    val value = if (registrationMode == RegistrationMode.INDIVIDUAL) {
+                        bundles.sumOf { b -> b.days.sumOf { day -> database.getIndividualEntries(b.month.id,day.date).sumOf { (it.quantities[piece.id] ?: 0)*(it.unitPrices[piece.id] ?: 0) } } }
+                    } else bundles.sumOf { database.pieceEarned(it,piece.id) }
+                    Text("${piece.name}: الكمية ${quantity} • الإيراد ${value}", fontWeight = FontWeight.Medium)
+                }
+                if (yearPieces.isEmpty()) Text("لا توجد قطع مسجلة في الأشهر المختارة.")
+            }
+            NotebkSecondaryAction("تحديث التحليلات", onRefresh)
         }
     }
 }

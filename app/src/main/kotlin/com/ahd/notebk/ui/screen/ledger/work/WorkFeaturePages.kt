@@ -120,6 +120,8 @@ fun ReportsPage(
 fun StatisticsPage(
     bundle: MonthBundle?,
     months: List<MonthRecord>,
+    selectedMonthId: Long?,
+    onSelectMonth: (Long) -> Unit,
     database: LedgerDatabase,
     registrationMode: RegistrationMode,
     onBack: () -> Unit,
@@ -173,16 +175,16 @@ fun StatisticsPage(
             Box {
                 OutlinedButton(onClick = { yearMenu = true }) { Text("السنة: ${selectedYear ?: "—"}"); Icon(Icons.Default.ArrowDropDown, null) }
                 DropdownMenu(expanded = yearMenu, onDismissRequest = { yearMenu = false }) {
-                    years.forEach { y -> DropdownMenuItem(text = { Text(y.toString()) }, onClick = { selectedYear = y; yearMenu = false }) }
+                    years.forEach { y -> DropdownMenuItem(text = { Text(y.toString()) }, onClick = { selectedYear = y; periodMonths.firstOrNull()?.let { onSelectMonth(it.id) }; yearMenu = false }) }
                 }
             }
             if (!annualMode) {
                 var monthMenu by remember { mutableStateOf(false) }
-                val chosen = bundle?.takeIf { it.month.year == selectedYear }
+                val chosen = selectedMonthId?.let(database::loadMonthBundle)?.takeIf { it.month.year == selectedYear }
                 Box {
                     OutlinedButton(onClick = { monthMenu = true }) { Text("الشهر: ${chosen?.month?.name ?: "اختر شهرًا"}"); Icon(Icons.Default.ArrowDropDown, null) }
                     DropdownMenu(expanded = monthMenu, onDismissRequest = { monthMenu = false }) {
-                        periodMonths.forEach { m -> DropdownMenuItem(text = { Text(m.name) }, onClick = { monthMenu = false }) }
+                        periodMonths.forEach { m -> DropdownMenuItem(text = { Text(m.name) }, onClick = { onSelectMonth(m.id); monthMenu = false }) }
                     }
                 }
                 val one = chosen?.let { b ->

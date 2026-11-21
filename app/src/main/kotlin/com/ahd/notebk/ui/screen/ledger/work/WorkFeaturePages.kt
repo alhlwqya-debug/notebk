@@ -1,6 +1,7 @@
 package com.ahd.notebk.ui.screen.ledger.work
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,7 +24,7 @@ import com.ahd.notebk.domain.model.*
 import com.ahd.notebk.ui.components.*
 
 @Composable
-fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> Unit, onSelect: (Long) -> Unit, onAdd: () -> Unit, onRename: (MonthRecord) -> Unit, onCopy: (MonthRecord) -> Unit, onDelete: (MonthRecord) -> Unit, onRefresh: () -> Unit, onCreateYear: (Int) -> Unit, onCopyYear: (Int, Int) -> Unit, onDeleteYear: (Int) -> Unit) {
+fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> Unit, onSelect: (Long) -> Unit, onAdd: (Int) -> Unit, onRename: (MonthRecord) -> Unit, onCopy: (MonthRecord) -> Unit, onDelete: (MonthRecord) -> Unit, onRefresh: () -> Unit, onCreateYear: (Int) -> Unit, onCopyYear: (Int, Int) -> Unit, onDeleteYear: (Int) -> Unit) {
     var yearOpen by remember { mutableStateOf<Int?>(null) }
     var createDialog by remember { mutableStateOf(false) }; var yearInput by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR).toString()) }
     var copyFrom by remember { mutableStateOf<Int?>(null) }; var copyTo by remember { mutableStateOf("") }; var deleteYear by remember { mutableStateOf<Int?>(null) }
@@ -47,7 +48,7 @@ fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> 
                 }
             }
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = onAdd, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إضافة شهر") }; OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") } }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = { onAdd(yearOpen!!) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إضافة شهر") }; OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") } }
             NotebkSectionCard("الأشهر المسجلة في $yearOpen", "السجلات الموجودة فعليًا فقط") {
                 if (yearMonths.isEmpty()) Text("لا توجد أشهر مسجلة في هذه السنة.")
                 yearMonths.forEach { month ->

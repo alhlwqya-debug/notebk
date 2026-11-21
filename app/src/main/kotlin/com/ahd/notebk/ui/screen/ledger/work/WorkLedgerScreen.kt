@@ -558,6 +558,67 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     WorkLedgerManagementHost(
         context = context, database = database, months = months, pieces = pieces, currentBundle = currentBundle,
+        selectedShopId = selectedShopId,
+        onCreateYear = { year ->
+            val shopId = selectedShopId
+            if (shopId == null) {
+                Toast.makeText(context, "اختر المحل أولًا", Toast.LENGTH_SHORT).show()
+            } else {
+                val existing = database.getMonths(shopId)
+                val template = existing.firstOrNull()
+                val workerId = database.getDefaultWorkerId(shopId)
+                val workerName = template?.workerName ?: workerId?.let { database.getWorker(it)?.name }.orEmpty()
+                val monthNames = listOf("يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر")
+                val created = mutableListOf<Long>()
+                var failed = false
+                for (m in 1..12) {
+                    if (existing.any { it.year == year && it.month == m }) continue
+                    val id = database.addMonth(shopId, year, m, "$year - ${monthNames[m - 1]}", workerName, "$year/${m.toString().padStart(2, '0')}/01", template?.deductExpense ?: false, workerId)
+                    if (id > 0L) created.add(id) else { failed = true; break }
+                }
+                if (failed) created.forEach(database::deleteMonth)
+                refreshAll()
+                Toast.makeText(context, if (failed) "تعذر إكمال إنشاء السنة؛ تم التراجع عن السجلات التي أُنشئت" else "تم إنشاء السنة وأشهرها الفارغة", Toast.LENGTH_LONG).show()
+            }
+        },
+        onCopyYear = { sourceYear, targetYear ->
+            val shopId = selectedShopId
+            if (shopId != null) {
+                val current = database.getMonths(shopId)
+                if (current.any { it.year == targetYear }) {
+                    Toast.makeText(context, "السنة الهدف تحتوي على أشهر بالفعل", Toast.LENGTH_LONG).show()
+                } else {
+                    val templates = current.filter { it.year == sourceYear }
+                    val fallback = templates.firstOrNull() ?: current.firstOrNull()
+                    val workerId = database.getDefaultWorkerId(shopId)
+                    val names = listOf("يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر")
+                    val created = mutableListOf<Long>()
+                    var failed = false
+                    for (m in 1..12) {
+                        val source = templates.firstOrNull { it.month == m } ?: fallback
+                        val id = database.addMonth(shopId, targetYear, m, "$targetYear - ${names[m - 1]}", source?.workerName ?: workerId?.let { database.getWorker(it)?.name }.orEmpty(), "$targetYear/${m.toString().padStart(2, '0')}/01", source?.deductExpense ?: false, workerId)
+                        if (id > 0L) created.add(id) else { failed = true; break }
+                    }
+                    if (failed) created.forEach(database::deleteMonth)
+                    refreshAll()
+                    Toast.makeText(context, if (failed) "فشل النسخ وتم التراجع عن السجلات المنشأة" else "تم نسخ إعدادات السنة إلى أشهر فارغة دون الحسابات", Toast.LENGTH_LONG).show()
+                }
+            }
+        },
+        onDeleteYear = { year ->
+            val shopId = selectedShopId
+            if (shopId != null) {
+                createInternalAutoBackup(context)
+                val doomed = database.getMonths(shopId).filter { it.year == year }
+                doomed.forEach { database.deleteMonth(it.id) }
+                if (selectedMonthId != null && doomed.any { it.id == selectedMonthId }) {
+                    selectedMonthId = null
+                    bundle = null
+                }
+                refreshAll()
+                Toast.makeText(context, "تم حذف سنة $year وسجلاتها من المحل المحدد", Toast.LENGTH_LONG).show()
+            }
+        },
         registrationMode = registrationMode, selectedMonthId = selectedMonthId, showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage,
         showReportsPage = showReportsPage, showStatisticsPage = showStatisticsPage, editPieceTarget = editPieceTarget,
         editPieceName = editPieceName, editPiecePrice = editPiecePrice,

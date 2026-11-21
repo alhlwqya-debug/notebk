@@ -398,11 +398,15 @@ fun WorkLedgerDialogsHost(
                             deductExpense = true,
                             workerId = null
                         )
-                        if (id > 0L) {
+                        if (id == -2L) {
+                            Toast.makeText(context, "هذا الشهر مسجل مسبقًا لهذه السنة والمحل", Toast.LENGTH_LONG).show()
+                        } else if (id > 0L) {
                             onSelectedMonthId(id)
                             refreshAll()
                             onShowMonthDialog(false)
                             Toast.makeText(context, "تم إنشاء الشهر وتجهيز أيامه من 01/${monthName(month)}", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "تعذر إنشاء الشهر، تحقق من البيانات", Toast.LENGTH_LONG).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Green)
@@ -678,6 +682,11 @@ fun WorkLedgerDialogsHost(
                                 onShowCopyMonthDialog(false)
                                 reloadMonths()
                                 reloadBundle()
+                                Toast.makeText(context, "تم نسخ الشهر وإنشاء سجل فارغ للمحل نفسه", Toast.LENGTH_SHORT).show()
+                            } else if (id == -2L) {
+                                Toast.makeText(context, "هذا الشهر مسجل مسبقًا لهذه السنة والمحل", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "تعذر نسخ الشهر. تحقق من البيانات", Toast.LENGTH_LONG).show()
                             }
                         }
                 }) { Text("نسخ") }

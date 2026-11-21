@@ -558,7 +558,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     WorkLedgerManagementHost(
         context = context, database = database, months = months, pieces = pieces, currentBundle = currentBundle,
-        selectedMonthId = selectedMonthId, showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage,
+        registrationMode = registrationMode, selectedMonthId = selectedMonthId, showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage,
         showReportsPage = showReportsPage, showStatisticsPage = showStatisticsPage, editPieceTarget = editPieceTarget,
         editPieceName = editPieceName, editPiecePrice = editPiecePrice,
         onMonthsPageChange = { showMonthsPage = it }, onPiecesPageChange = { showPiecesPage = it },

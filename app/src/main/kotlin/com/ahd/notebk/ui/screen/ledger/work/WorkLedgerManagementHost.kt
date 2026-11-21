@@ -31,6 +31,7 @@ fun WorkLedgerManagementHost(
     months: List<MonthRecord>,
     pieces: List<PieceRecord>,
     currentBundle: MonthBundle?,
+    registrationMode: RegistrationMode,
     selectedMonthId: Long?,
     showMonthsPage: Boolean,
     showPiecesPage: Boolean,
@@ -103,6 +104,7 @@ fun WorkLedgerManagementHost(
         StatisticsPage(
             bundle = currentBundle,
             database = database,
+            registrationMode = registrationMode,
             onBack = { onStatisticsPageChange(false) },
             onRefresh = onReloadBundle
         )

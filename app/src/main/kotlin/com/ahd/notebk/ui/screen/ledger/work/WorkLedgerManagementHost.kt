@@ -51,7 +51,7 @@ fun WorkLedgerManagementHost(
     onSelectedMonthChange: (Long?) -> Unit,
     onBundleChange: (MonthBundle?) -> Unit,
     onDashboardChange: (Boolean) -> Unit,
-    onNewMonth: () -> Unit,
+    onNewMonth: (Int) -> Unit,
     onRenameMonth: (MonthRecord) -> Unit,
     onCopyMonth: (MonthRecord) -> Unit,
     onDeleteMonth: (MonthRecord) -> Unit,

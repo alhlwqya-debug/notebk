@@ -213,9 +213,9 @@ fun HomeDashboard(
                     )
                 }
             }
+            monthSummaries += DashboardMonthSummary(bundle.month.name, bundle.month.year, bundle.month.month, monthEarned, bundleExpense, if (bundle.month.deductExpense) monthEarned - bundleExpense else monthEarned, monthPieces, monthActiveDays)
         }
 
-            monthSummaries += DashboardMonthSummary(bundle.month.name, bundle.month.year, bundle.month.month, monthEarned, bundleExpense, if (bundle.month.deductExpense) monthEarned - bundleExpense else monthEarned, monthPieces, monthActiveDays)
             DashboardTotals(
                 earned = earned,
                 expense = expense,

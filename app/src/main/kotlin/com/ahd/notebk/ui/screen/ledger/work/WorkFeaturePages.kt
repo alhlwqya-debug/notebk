@@ -34,8 +34,8 @@ fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> 
     NotebkPage(if (yearOpen == null) "إدارة السنوات" else "أشهر سنة $yearOpen", "إدارة السنوات والشهور المرتبطة بالمحل", { if (yearOpen != null) yearOpen = null else onBack() }) {
         if (yearOpen == null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { createDialog = true }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إنشاء سنة") }
-                OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") }
+                NotebkActionButton(onClick = { createDialog = true }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إنشاء سنة") }
+                NotebkActionButton(onClick = onRefresh, modifier = Modifier.weight(1f), outlined = true) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") }
             }
             NotebkSectionCard("السنوات المسجلة", "افتح السنة لإدارة أشهرها") {
                 if (years.isEmpty()) Text("لا توجد سنوات لهذا المحل بعد. أنشئ سنة للبدء.")
@@ -49,7 +49,7 @@ fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> 
                 }
             }
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = { onAdd(yearOpen!!) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إضافة شهر") }; OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") } }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { NotebkActionButton(onClick = { onAdd(yearOpen!!) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("إضافة شهر") }; OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("تحديث") } }
             NotebkSectionCard("الأشهر المسجلة في $yearOpen", "السجلات الموجودة فعليًا فقط") {
                 if (yearMonths.isEmpty()) Text("لا توجد أشهر مسجلة في هذه السنة.")
                 yearMonths.forEach { month ->
@@ -75,8 +75,8 @@ fun PiecesPage(
 ) {
     NotebkPage("إدارة القطع", "القطع والأسعار المستخدمة في تسجيل العمل", onBack) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = onAdd, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("إضافة قطعة") }
-            OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("تحديث") }
+            NotebkActionButton(onClick = onAdd, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("إضافة قطعة") }
+            NotebkActionButton(onClick = onRefresh, modifier = Modifier.weight(1f), outlined = true) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("تحديث") }
         }
         NotebkSectionCard("قائمة القطع", "تعديل السعر ينعكس على التسجيلات الجديدة دون حذف السجلات القديمة") {
             if (pieces.isEmpty()) Text("لا توجد قطع مسجلة.", color = MaterialTheme.colorScheme.onSurfaceVariant)

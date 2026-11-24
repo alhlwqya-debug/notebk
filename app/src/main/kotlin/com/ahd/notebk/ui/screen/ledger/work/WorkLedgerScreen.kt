@@ -546,8 +546,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                         database.setQuantity(currentBundle.month.id, day.date, pieceId, quantity)
                     }
                     database.setExpense(currentBundle.month.id, day.date, expense, day.expenseNote)
-                    reloadBundle()
-                    dataRevision++
+                    refreshAfterMutation()
                     Toast.makeText(context, "تم حفظ العمل اليومي", Toast.LENGTH_SHORT).show()
                 },
                 onPrint = { showPdfRangeDialog = true },

@@ -40,7 +40,7 @@ fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> 
             NotebkSectionCard("السنوات المسجلة", "افتح السنة لإدارة أشهرها") {
                 if (years.isEmpty()) Text("لا توجد سنوات لهذا المحل بعد. أنشئ سنة للبدء.")
                 years.forEach { year ->
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(AppRadiusMedium), colors = CardDefaults.cardColors(containerColor = AppSurfaceAlt), border = androidx.compose.foundation.BorderStroke(1.dp, AppBorder)) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column(Modifier.weight(1f).clickable { yearOpen = year }) { Text("السنة $year", fontWeight = FontWeight.Bold); Text("الأشهر: ${months.count { it.year == year }} / 12", style = MaterialTheme.typography.bodySmall); Text("اضغط لفتح السنة", color = MaterialTheme.colorScheme.primary) }
                             Row { IconButton(onClick = { copyFrom = year; copyTo = (year + 1).toString() }) { Icon(Icons.Default.ContentCopy, "نسخ سنة") }; IconButton(onClick = { deleteYear = year }) { Icon(Icons.Default.Delete, "حذف سنة") } }
@@ -53,7 +53,7 @@ fun MonthsPage(months: List<MonthRecord>, selectedMonthId: Long?, onBack: () -> 
             NotebkSectionCard("الأشهر المسجلة في $yearOpen", "السجلات الموجودة فعليًا فقط") {
                 if (yearMonths.isEmpty()) Text("لا توجد أشهر مسجلة في هذه السنة.")
                 yearMonths.forEach { month ->
-                    Card(onClick = { onSelect(month.id) }, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (month.id == selectedMonthId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)) {
+                    Card(onClick = { onSelect(month.id) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(AppRadiusMedium), colors = CardDefaults.cardColors(containerColor = if (month.id == selectedMonthId) AppPrimarySoft else AppSurfaceAlt), border = androidx.compose.foundation.BorderStroke(1.dp, if (month.id == selectedMonthId) Purple else AppBorder)) {
                         Column(Modifier.padding(12.dp)) { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Column(Modifier.weight(1f)) { Text(month.name, fontWeight = FontWeight.Bold); Text("${month.year}/${month.month} • ${month.startDate}", style = MaterialTheme.typography.bodySmall); Text("العامل: ${month.workerName}", style = MaterialTheme.typography.bodySmall) }; Row { IconButton(onClick = { onRename(month) }) { Icon(Icons.Default.Edit, "تعديل") }; IconButton(onClick = { onCopy(month) }) { Icon(Icons.Default.ContentCopy, "نسخ") }; IconButton(onClick = { onDelete(month) }) { Icon(Icons.Default.Delete, "حذف") } } }; if (month.id == selectedMonthId) Text("✓ الشهر المحدد", color = MaterialTheme.colorScheme.primary) }
                     }
                 }

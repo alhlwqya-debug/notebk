@@ -413,6 +413,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 // Return to the dashboard from the ledger/daily-work area.
                 showDashboard = true
                 openDailyWorkRequested = false
+                dataRevision++
             }
         }
     }
@@ -441,7 +442,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 onUserProfile = { showUserProfile = true },
                 onAppSettings = { showControlCenter = true },
                 onHelp = { showHelp = true },
-                onStatistics = { showStatistics = true }
+                onStatistics = { showStatistics = false; showStatisticsPage = true; dataRevision++ }
             )
         } else if (shops.isEmpty()) {
             StartScreen(
@@ -505,10 +506,12 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 onEditQuantity = { day, piece, value ->
                     database.setQuantity(currentBundle.month.id, day.date, piece.id, value.filter(Char::isDigit).toIntOrNull() ?: 0)
                     reloadBundle()
+                    dataRevision++
                 },
                 onEditExpense = { day, value ->
                     database.setExpense(currentBundle.month.id, day.date, value.filter(Char::isDigit).toIntOrNull() ?: 0, day.expenseNote)
                     reloadBundle()
+                    dataRevision++
                 },
                 onOpenExpense = { day ->
                     activeExpenseDay = day
@@ -523,10 +526,11 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     }
                     database.setExpense(currentBundle.month.id, day.date, expense, day.expenseNote)
                     reloadBundle()
+                    dataRevision++
                     Toast.makeText(context, "تم حفظ العمل اليومي", Toast.LENGTH_SHORT).show()
                 },
                 onPrint = { showPdfRangeDialog = true },
-                onDataChanged = { reloadBundle() },
+                onDataChanged = { reloadBundle(); dataRevision++ },
                 onSelectSearchResult = { monthId, _ -> selectedMonthId = monthId }
             )
         }

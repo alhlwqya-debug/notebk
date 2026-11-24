@@ -174,6 +174,21 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var showPiecesPage by remember { mutableStateOf(false) }
     var showReportsPage by remember { mutableStateOf(false) }
     var showStatisticsPage by remember { mutableStateOf(false) }
+
+    // Keep management destinations mutually exclusive across drawer, dashboard and page actions.
+    fun setManagementPage(page: String, visible: Boolean) {
+        if (visible) {
+            showMonthsPage = page == "months"
+            showPiecesPage = page == "pieces"
+            showReportsPage = page == "reports"
+            showStatisticsPage = page == "statistics"
+        } else when (page) {
+            "months" -> showMonthsPage = false
+            "pieces" -> showPiecesPage = false
+            "reports" -> showReportsPage = false
+            "statistics" -> showStatisticsPage = false
+        }
+    }
     var editPieceTarget by remember { mutableStateOf<PieceRecord?>(null) }
     var editPieceName by remember { mutableStateOf("") }
     var editPiecePrice by remember { mutableStateOf("") }
@@ -282,6 +297,12 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     fun reloadBundle() {
         bundle = selectedMonthId?.let(database::loadMonthBundle)
         pieces = selectedShopId?.let(database::getPieces) ?: emptyList()
+    }
+
+    // Shared write completion: refresh active ledger and notify dependent screens.
+    fun refreshAfterMutation() {
+        reloadBundle()
+        dataRevision++
     }
 
     fun refreshAll() {
@@ -444,7 +465,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 onUserProfile = { showUserProfile = true },
                 onAppSettings = { showControlCenter = true },
                 onHelp = { showHelp = true },
-                onStatistics = { showStatistics = false; showStatisticsPage = true; dataRevision++ }
+                onStatistics = { showStatistics = false; setManagementPage("statistics", true); dataRevision++ }
             )
         } else if (shops.isEmpty()) {
             StartScreen(
@@ -507,8 +528,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 },
                 onEditQuantity = { day, piece, value ->
                     database.setQuantity(currentBundle.month.id, day.date, piece.id, value.filter(Char::isDigit).toIntOrNull() ?: 0)
-                    reloadBundle()
-                    dataRevision++
+                    refreshAfterMutation()
                 },
                 onEditExpense = { day, value ->
                     database.setExpense(currentBundle.month.id, day.date, value.filter(Char::isDigit).toIntOrNull() ?: 0, day.expenseNote)
@@ -532,7 +552,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                     Toast.makeText(context, "تم حفظ العمل اليومي", Toast.LENGTH_SHORT).show()
                 },
                 onPrint = { showPdfRangeDialog = true },
-                onDataChanged = { reloadBundle(); dataRevision++ },
+                onDataChanged = { refreshAfterMutation() },
                 onSelectSearchResult = { monthId, _ -> selectedMonthId = monthId }
             )
         }
@@ -546,9 +566,9 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
             showFeatureHub = showFeatureHub, showControlCenter = showControlCenter, reminderEnabled = reminderEnabled,
             onDrawerOpenChange = { drawerOpen = it }, onSelectedShopChange = { selectedShopId = it },
             onRegistrationModeChange = { registrationMode = it }, onDashboardChange = { showDashboard = it },
-            onDailyWorkRequestChange = { openDailyWorkRequested = it }, onMonthsPageChange = { showMonthsPage = it },
-            onPiecesPageChange = { showPiecesPage = it }, onReportsPageChange = { showReportsPage = it },
-            onStatisticsPageChange = { showStatisticsPage = it }, onAboutChange = { showAbout = it },
+            onDailyWorkRequestChange = { openDailyWorkRequested = it }, onMonthsPageChange = { setManagementPage("months", it) },
+            onPiecesPageChange = { setManagementPage("pieces", it) }, onReportsPageChange = { setManagementPage("reports", it) },
+            onStatisticsPageChange = { setManagementPage("statistics", it) }, onAboutChange = { showAbout = it },
             onHelpChange = { showHelp = it }, onShopSettingsChange = { showShopSettings = it },
             onAppSettingsChange = { showAppSettings = it }, onDeleteShopDialogChange = { showDeleteShopDialog = it },
             onFeatureHubChange = { showFeatureHub = it }, onControlCenterChange = { showControlCenter = it },
@@ -638,8 +658,8 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onDeleteMonth = { month -> selectedMonthId = month.id; bundle = database.loadMonthBundle(month.id); showDeleteMonthDialog = true },
         onNewPiece = { newPieceName = ""; newPiecePrice = ""; showPieceDialog = true },
         onEditPiece = { piece -> editPieceTarget = piece; editPieceName = piece.name; editPiecePrice = piece.price.toString() },
-        onDeletePiece = { piece -> if (database.deletePiece(piece.id)) { reloadBundle(); Toast.makeText(context, "تم حذف القطعة", Toast.LENGTH_SHORT).show() } else Toast.makeText(context, "لا يمكن حذف قطعة عليها كميات مسجلة", Toast.LENGTH_LONG).show() },
-        onRefresh = { refreshAll() }, onReloadBundle = { reloadBundle() },
+        onDeletePiece = { piece -> if (database.deletePiece(piece.id)) { refreshAfterMutation(); Toast.makeText(context, "تم حذف القطعة", Toast.LENGTH_SHORT).show() } else Toast.makeText(context, "لا يمكن حذف قطعة عليها كميات مسجلة", Toast.LENGTH_LONG).show() },
+        onRefresh = { refreshAll() }, onReloadBundle = { refreshAfterMutation() },
         onEditPieceTargetChange = { editPieceTarget = it }, onEditPieceNameChange = { editPieceName = it },
         onEditPiecePriceChange = { editPiecePrice = it }, onOpenReport = { showPdfRangeDialog = true }
     )
@@ -699,7 +719,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         onSystemSettings = { showAppSettings = false; showSystemSettings = true },
         onAccountAuth = { showAppSettings = false; showAccountSecurityDialog = true }, onHelp = { showAppSettings = false; showHelp = true },
         onBackAppSettings = { showAppSettings = false }, onBackShopSettings = { showShopSettings = false },
-        refreshAll = { refreshAll() }, reloadBundle = { reloadBundle() }, reloadMonths = { reloadMonths() }, reloadShops = { reloadShops() },
+        refreshAll = { refreshAll() }, reloadBundle = { refreshAfterMutation() }, reloadMonths = { reloadMonths() }, reloadShops = { reloadShops() },
         dataRevision = dataRevision, onDataRevisionChange = { dataRevision++ },
         onRegistrationSettings = { showRegistrationSettings = false; showSecurityDialog = true }, onOpenAuth = onOpenAuth
     )

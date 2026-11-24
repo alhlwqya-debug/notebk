@@ -82,6 +82,7 @@ import com.ahd.notebk.ui.components.AppSurface
 import com.ahd.notebk.ui.components.AppSurfaceAlt
 import com.ahd.notebk.ui.components.AppText
 import com.ahd.notebk.ui.components.AppTopBar
+import com.ahd.notebk.ui.components.NotebkMetricCard
 import com.ahd.notebk.ui.components.NotebkScreenBackground
 import com.ahd.notebk.ui.components.NotebkBrand
 import com.ahd.notebk.ui.components.Blue
@@ -608,15 +609,15 @@ private fun AdvertisementImage(
 
 @Composable
 private fun DashboardStat(title: String, value: Int, background: Color, accent: Color, modifier: Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector, hideValue: Boolean) {
-    Column(modifier.background(background, RoundedCornerShape(17.dp)).padding(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(19.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(title, color = AppMuted, fontSize = 11.sp)
-        }
-        Spacer(Modifier.height(5.dp))
-        Text(if (hideValue) "••••" else value.toString(), color = accent, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-    }
+    NotebkMetricCard(
+        title = title,
+        value = value.toString(),
+        background = background,
+        accent = accent,
+        icon = icon,
+        modifier = modifier,
+        hideValue = hideValue
+    )
 }
 
 @Composable

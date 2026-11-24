@@ -199,7 +199,7 @@ fun HomeDashboard(
                     )
                 }
             }
-
+        }
 
             DashboardTotals(
                 earned = earned,

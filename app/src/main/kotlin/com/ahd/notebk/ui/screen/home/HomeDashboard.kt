@@ -156,7 +156,7 @@ fun HomeDashboard(
 
     suspend fun reload() {
         val updatedTotals = withContext(Dispatchers.IO) {
-        val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } } ?: shops
+            val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } } ?: shops
         val bundles = mutableListOf<MonthBundle>()
         targetShops.forEach { shop ->
             database.getMonths(shop.id).forEach { month ->
@@ -185,6 +185,7 @@ fun HomeDashboard(
                     database.calculateDayEarned(day)
                 }
                 earned += dayEarned
+                net += if (bundle.month.deductExpense) dayEarned - day.expense else dayEarned
                 if (day.quantities.values.any { value -> value > 0 } || day.expense > 0 || dayEarned > 0) {
                     days++
                 }
@@ -198,34 +199,16 @@ fun HomeDashboard(
                     )
                 }
             }
-            net += if (bundle.month.deductExpense) {
-                bundle.days.sumOf { day ->
-                    val dayEarned = if (shopMode == RegistrationMode.INDIVIDUAL) {
-                        database.calculateIndividualDayEarned(database.getIndividualEntries(bundle.month.id, day.date))
-                    } else {
-                        database.calculateDayEarned(day)
-                    }
-                    dayEarned - day.expense
-                }
-            } else {
-                bundle.days.sumOf { day ->
-                    if (shopMode == RegistrationMode.INDIVIDUAL) {
-                        database.calculateIndividualDayEarned(database.getIndividualEntries(bundle.month.id, day.date))
-                    } else {
-                        database.calculateDayEarned(day)
-                    }
-                }
-            }
-        }
+
 
             DashboardTotals(
-            earned = earned,
-            expense = expense,
-            net = net,
-            pieces = pieces,
-            months = bundles.size,
-            days = days,
-            activities = activities.sortedByDescending { it.date }.take(30)
+                earned = earned,
+                expense = expense,
+                net = net,
+                pieces = pieces,
+                months = bundles.size,
+                days = days,
+                activities = activities.sortedByDescending { it.date }.take(30)
             )
         }
         totals = updatedTotals

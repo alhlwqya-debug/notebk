@@ -532,8 +532,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
                 },
                 onEditExpense = { day, value ->
                     database.setExpense(currentBundle.month.id, day.date, value.filter(Char::isDigit).toIntOrNull() ?: 0, day.expenseNote)
-                    reloadBundle()
-                    dataRevision++
+                    refreshAfterMutation()
                 },
                 onOpenExpense = { day ->
                     activeExpenseDay = day
@@ -648,8 +647,8 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         registrationMode = registrationMode, selectedMonthId = selectedMonthId, showMonthsPage = showMonthsPage, showPiecesPage = showPiecesPage,
         showReportsPage = showReportsPage, showStatisticsPage = showStatisticsPage, editPieceTarget = editPieceTarget,
         editPieceName = editPieceName, editPiecePrice = editPiecePrice,
-        onMonthsPageChange = { showMonthsPage = it }, onPiecesPageChange = { showPiecesPage = it },
-        onReportsPageChange = { showReportsPage = it }, onStatisticsPageChange = { showStatisticsPage = it },
+        onMonthsPageChange = { setManagementPage("months", it) }, onPiecesPageChange = { setManagementPage("pieces", it) },
+        onReportsPageChange = { setManagementPage("reports", it) }, onStatisticsPageChange = { setManagementPage("statistics", it) },
         onSelectedMonthChange = { selectedMonthId = it }, onBundleChange = { bundle = it },
         onDashboardChange = { showDashboard = it },
         onNewMonth = { year -> newYear = year.toString(); newMonthNumber = (1..12).firstOrNull { month -> months.none { it.year == year && it.month == month } }?.toString() ?: "1"; newStartDate = "$year/${newMonthNumber.padStart(2, '0')}/01"; showMonthDialog = true },

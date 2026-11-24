@@ -133,10 +133,12 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
         context.getSharedPreferences("add_paper_user", Context.MODE_PRIVATE)
     }
     val profilePrefs = remember { com.ahd.notebk.data.local.AccountDataScope.profilePreferences(context) }
+    val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
 
     // ===== حالة البيانات =====
     var shops by remember { mutableStateOf(database.getShops()) }
-    var selectedShopId by remember { mutableStateOf(shops.firstOrNull()?.id) }
+    val savedShopId = centralSettings.getString("selected_shop_id").toLongOrNull()
+    var selectedShopId by remember { mutableStateOf(shops.firstOrNull { it.id == savedShopId }?.id ?: shops.firstOrNull()?.id) }
     var months by remember { mutableStateOf(selectedShopId?.let(database::getMonths) ?: emptyList()) }
     var selectedMonthId by remember { mutableStateOf(months.firstOrNull()?.id) }
     var bundle by remember { mutableStateOf(selectedMonthId?.let(database::loadMonthBundle)) }
@@ -150,7 +152,6 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
     var userImagePath by remember { mutableStateOf(profilePrefs.getString("user_image", "") ?: "") }
 
     // ===== حالة واجهة المستخدم =====
-    val centralSettings = remember { com.ahd.notebk.data.local.NotebkSettingsStore(context) }
     val initialPage = remember {
         if (centralSettings.getBoolean("remember_page", true)) {
             centralSettings.getString("last_page", centralSettings.getString("default_page", "home"))
@@ -311,6 +312,7 @@ fun WorkLedgerScreen(onOpenAuth: () -> Unit = {}) {
 
     // ===== تأثيرات =====
     LaunchedEffect(selectedShopId) {
+        centralSettings.putString("selected_shop_id", selectedShopId?.toString().orEmpty())
         registrationMode = shops.firstOrNull { it.id == selectedShopId }?.registrationMode
             ?: RegistrationMode.NUMERIC
         months = selectedShopId?.let(database::getMonths) ?: emptyList()

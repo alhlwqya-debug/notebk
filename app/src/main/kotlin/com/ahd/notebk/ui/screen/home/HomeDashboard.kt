@@ -103,6 +103,8 @@ private data class DashboardActivity(
     val note: String
 )
 
+private data class DashboardMonthSummary(val monthName: String, val year: Int, val month: Int, val earned: Int, val expense: Int, val net: Int, val pieces: Int, val activeDays: Int)
+
 private data class DashboardTotals(
     val earned: Int = 0,
     val expense: Int = 0,
@@ -110,6 +112,7 @@ private data class DashboardTotals(
     val pieces: Int = 0,
     val months: Int = 0,
     val days: Int = 0,
+    val monthSummaries: List<DashboardMonthSummary> = emptyList(),
     val activities: List<DashboardActivity> = emptyList()
 )
 
@@ -133,6 +136,7 @@ fun HomeDashboard(
     val context = LocalContext.current
     var totals by remember { mutableStateOf(DashboardTotals()) }
     var query by remember { mutableStateOf("") }
+    var showMonthlyAnalysis by remember { mutableStateOf(true) }
     var filter by remember { mutableStateOf(ActivityFilter.ALL) }
     var advertisements by remember { mutableStateOf(AdvertisementRepository.loadCached(context)) }
     var advertisementIndex by remember { mutableStateOf(0) }
@@ -156,7 +160,7 @@ fun HomeDashboard(
 
     suspend fun reload() {
         val updatedTotals = withContext(Dispatchers.IO) {
-            val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } } ?: shops
+            val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } }.orEmpty()
         val bundles = mutableListOf<MonthBundle>()
         targetShops.forEach { shop ->
             database.getMonths(shop.id).forEach { month ->
@@ -170,24 +174,34 @@ fun HomeDashboard(
         var pieces = 0
         var days = 0
         val activities = mutableListOf<DashboardActivity>()
+        val monthSummaries = mutableListOf<DashboardMonthSummary>()
         bundles.forEach { bundle ->
             val shopMode = targetShops.firstOrNull { it.id == bundle.month.shopId }?.registrationMode
                 ?: RegistrationMode.NUMERIC
             val bundleExpense = database.calculateMonthExpenses(bundle)
             expense += bundleExpense
+            var monthEarned = 0
+            var monthPieces = 0
+            var monthActiveDays = 0
             bundle.days.forEach { day ->
                 val dayEarned = if (shopMode == RegistrationMode.INDIVIDUAL) {
                     val entries = database.getIndividualEntries(bundle.month.id, day.date)
-                    pieces += entries.sumOf { entry -> entry.quantities.values.sum() }
+                    val dayPieces = entries.sumOf { entry -> entry.quantities.values.sum() }
+                    pieces += dayPieces
+                    monthPieces += dayPieces
                     database.calculateIndividualDayEarned(entries)
                 } else {
-                    pieces += day.quantities.values.sum()
+                    val dayPieces = day.quantities.values.sum()
+                    pieces += dayPieces
+                    monthPieces += dayPieces
                     database.calculateDayEarned(day)
                 }
                 earned += dayEarned
+                monthEarned += dayEarned
                 net += if (bundle.month.deductExpense) dayEarned - day.expense else dayEarned
                 if (day.quantities.values.any { value -> value > 0 } || day.expense > 0 || dayEarned > 0) {
                     days++
+                    monthActiveDays++
                 }
                 if (day.quantities.values.any { value -> value > 0 } || day.expense > 0 || dayEarned > 0) {
                     activities += DashboardActivity(
@@ -201,6 +215,7 @@ fun HomeDashboard(
             }
         }
 
+            monthSummaries += DashboardMonthSummary(bundle.month.name, bundle.month.year, bundle.month.month, monthEarned, bundleExpense, if (bundle.month.deductExpense) monthEarned - bundleExpense else monthEarned, monthPieces, monthActiveDays)
             DashboardTotals(
                 earned = earned,
                 expense = expense,
@@ -208,6 +223,7 @@ fun HomeDashboard(
                 pieces = pieces,
                 months = bundles.size,
                 days = days,
+                monthSummaries = monthSummaries.sortedWith(compareByDescending<DashboardMonthSummary> { it.year }.thenByDescending { it.month }),
                 activities = activities.sortedByDescending { it.date }.take(30)
             )
         }
@@ -398,6 +414,31 @@ fun HomeDashboard(
                                     FilterButton("الإيرادات", filter == ActivityFilter.INCOME, { filter = ActivityFilter.INCOME }, Modifier.weight(1f))
                                     FilterButton("المصروفات", filter == ActivityFilter.EXPENSE, { filter = ActivityFilter.EXPENSE }, Modifier.weight(1f))
                                 }
+                            }
+                        }
+                    }
+                    item {
+                        Column(Modifier.fillMaxWidth().background(AppSurface, RoundedCornerShape(18.dp)).border(1.dp, AppBorder, RoundedCornerShape(18.dp)).padding(12.dp)) {
+                            Row(Modifier.fillMaxWidth().clickable { showMonthlyAnalysis = !showMonthlyAnalysis }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("التحليل المالي الشهري", color = AppText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text("صافي كل شهر والمتبقي المحاسبي من سجلات المحل", color = AppMuted, fontSize = 10.sp)
+                                }
+                                Text(if (showMonthlyAnalysis) "إخفاء ▲" else "عرض ▼", color = Purple, fontWeight = FontWeight.Bold)
+                            }
+                            if (showMonthlyAnalysis) {
+                                Spacer(Modifier.height(8.dp))
+                                if (totals.monthSummaries.isEmpty()) Text("لا توجد أشهر مسجلة للمحل المحدد.", color = AppMuted, fontSize = 12.sp)
+                                else totals.monthSummaries.forEach { month ->
+                                    Column(Modifier.fillMaxWidth().padding(top = 5.dp).background(AppSurfaceAlt, RoundedCornerShape(12.dp)).padding(10.dp)) {
+                                        Text(month.monthName + " " + month.year, color = Purple, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Spacer(Modifier.height(5.dp))
+                                        Text("الإيرادات: " + month.earned + " • المصروفات: " + month.expense, color = AppText, fontSize = 11.sp)
+                                        Text("الصافي المحاسبي / المتبقي بعد المصروفات: " + month.net, color = if (month.net >= 0) Green else Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("القطع: " + month.pieces + " • أيام النشاط: " + month.activeDays + (if (month.activeDays > 0) " • متوسط الإيراد اليومي: " + (month.earned / month.activeDays) else ""), color = AppMuted, fontSize = 10.sp)
+                                    }
+                                }
+                                Text("ملاحظة: الصافي يحترم خيار خصم المصروفات في كل شهر. وهو صافي الدفتر، وليس رصيد مبالغ مدفوعة أو مستحقة ما لم تكن مسجلة في التطبيق.", color = AppMuted, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
                             }
                         }
                     }

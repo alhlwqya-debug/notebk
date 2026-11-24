@@ -279,6 +279,63 @@ fun NotebkSecondaryAction(text: String, onClick: () -> Unit, modifier: Modifier 
     ) { Text(text) }
 }
 
+/** Canonical metric tile used by the home screen and feature dashboards. */
+@Composable
+fun NotebkMetricCard(
+    title: String,
+    value: String,
+    background: Color,
+    accent: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    hideValue: Boolean = false
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(AppRadiusMedium))
+            .background(background)
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(19.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(title, color = AppMuted, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(if (hideValue) "••••" else value, color = accent, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+/** Consistent compact action control for rows, dialogs and feature pages. */
+@Composable
+fun NotebkActionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    outlined: Boolean = false,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    if (outlined) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.heightIn(min = AppControlHeight),
+            enabled = enabled,
+            shape = AppButtonShape,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = NotebkBrandPurple),
+            content = content
+        )
+    } else {
+        Button(
+            onClick = onClick,
+            modifier = modifier.heightIn(min = AppControlHeight),
+            enabled = enabled,
+            shape = AppButtonShape,
+            colors = ButtonDefaults.buttonColors(containerColor = NotebkBrandPurple),
+            content = content
+        )
+    }
+}
+
 @Composable
 fun NotebkStatCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(

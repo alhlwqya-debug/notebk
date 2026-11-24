@@ -230,7 +230,6 @@ fun HomeDashboard(
         totals = updatedTotals
     }
 
-    LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
     // Refresh immediately when the dashboard opens/returns to foreground, and poll while visible.
     // This keeps ads independent from the manual data-sync button.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -242,6 +241,9 @@ fun HomeDashboard(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
+    // One shared refresh trigger: screen entry/return, selected shop, and writes.
+    LaunchedEffect(refreshKey, selectedShopId, shops, foregroundRefreshToken) { reload() }
     LaunchedEffect(refreshKey, selectedShopId, foregroundRefreshToken) {
         while (true) {
             if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {

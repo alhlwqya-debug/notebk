@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import com.ahd.notebk.data.cloud.AdvertisementRepository
 import com.ahd.notebk.data.cloud.HomeAdvertisement
 import androidx.compose.foundation.border
@@ -152,7 +154,8 @@ fun HomeDashboard(
         onDispose { settingsPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
-    fun reload() {
+    suspend fun reload() {
+        val updatedTotals = withContext(Dispatchers.IO) {
         val targetShops = selectedShopId?.let { id -> shops.filter { it.id == id } } ?: shops
         val bundles = mutableListOf<MonthBundle>()
         targetShops.forEach { shop ->
@@ -215,7 +218,7 @@ fun HomeDashboard(
             }
         }
 
-        totals = DashboardTotals(
+            DashboardTotals(
             earned = earned,
             expense = expense,
             net = net,
@@ -223,7 +226,9 @@ fun HomeDashboard(
             months = bundles.size,
             days = days,
             activities = activities.sortedByDescending { it.date }.take(30)
-        )
+            )
+        }
+        totals = updatedTotals
     }
 
     LaunchedEffect(refreshKey, selectedShopId, shops) { reload() }
@@ -423,7 +428,7 @@ fun HomeDashboard(
                             }
                         }
                     } else {
-                        items(filteredActivities, key = { "${it.date}-${it.monthName}-${it.earned}-${it.expense}" }) { activity -> ActivityRow(activity, hideAmounts) }
+                        items(filteredActivities, key = { "${it.date}-${it.monthName}-${it.earned}-${it.expense}-${it.note}" }) { activity -> ActivityRow(activity, hideAmounts) }
                     }
                 }
             }
